@@ -1,0 +1,448 @@
+{
+  "calcSeries": [
+    {
+      "name": "ao5: обычная серия",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 1300, "penalty": "none"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1100, "counting": [true, true, true, false, false]}
+    },
+    {
+      "name": "ao5: среднее округляется вниз (1000.67 -> 1000)",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 900, "penalty": "none"},
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1000, "counting": [true, true, true, false, false]}
+    },
+    {
+      "name": "ao5: один DNF отбрасывается как худшая попытка",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1500, "penalty": "dnf"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1100, "counting": [true, false, true, true, false]}
+    },
+    {
+      "name": "ao5: два DNF — среднее DNF",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1500, "penalty": "dnf"},
+        {"value": 1100, "penalty": "none"},
+        {"value": null, "penalty": "dnf"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": -1, "counting": [true, true, true, false, false]}
+    },
+    {
+      "name": "ao5: один DNS отбрасывается как худшая попытка",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": null, "penalty": "dns"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1100, "counting": [true, true, false, true, false]}
+    },
+    {
+      "name": "ao5: DNS и DNF — среднее DNF",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": null, "penalty": "dns"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1300, "penalty": "dnf"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": -1, "counting": [true, false, false, true, true]}
+    },
+    {
+      "name": "ao5: +2 на отброшенной попытке не влияет на среднее",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 1300, "penalty": "plus2"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1100, "counting": [true, true, true, false, false]}
+    },
+    {
+      "name": "ao5: +2 на учитываемой попытке",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "plus2"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 1500, "penalty": "none"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1166, "counting": [true, true, true, false, false]}
+    },
+    {
+      "name": "ao5: +2 делает лучшую попытку не лучшей",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 800, "penalty": "plus2"},
+        {"value": 900, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 1300, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1100, "counting": [true, false, true, true, false]}
+    },
+    {
+      "name": "ao5: лучшая попытка с +2 — лучший результат со штрафом",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 800, "penalty": "plus2"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1200, "penalty": "none"},
+        {"value": 1300, "penalty": "none"},
+        {"value": 1400, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": 1200, "counting": [false, true, true, true, false]}
+    },
+    {
+      "name": "ao5: одинаковые времена — отбрасываются первая и последняя",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": 1000, "counting": [false, true, true, true, false]}
+    },
+    {
+      "name": "ao5: время больше минуты",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 6245, "penalty": "none"},
+        {"value": 6000, "penalty": "none"},
+        {"value": 5999, "penalty": "none"},
+        {"value": 7000, "penalty": "none"},
+        {"value": 5000, "penalty": "none"}
+      ],
+      "expected": {"best": 5000, "average": 6081, "counting": [true, true, true, false, false]}
+    },
+    {
+      "name": "ao5: все попытки DNF",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "dnf"},
+        {"value": null, "penalty": "dnf"},
+        {"value": null, "penalty": "dns"},
+        {"value": null, "penalty": "dns"},
+        {"value": 1200, "penalty": "dnf"}
+      ],
+      "expected": {"best": -1, "average": -1, "counting": [false, true, true, true, false]}
+    },
+    {
+      "name": "ao5: неполная серия — среднего нет",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": null, "counting": [true, true, true, true, true]}
+    },
+    {
+      "name": "ao5: неполная серия с пропущенной попыткой",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        null,
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": null, "counting": [true, true, true, true, true]}
+    },
+    {
+      "name": "ao5: неполная серия с одним DNF — среднего пока нет",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": null, "penalty": "dnf"},
+        {"value": 1000, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": null, "counting": [true, true, true, true, true]}
+    },
+    {
+      "name": "ao5: неполная серия с двумя DNF — среднее уже DNF",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": null, "penalty": "dnf"},
+        {"value": 1000, "penalty": "none"},
+        {"value": null, "penalty": "dns"}
+      ],
+      "expected": {"best": 1000, "average": -1, "counting": [true, true, true, true, true]}
+    },
+    {
+      "name": "ao5: пустая серия",
+      "format": "ao5", "resultType": "time",
+      "attempts": [],
+      "expected": {"best": null, "average": null, "counting": [true, true, true, true, true]}
+    },
+    {
+      "name": "mo3: обычная серия, округление вниз (1100.33 -> 1100)",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": 1201, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": 1100, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: +2 учитывается в среднем",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "plus2"},
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": 1166, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: DNF — среднее DNF",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1500, "penalty": "dnf"},
+        {"value": 1100, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": -1, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: DNS — среднее DNF",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"},
+        {"value": null, "penalty": "dns"}
+      ],
+      "expected": {"best": 1000, "average": -1, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: неполная серия — среднего нет",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1100, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": null, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: неполная серия с DNF — среднее уже DNF",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": null, "penalty": "dnf"}
+      ],
+      "expected": {"best": -1, "average": -1, "counting": [true, true, true]}
+    },
+    {
+      "name": "bo3: лучшая попытка, DNF не мешает",
+      "format": "bo3", "resultType": "time",
+      "attempts": [
+        {"value": 1200, "penalty": "none"},
+        {"value": 900, "penalty": "dnf"},
+        {"value": 1100, "penalty": "none"}
+      ],
+      "expected": {"best": 1100, "average": null, "counting": [true, true, true]}
+    },
+    {
+      "name": "bo3: все попытки DNF",
+      "format": "bo3", "resultType": "time",
+      "attempts": [
+        {"value": null, "penalty": "dnf"},
+        {"value": null, "penalty": "dnf"},
+        {"value": null, "penalty": "dns"}
+      ],
+      "expected": {"best": -1, "average": null, "counting": [true, true, true]}
+    },
+    {
+      "name": "bo5: 3BLD, время больше минуты",
+      "format": "bo5", "resultType": "time",
+      "attempts": [
+        {"value": 5800, "penalty": "dnf"},
+        {"value": null, "penalty": "dnf"},
+        {"value": 6245, "penalty": "none"},
+        {"value": null, "penalty": "dns"},
+        {"value": 7000, "penalty": "none"}
+      ],
+      "expected": {"best": 6245, "average": null, "counting": [true, true, true, true, true]}
+    },
+    {
+      "name": "bo1: +2 входит в результат",
+      "format": "bo1", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "plus2"}
+      ],
+      "expected": {"best": 1200, "average": null, "counting": [true]}
+    },
+    {
+      "name": "bo1: DNF",
+      "format": "bo1", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "dnf"}
+      ],
+      "expected": {"best": -1, "average": null, "counting": [true]}
+    },
+    {
+      "name": "bo1: попытки нет",
+      "format": "bo1", "resultType": "time",
+      "attempts": [],
+      "expected": {"best": null, "average": null, "counting": [true]}
+    },
+    {
+      "name": "FMC bo1: результат в ходах",
+      "format": "bo1", "resultType": "moves",
+      "attempts": [
+        {"value": 28, "penalty": "none"}
+      ],
+      "expected": {"best": 28, "average": null, "counting": [true]}
+    },
+    {
+      "name": "FMC mo3: среднее в сотых долях хода, округление вниз (28.666 -> 28.66)",
+      "format": "mo3", "resultType": "moves",
+      "attempts": [
+        {"value": 28, "penalty": "none"},
+        {"value": 29, "penalty": "none"},
+        {"value": 29, "penalty": "none"}
+      ],
+      "expected": {"best": 28, "average": 2866, "counting": [true, true, true]}
+    },
+    {
+      "name": "FMC mo3: DNF — среднее DNF",
+      "format": "mo3", "resultType": "moves",
+      "attempts": [
+        {"value": 28, "penalty": "none"},
+        {"value": null, "penalty": "dnf"},
+        {"value": 30, "penalty": "none"}
+      ],
+      "expected": {"best": 28, "average": -1, "counting": [true, true, true]}
+    },
+    {
+      "name": "FMC ao5: один DNF отбрасывается",
+      "format": "ao5", "resultType": "moves",
+      "attempts": [
+        {"value": 30, "penalty": "none"},
+        {"value": 28, "penalty": "none"},
+        {"value": null, "penalty": "dnf"},
+        {"value": 31, "penalty": "none"},
+        {"value": 27, "penalty": "none"}
+      ],
+      "expected": {"best": 27, "average": 2966, "counting": [true, true, false, true, false]}
+    }
+  ],
+
+  "calcSeriesErrors": [
+    {
+      "name": "+2 в FMC не бывает",
+      "format": "bo1", "resultType": "moves",
+      "attempts": [{"value": 28, "penalty": "plus2"}]
+    },
+    {
+      "name": "попыток больше, чем в формате",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"}
+      ]
+    },
+    {
+      "name": "у попытки без DNF нет значения",
+      "format": "ao5", "resultType": "time",
+      "attempts": [{"value": null, "penalty": "none"}]
+    },
+    {
+      "name": "у попытки с +2 нет значения",
+      "format": "ao5", "resultType": "time",
+      "attempts": [{"value": null, "penalty": "plus2"}]
+    },
+    {
+      "name": "нулевое время",
+      "format": "ao5", "resultType": "time",
+      "attempts": [{"value": 0, "penalty": "none"}]
+    },
+    {
+      "name": "отрицательное время",
+      "format": "ao5", "resultType": "time",
+      "attempts": [{"value": -5, "penalty": "none"}]
+    },
+    {
+      "name": "дробное время",
+      "format": "ao5", "resultType": "time",
+      "attempts": [{"value": 9.87, "penalty": "none"}]
+    },
+    {
+      "name": "неизвестный штраф",
+      "format": "ao5", "resultType": "time",
+      "attempts": [{"value": 1000, "penalty": "plus4"}]
+    },
+    {
+      "name": "неизвестный формат",
+      "format": "ao12", "resultType": "time",
+      "attempts": []
+    },
+    {
+      "name": "неизвестный тип результата",
+      "format": "ao5", "resultType": "points",
+      "attempts": []
+    }
+  ],
+
+  "formatResult": [
+    {"value": 987, "resultType": "time", "isAverage": false, "expected": "9.87"},
+    {"value": 5, "resultType": "time", "isAverage": false, "expected": "0.05"},
+    {"value": 100, "resultType": "time", "isAverage": false, "expected": "1.00"},
+    {"value": 1100, "resultType": "time", "isAverage": true, "expected": "11.00"},
+    {"value": 5999, "resultType": "time", "isAverage": false, "expected": "59.99"},
+    {"value": 6000, "resultType": "time", "isAverage": false, "expected": "1:00.00"},
+    {"value": 6245, "resultType": "time", "isAverage": false, "expected": "1:02.45"},
+    {"value": 6081, "resultType": "time", "isAverage": true, "expected": "1:00.81"},
+    {"value": 60500, "resultType": "time", "isAverage": false, "expected": "10:05.00"},
+    {"value": -1, "resultType": "time", "isAverage": false, "expected": "DNF"},
+    {"value": -1, "resultType": "time", "isAverage": true, "expected": "DNF"},
+    {"value": null, "resultType": "time", "isAverage": true, "expected": "—"},
+    {"value": 28, "resultType": "moves", "isAverage": false, "expected": "28"},
+    {"value": 2866, "resultType": "moves", "isAverage": true, "expected": "28.66"},
+    {"value": 3000, "resultType": "moves", "isAverage": true, "expected": "30.00"},
+    {"value": 2805, "resultType": "moves", "isAverage": true, "expected": "28.05"},
+    {"value": -1, "resultType": "moves", "isAverage": true, "expected": "DNF"},
+    {"value": null, "resultType": "moves", "isAverage": false, "expected": "—"}
+  ],
+
+  "formatAttempt": [
+    {"attempt": {"value": 987, "penalty": "none"}, "resultType": "time", "expected": "9.87"},
+    {"attempt": {"value": 987, "penalty": "plus2"}, "resultType": "time", "expected": "11.87 (+2)"},
+    {"attempt": {"value": 5850, "penalty": "plus2"}, "resultType": "time", "expected": "1:00.50 (+2)"},
+    {"attempt": {"value": 6245, "penalty": "none"}, "resultType": "time", "expected": "1:02.45"},
+    {"attempt": {"value": 1500, "penalty": "dnf"}, "resultType": "time", "expected": "DNF"},
+    {"attempt": {"value": null, "penalty": "dnf"}, "resultType": "time", "expected": "DNF"},
+    {"attempt": {"value": null, "penalty": "dns"}, "resultType": "time", "expected": "DNS"},
+    {"attempt": null, "resultType": "time", "expected": "—"},
+    {"attempt": {"value": 28, "penalty": "none"}, "resultType": "moves", "expected": "28"},
+    {"attempt": {"value": null, "penalty": "dnf"}, "resultType": "moves", "expected": "DNF"}
+  ]
+}

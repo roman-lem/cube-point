@@ -1,0 +1,87 @@
+/* Токены из DESIGN.md. Компоненты используют только эти переменные. */
+:root {
+  /* Цвета */
+  --color-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-text-primary: #1a1d23;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-primary: #2563eb;
+  --color-on-primary: #ffffff;
+  --color-personal-best: #16a34a;
+  --color-club-record: #7c3aed;
+  --color-dnf: #dc2626;
+
+  /* Шрифты */
+  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --font-size-body: 16px;
+  --font-weight-body: 400;
+  --font-size-label: 14px;
+  --font-weight-label: 600;
+  --font-size-heading: 22px;
+  --font-weight-heading: 700;
+  --font-size-time-large: 20px;
+  --font-weight-time-large: 600;
+  --font-size-time-small: 14px;
+  --font-weight-time-small: 400;
+
+  /* Скругления */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-badge: 6px;
+
+  /* Отступы */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Раскладка */
+  --page-padding: 16px;
+  --content-max-width: 960px;
+  --control-height: 44px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-primary);
+}

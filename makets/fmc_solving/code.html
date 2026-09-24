@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#F7F8FA;color:#1A1D23;font-family:'Manrope',sans-serif;-webkit-font-smoothing:antialiased;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}@keyframes pulse-ring{0%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(37,99,235,0.7);}70%{transform:scale(1);box-shadow:0 0 0 6px rgba(37,99,235,0);}100%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(37,99,235,0);}}.live-pulse{animation:pulse-ring 2s cubic-bezier(0.45,0,0.55,1) infinite;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "outline": "#737686", "border": "#E5E7EB", "surface-tint": "#0053db", "surface": "#FFFFFF", "on-error-container": "#93000a", "on-tertiary-fixed": "#360f00", "background": "#F7F8FA", "club-record": "#7C3AED", "tertiary": "#943700", "surface-container-lowest": "#ffffff", "surface-container-highest": "#e1e2ea", "on-primary": "#ffffff", "on-surface": "#191c22", "on-secondary-fixed-variant": "#31447b", "on-tertiary-container": "#ffede6", "on-secondary-fixed": "#00174b", "on-primary-container": "#eeefff", "on-tertiary": "#ffffff", "surface-bright": "#f9f9ff", "surface-container": "#ecedf6", "tertiary-container": "#bc4800", "personal-best": "#16A34A", "primary-container": "#2563eb", "text-secondary": "#6B7280", "inverse-on-surface": "#eff0f9", "text-primary": "#1A1D23", "primary-fixed-dim": "#b4c5ff", "outline-variant": "#c3c6d7", "dnf": "#DC2626", "surface-dim": "#d8dae2", "primary": "#004ac6", "on-tertiary-fixed-variant": "#7d2d00", "inverse-surface": "#2d3037", "secondary-fixed-dim": "#b4c5ff", "surface-container-low": "#f2f3fc", "error": "#ba1a1a", "secondary-fixed": "#dbe1ff", "inverse-primary": "#b4c5ff", "surface-variant": "#e1e2ea", "secondary": "#495c95", "on-secondary-container": "#394c84", "on-error": "#ffffff", "on-primary-fixed-variant": "#003ea8", "error-container": "#ffdad6", "on-primary-fixed": "#00174b", "on-background": "#191c22", "primary-fixed": "#dbe1ff", "tertiary-fixed": "#ffdbcd", "secondary-container": "#acbfff", "surface-container-high": "#e6e8f0", "tertiary-fixed-dim": "#ffb596", "on-secondary": "#ffffff", "on-surface-variant": "#434655" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "margin": "1rem", "gutter": "1rem", "space-xl": "1.5rem", "margin-desktop": "2rem", "space-2xl": "2rem", "gutter-desktop": "1.5rem", "space-lg": "1rem", "space-md": "0.75rem", "space-sm": "0.5rem" }, fontFamily: { "time-hero": ["JetBrains Mono"], "time-micro": ["JetBrains Mono"], "headline-xl-mobile": ["Manrope"], "time-large": ["JetBrains Mono"], "headline-sm": ["Manrope"], "label-md": ["Manrope"], "headline-lg": ["Manrope"], "time-small": ["JetBrains Mono"], "body-sm": ["Manrope"], "body-lg": ["Manrope"], "label-sm": ["Manrope"], "headline-xl": ["Manrope"] }, fontSize: { "time-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "time-micro": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "headline-xl-mobile": ["26px", { "lineHeight": "34px", "fontWeight": "700" }], "time-large": ["20px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "600" }], "headline-lg": ["22px", { "lineHeight": "28px", "fontWeight": "700" }], "time-small": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }], "headline-xl": ["32px", { "lineHeight": "40px", "fontWeight": "700" }] } } } };</script></head><body class="bg-background text-text-primary flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex flex-col justify-center min-w-0 flex-1"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm font-bold text-text-primary tracking-tight truncate">SPEEDCUBE CLUB</span><div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary-container/10"><span class="w-2 h-2 rounded-full bg-primary-container live-pulse"></span><span class="font-label-sm text-label-sm uppercase font-bold text-primary-container tracking-wide">В ЭФИРЕ</span></div></div><div class="flex items-center gap-1.5"><span class="font-label-sm text-label-sm text-primary font-bold tracking-wider">FMC</span><span class="text-outline text-label-sm">•</span><span class="font-body-sm text-body-sm text-text-secondary truncate">Минимум ходов</span></div></div><div class="flex items-center pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-20 bg-background"><div class="flex flex-col w-full px-margin pb-space-xl">
+<!-- Top Navigation & Attempt Meta Row -->
+<div class="flex items-center justify-between py-space-sm">
+<div class="flex items-center gap-space-sm">
+<button aria-label="Назад" class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface text-text-primary shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<!-- Event Switcher Chip -->
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-surface rounded-full shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="font-label-md text-label-md text-text-primary">FMC</span>
+<span class="material-symbols-outlined text-[16px] text-text-secondary">arrow_drop_down</span>
+</div>
+</div>
+<!-- Mode Badge -->
+<div class="px-2.5 py-1 bg-surface-container rounded-md">
+<span class="font-label-sm text-label-sm text-text-secondary">Одна попытка (bo1)</span>
+</div>
+</div>
+<!-- Countdown Timer Section -->
+<div class="flex flex-col items-center justify-center mt-space-sm mb-space-md py-space-md px-space-lg bg-surface rounded-xl shadow-sm text-center">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-secondary mb-0.5">Осталось времени</span>
+<div class="flex items-baseline justify-center gap-1">
+<span class="font-time-hero text-time-hero text-text-primary tabular-nums tracking-tight" id="countdown-timer">47:12</span>
+</div>
+<span class="font-label-sm text-label-sm text-text-secondary mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">info</span>
+      Лимит 60 минут на попытку
+    </span>
+</div>
+<!-- Scramble Block -->
+<div class="flex flex-col bg-surface rounded-xl shadow-sm p-space-md mb-space-md">
+<div class="flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-primary-container">extension</span>
+<span class="font-label-sm text-label-sm uppercase font-bold tracking-wider">Скрамбл</span>
+</div>
+<button aria-label="Скопировать скрамбл" class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container-low text-text-secondary active:text-text-primary transition-colors" id="copy-scramble-btn" type="button">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+<span class="font-label-sm text-label-sm font-semibold" id="copy-text">Копировать</span>
+</button>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg">
+<p class="font-time-small text-time-small text-text-primary leading-relaxed select-all break-normal text-center font-medium" id="scramble-text">
+        R' U' F D2 B2 L2 U2 F' L2 R2 U2 B' D2 F' R' B U' L F' D' B2 R' U' F
+      </p>
+</div>
+</div>
+<!-- Solution Input Card -->
+<div class="flex flex-col bg-surface rounded-xl shadow-sm p-space-md mb-space-md">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary-container">edit_note</span>
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Ваше решение</h2>
+</div>
+<button class="font-label-sm text-label-sm text-text-secondary hover:text-dnf transition-colors" id="clear-all-btn" type="button">
+        Очистить
+      </button>
+</div>
+<!-- Move Display Area with Blinking Cursor -->
+<div class="min-h-[110px] max-h-[170px] overflow-y-auto bg-surface-container-low rounded-lg p-space-md flex flex-wrap content-start items-center gap-x-2 gap-y-2">
+<div class="flex flex-wrap items-center gap-x-2 gap-y-1 font-time-large text-time-large text-text-primary tracking-wide leading-relaxed font-semibold" id="solution-container">
+<!-- Rendered Move Elements -->
+<span class="solution-move">R'</span>
+<span class="solution-move">U'</span>
+<span class="solution-move">F</span>
+<span class="solution-move">D2</span>
+<span class="solution-move">L2</span>
+<span class="solution-move">F</span>
+<span class="solution-move">R2</span>
+<span class="solution-move">U2</span>
+<span class="solution-move">R'</span>
+<span class="solution-move">U</span>
+<span class="solution-move">R</span>
+<span class="solution-move">U'</span>
+<span class="solution-move">F'</span>
+<span class="solution-move">D'</span>
+<span class="solution-move">B2</span>
+<span class="solution-move">R</span>
+</div>
+<!-- Virtual Active Cursor -->
+<span class="w-[2px] h-6 bg-primary-container animate-pulse inline-block align-middle ml-0.5"></span>
+</div>
+</div>
+<!-- Virtual FMC Speedcube Keyboard -->
+<div class="flex flex-col gap-space-xs bg-surface-container rounded-xl p-space-sm mb-space-md shadow-sm">
+<!-- Row 1: Faces -->
+<div class="grid grid-cols-6 gap-space-xs">
+<button class="kb-face-btn flex items-center justify-center h-12 bg-surface text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-all" data-face="R" type="button">
+        R
+      </button>
+<button class="kb-face-btn flex items-center justify-center h-12 bg-surface text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-all" data-face="L" type="button">
+        L
+      </button>
+<button class="kb-face-btn flex items-center justify-center h-12 bg-surface text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-all" data-face="U" type="button">
+        U
+      </button>
+<button class="kb-face-btn flex items-center justify-center h-12 bg-surface text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-all" data-face="D" type="button">
+        D
+      </button>
+<button class="kb-face-btn flex items-center justify-center h-12 bg-surface text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-all" data-face="F" type="button">
+        F
+      </button>
+<button class="kb-face-btn flex items-center justify-center h-12 bg-surface text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-all" data-face="B" type="button">
+        B
+      </button>
+</div>
+<!-- Row 2: Modifiers, Toggle wide, Rotations & Delete -->
+<div class="grid grid-cols-7 gap-space-xs">
+<!-- Prime modifier -->
+<button class="kb-mod-btn flex items-center justify-center h-12 bg-surface-container-high text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-colors" id="btn-prime" type="button">
+        '
+      </button>
+<!-- Double modifier -->
+<button class="kb-mod-btn flex items-center justify-center h-12 bg-surface-container-high text-text-primary rounded-lg font-time-large text-time-large font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-colors" id="btn-double" type="button">
+        2
+      </button>
+<!-- Wide toggle button -->
+<button aria-pressed="false" class="flex items-center justify-center h-12 bg-surface-container-high text-text-primary rounded-lg font-time-small text-time-small font-bold shadow-sm active:scale-95 transition-all" id="btn-wide-toggle" type="button">
+        w
+      </button>
+<!-- Rotations -->
+<button class="kb-rot-btn flex items-center justify-center h-12 bg-surface-bright text-text-secondary rounded-lg font-time-small text-time-small font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-colors" data-face="x" type="button">
+        x
+      </button>
+<button class="kb-rot-btn flex items-center justify-center h-12 bg-surface-bright text-text-secondary rounded-lg font-time-small text-time-small font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-colors" data-face="y" type="button">
+        y
+      </button>
+<button class="kb-rot-btn flex items-center justify-center h-12 bg-surface-bright text-text-secondary rounded-lg font-time-small text-time-small font-bold shadow-sm active:bg-primary-container active:text-on-primary transition-colors" data-face="z" type="button">
+        z
+      </button>
+<!-- Backspace key -->
+<button aria-label="Удалить ход" class="flex items-center justify-center h-12 bg-error-container text-on-error-container rounded-lg shadow-sm active:scale-95 transition-transform" id="btn-backspace" type="button">
+<span class="material-symbols-outlined text-[20px]">backspace</span>
+</button>
+</div>
+</div>
+<!-- Primary Submit Block -->
+<div class="flex flex-col items-center gap-space-xs mt-space-xs">
+<button class="w-full h-11 bg-primary-container text-on-primary rounded-lg font-label-md text-label-md font-bold shadow-sm active:scale-[0.98] transition-transform flex items-center justify-center gap-2" id="submit-solution-btn" type="button">
+<span class="material-symbols-outlined text-[20px]">done_all</span>
+      Сдать решение
+    </button>
+<div class="flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span class="font-label-sm text-label-sm">Решение фиксируется окончательно</span>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    let moves = ["R'", "U'", "F", "D2", "L2", "F", "R2", "U2", "R'", "U", "R", "U'", "F'", "D'", "B2", "R"];
+    let isWide = false;
+
+    const container = document.getElementById('solution-container');
+    const wideBtn = document.getElementById('btn-wide-toggle');
+    const faceButtons = document.querySelectorAll('.kb-face-btn, .kb-rot-btn');
+    const primeBtn = document.getElementById('btn-prime');
+    const doubleBtn = document.getElementById('btn-double');
+    const backspaceBtn = document.getElementById('btn-backspace');
+    const clearBtn = document.getElementById('clear-all-btn');
+    const copyBtn = document.getElementById('copy-scramble-btn');
+    const scrambleEl = document.getElementById('scramble-text');
+    const copyText = document.getElementById('copy-text');
+
+    function renderMoves() {
+      container.innerHTML = '';
+      moves.forEach(m => {
+        const span = document.createElement('span');
+        span.className = 'solution-move';
+        span.textContent = m;
+        container.appendChild(span);
+      });
+      container.parentElement.scrollTop = container.parentElement.scrollHeight;
+    }
+
+    // Wide toggle
+    wideBtn.addEventListener('click', () => {
+      isWide = !isWide;
+      if (isWide) {
+        wideBtn.classList.remove('bg-surface-container-high', 'text-text-primary');
+        wideBtn.classList.add('bg-primary-container', 'text-on-primary');
+        wideBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        wideBtn.classList.add('bg-surface-container-high', 'text-text-primary');
+        wideBtn.classList.remove('bg-primary-container', 'text-on-primary');
+        wideBtn.setAttribute('aria-pressed', 'false');
+      }
+    });
+
+    // Face / Rotation buttons
+    faceButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const face = btn.getAttribute('data-face');
+        const isRot = ['x', 'y', 'z'].includes(face);
+        let move = face;
+        if (isWide && !isRot) {
+          move = face.toLowerCase() + 'w';
+        }
+        moves.push(move);
+        renderMoves();
+        // Reset wide toggle after applying
+        if (isWide && !isRot) {
+          isWide = false;
+          wideBtn.classList.add('bg-surface-container-high', 'text-text-primary');
+          wideBtn.classList.remove('bg-primary-container', 'text-on-primary');
+          wideBtn.setAttribute('aria-pressed', 'false');
+        }
+      });
+    });
+
+    // Prime modifier (')
+    primeBtn.addEventListener('click', () => {
+      if (!moves.length) return;
+      let last = moves[moves.length - 1];
+      if (last.endsWith("'")) {
+        moves[moves.length - 1] = last.slice(0, -1);
+      } else if (last.endsWith("2")) {
+        moves[moves.length - 1] = last.slice(0, -1) + "'";
+      } else {
+        moves[moves.length - 1] = last + "'";
+      }
+      renderMoves();
+    });
+
+    // Double modifier (2)
+    doubleBtn.addEventListener('click', () => {
+      if (!moves.length) return;
+      let last = moves[moves.length - 1];
+      if (last.endsWith("2")) {
+        moves[moves.length - 1] = last.slice(0, -1);
+      } else if (last.endsWith("'")) {
+        moves[moves.length - 1] = last.slice(0, -1) + "2";
+      } else {
+        moves[moves.length - 1] = last + "2";
+      }
+      renderMoves();
+    });
+
+    // Backspace
+    backspaceBtn.addEventListener('click', () => {
+      if (moves.length > 0) {
+        moves.pop();
+        renderMoves();
+      }
+    });
+
+    // Clear
+    clearBtn.addEventListener('click', () => {
+      moves = [];
+      renderMoves();
+    });
+
+    // Copy Scramble
+    copyBtn.addEventListener('click', () => {
+      if (navigator.clipboard && scrambleEl) {
+        navigator.clipboard.writeText(scrambleEl.textContent.trim()).then(() => {
+          copyText.textContent = "Скопировано!";
+          setTimeout(() => {
+            copyText.textContent = "Копировать";
+          }, 2000);
+        });
+      }
+    });
+
+    // Countdown mock with last 5-min color transition
+    let totalSeconds = 47 * 60 + 12;
+    const timerDisplay = document.getElementById('countdown-timer');
+
+    setInterval(() => {
+      if (totalSeconds > 0) {
+        totalSeconds--;
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        timerDisplay.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+        if (totalSeconds <= 300) {
+          timerDisplay.classList.remove('text-text-primary');
+          timerDisplay.classList.add('text-dnf');
+        }
+      }
+    }, 1000);
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary-container font-semibold"><div class="flex justify-around items-center h-16 px-space-xs max-w-lg mx-auto"><a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-1 transition-colors text-primary-container font-semibold" data-path="timer" href="#"><span class="material-symbols-outlined text-[22px]">timer</span><span class="font-label-sm text-label-sm">Таймер</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-1 text-text-secondary hover:text-text-primary transition-colors" data-path="live" href="#"><span class="material-symbols-outlined text-[22px]">sensors</span><span class="font-label-sm text-label-sm">Лайв</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-1 text-text-secondary hover:text-text-primary transition-colors" data-path="meetups" href="#"><span class="material-symbols-outlined text-[22px]">groups</span><span class="font-label-sm text-label-sm">Митапы</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-1 text-text-secondary hover:text-text-primary transition-colors" data-path="records" href="#"><span class="material-symbols-outlined text-[22px]">emoji_events</span><span class="font-label-sm text-label-sm">Рекорды</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-1 text-text-secondary hover:text-text-primary transition-colors" data-path="statistics" href="#"><span class="material-symbols-outlined text-[22px]">query_stats</span><span class="font-label-sm text-label-sm">Статистика</span></a></div></nav></body></html>

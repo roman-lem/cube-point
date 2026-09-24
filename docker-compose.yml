@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Задайте SECRET_KEY в файле .env}
+      DATABASE_URL: sqlite:////app/instance/cubing.db
+    volumes:
+      - backend-data:/app/instance
+    # Наружу не публикуется: доступен только контейнеру web по адресу backend:5000.
+    expose:
+      - "5000"
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
