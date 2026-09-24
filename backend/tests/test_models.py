@@ -276,3 +276,5 @@ def test_seed_command(app, session):
         assert session.scalar(
             sa.select(sa.func.count()).select_from(Attempt).where(Attempt.penalty == penalty)
         ) > 0, penalty
+    # Кеш рекордов заполнен: сингл и среднее во всех дисциплинах со средним.
+    assert count(session, ClubRecord) > 0

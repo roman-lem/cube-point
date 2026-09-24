@@ -23,6 +23,29 @@ export interface MeetupEvent {
   format: SeriesFormat
   /** Число начатых серий в дисциплине. */
   participants_count: number
+  /** Лидер таблицы; только на странице встречи. */
+  leader?: EventLeader | null
+  /** Серия текущего пользователя; только на странице встречи. */
+  my_series?: MyEventSeries | null
+}
+
+export interface EventLeader {
+  display_name: string
+  value: number
+  /** Лидер показан средним (иначе — лучшей попыткой). */
+  is_average: boolean
+}
+
+/** Серия текущего пользователя для карточки дисциплины. */
+export interface MyEventSeries {
+  status: 'in_progress' | 'completed'
+  attempts_done: number
+  best: number | null
+  average: number | null
+  /** null — без места: все попытки DNF или серия не закончена. */
+  place: number | null
+  /** Число строк в таблице дисциплины. */
+  total: number
 }
 
 export interface Meetup extends Omit<MeetupSummary, 'events'> {
@@ -47,4 +70,19 @@ export interface JoinPreview {
   starts_at: string
   place: string | null
   club: { id: number; name: string; timezone: string }
+}
+
+/** Идущая встреча, где пользователь подтверждён (GET /api/me/active). */
+export interface ActiveMeetup {
+  id: number
+  date: string
+  starts_at: string
+  place: string | null
+  club: { id: number; name: string }
+  events: {
+    event_id: string
+    format: SeriesFormat
+    /** Серия пользователя; null — не начата. */
+    series: { status: 'in_progress' | 'completed'; attempts_done: number } | null
+  }[]
 }

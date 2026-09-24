@@ -22,6 +22,7 @@ from .models import (
     ParticipantStatus, Penalty, Scramble, Series, SeriesStatus, User, utcnow,
 )
 from .results import ATTEMPTS_COUNT, calc_series
+from .scoring import recalc_records
 
 PASSWORD = "password"
 # Тюмень — UTC+5 круглый год (Asia/Yekaterinburg).
@@ -116,6 +117,10 @@ def seed_command(reset):
             club_id=club.id, user_id=cuber.user.id, joined_at=joined.starts_at,
             role=ClubRole.ORGANIZER if cuber is ORGANIZER else ClubRole.MEMBER,
         ))
+
+    db.session.flush()
+    for event_id in EVENTS:
+        recalc_records(club.id, event_id)
 
     db.session.commit()
     _print_summary(admin)

@@ -4,12 +4,14 @@ import { computed, ref, watch } from 'vue'
 import { useCurrentClubStore } from '@/entities/club'
 import { EventCard, fetchMeetup, MeetupHeader, type MeetupPageData } from '@/entities/meetup'
 import { ApiError } from '@/shared/api'
+import { EVENTS, type EventId } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
 const { meetupId } = defineProps<{ meetupId: number }>()
 
-// Пока заявка ждёт подтверждения, страница сама проверяет её статус.
-const PENDING_REFRESH_MS = 15_000
+// Пока заявка ждёт подтверждения или идёт встреча, страница сама обновляется:
+// статус заявки, результаты и лидеры в карточках.
+const REFRESH_MS = 15_000
 
 const clubStore = useCurrentClubStore()
 const data = ref<MeetupPageData | null>(null)
@@ -30,10 +32,10 @@ const requestStatus = computed(() => data.value?.my_request?.status ?? null)
 const isOrganizer = computed(() => data.value?.my_role === 'organizer')
 
 useIntervalFn(() => {
-  if (requestStatus.value === 'pending') {
+  if (requestStatus.value === 'pending' || data.value?.meetup.status === 'live') {
     load()
   }
-}, PENDING_REFRESH_MS)
+}, REFRESH_MS)
 
 // Серию можно начать только подтверждённому участнику и только во время встречи
 // (сервер проверяет это же). Ожидающие видят кнопку, но она неактивна.
@@ -43,6 +45,22 @@ const canSolve = computed(
 const showSolveButton = computed(
   () => requestStatus.value === 'approved' || requestStatus.value === 'pending',
 )
+
+// FMC сдаётся отдельным экраном, он появится позже.
+const isFmc = (eventId: string) => EVENTS[eventId as EventId]?.resultType === 'moves'
+
+// «Собрать» открывает тренировку с кнопкой «Начать серию»,
+// «Продолжить» — сразу соревновательный режим.
+function timerRoute(eventId: string, continueSeries: boolean) {
+  return {
+    name: 'timer',
+    query: {
+      event: eventId,
+      meetup: String(meetupId),
+      ...(continueSeries ? { mode: 'series' } : {}),
+    },
+  }
+}
 
 const participation = computed(() => {
   const meetup = data.value?.meetup
@@ -104,18 +122,21 @@ const participation = computed(() => {
         <EventCard
           v-for="event in data.meetup.events"
           :key="event.id"
-          :event-id="event.event_id"
-          :format="event.format"
-          :participants-count="event.participants_count"
+          :event="event"
+          :results-to="{ name: 'event-results', params: { meetupId, eventId: event.event_id } }"
         >
-          <template v-if="showSolveButton" #action>
-            <RouterLink v-if="canSolve" class="meetup-page__solve" :to="{ name: 'timer' }">
-              <AppIcon name="play" :size="18" />
-              Собрать
+          <template v-if="showSolveButton && event.my_series?.status !== 'completed'" #action>
+            <RouterLink
+              v-if="canSolve && !isFmc(event.event_id)"
+              class="meetup-page__solve"
+              :to="timerRoute(event.event_id, event.my_series?.status === 'in_progress')"
+            >
+              <AppIcon :name="event.my_series ? 'timer' : 'play'" :size="18" />
+              {{ event.my_series ? 'Продолжить' : 'Собрать' }}
             </RouterLink>
             <span v-else class="meetup-page__solve meetup-page__solve--locked" aria-disabled="true">
               <AppIcon name="lock" :size="18" />
-              Собрать
+              {{ isFmc(event.event_id) ? 'Скоро' : 'Собрать' }}
             </span>
           </template>
         </EventCard>

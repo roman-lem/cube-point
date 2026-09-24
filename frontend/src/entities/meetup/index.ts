@@ -1,6 +1,7 @@
-export { fetchClubMeetups, fetchJoinPreview, fetchMeetup } from './api/meetupApi'
+export { fetchActiveMeetups, fetchClubMeetups, fetchJoinPreview, fetchMeetup } from './api/meetupApi'
 export type {
-  JoinPreview, Meetup, MeetupEvent, MeetupPageData, MeetupStatus, MeetupSummary, RequestStatus,
+  ActiveMeetup, EventLeader, JoinPreview, Meetup, MeetupEvent, MeetupPageData, MeetupStatus,
+  MeetupSummary, MyEventSeries, RequestStatus,
 } from './model/types'
 export { default as EventCard } from './ui/EventCard.vue'
 export { default as MeetupCard } from './ui/MeetupCard.vue'

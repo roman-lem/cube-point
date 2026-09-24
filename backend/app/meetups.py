@@ -25,7 +25,8 @@ from .models import (
 from .permissions import (
     get_membership, get_or_404, is_banned, is_organizer, my_role, require_organizer,
 )
-from .results import ATTEMPTS_COUNT
+from .results import ATTEMPTS_COUNT, DNF
+from .scoring import AVERAGE_FORMATS, event_table
 
 meetups = Blueprint("meetups", __name__)
 
@@ -264,11 +265,46 @@ def get_meetup_page(meetup_id):
         participant = db.session.get(MeetupParticipant, (meetup.id, current_user.id))
         if participant:
             my_request = {"status": participant.status.value}
+    result = serialize_meetup(meetup)
+    for event, meetup_event in zip(result["events"], meetup.events):
+        event.update(event_standing(meetup_event))
     return {
-        "meetup": serialize_meetup(meetup),
+        "meetup": result,
         "my_role": my_role(meetup.club_id),
         "my_request": my_request,
     }
+
+
+def event_standing(meetup_event):
+    """Для карточки дисциплины: лидер таблицы и серия текущего пользователя."""
+    rows = event_table(meetup_event)
+    leader = None
+    if rows and rows[0]["place"] == 1:
+        series = rows[0]["series"]
+        # В форматах со средним лидер показывается средним, если оно есть.
+        use_average = meetup_event.format in AVERAGE_FORMATS and series.average != DNF
+        leader = {
+            "display_name": series.user.display_name,
+            "value": series.average if use_average else series.best,
+            "is_average": use_average,
+        }
+
+    my_series = None
+    if current_user.is_authenticated:
+        mine = next(
+            (row for row in rows if row["series"].user_id == current_user.id), None,
+        )
+        if mine:
+            series = mine["series"]
+            my_series = {
+                "status": series.status.value,
+                "attempts_done": len(series.attempts),
+                "best": series.best,
+                "average": series.average,
+                "place": mine["place"],
+                "total": len(rows),
+            }
+    return {"leader": leader, "my_series": my_series}
 
 
 @meetups.post("/meetups/<int:meetup_id>/start")

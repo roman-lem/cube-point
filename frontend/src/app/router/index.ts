@@ -3,6 +3,7 @@ import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
 import { ClubSettingsPage } from '@/pages/club-settings'
+import { EventResultsPage } from '@/pages/event-results'
 import { HomePage } from '@/pages/home'
 import { JoinPage } from '@/pages/join'
 import { MeetupPage } from '@/pages/meetup'
@@ -10,6 +11,7 @@ import { MeetupCreatePage } from '@/pages/meetup-create'
 import { MeetupManagePage } from '@/pages/meetup-manage'
 import { ProfilePage } from '@/pages/profile'
 import { StubPage } from '@/pages/stub'
+import { TimerPage } from '@/pages/timer'
 import { installGuards } from './guards'
 
 declare module 'vue-router' {
@@ -93,14 +95,20 @@ export const router = createRouter({
       props: numberParams('meetupId'),
       meta: { requiresAuth: true, tab: 'club' },
     },
+    {
+      path: '/meetups/:meetupId(\\d+)/events/:eventId',
+      name: 'event-results',
+      component: EventResultsPage,
+      props: (route) => ({ meetupId: Number(route.params.meetupId), eventId: route.params.eventId }),
+      meta: { tab: 'club' },
+    },
     { path: '/join/:token', name: 'join', component: JoinPage, props: true, meta: { tab: 'club' } },
 
     // Вкладки вошедшего пользователя
     {
       path: '/timer',
       name: 'timer',
-      component: StubPage,
-      props: { title: 'Таймер' },
+      component: TimerPage,
       meta: { requiresAuth: true, tab: 'timer' },
     },
     {
