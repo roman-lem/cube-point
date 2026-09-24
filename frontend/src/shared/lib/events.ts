@@ -28,6 +28,9 @@ export const EVENTS: Record<EventId, EventInfo> = {
  */
 export const EVENT_IDS: EventId[] = ['333', '222', '333oh', 'pyram', '333fm', '333bf']
 
+/** Дисциплины таймера и тренировочных сессий: только на время, FMC — отдельный экран. */
+export const TIMER_EVENT_IDS = EVENT_IDS.filter((id) => EVENTS[id].resultType === 'time')
+
 export const FORMAT_NAMES: Record<SeriesFormat, string> = {
   ao5: 'Среднее из 5',
   mo3: 'Среднее из 3',

@@ -1,5 +1,13 @@
 export * from './results'
-export { EVENT_IDS, EVENTS, FORMAT_NAMES, FORMATS, eventName, formatName } from './events'
+export {
+  EVENT_IDS,
+  EVENTS,
+  FORMAT_NAMES,
+  FORMATS,
+  TIMER_EVENT_IDS,
+  eventName,
+  formatName,
+} from './events'
 export type { EventId, EventInfo } from './events'
 export { formatDate, formatTime, formatTimeRange, todayIn } from './datetime'
 export { plural } from './plural'

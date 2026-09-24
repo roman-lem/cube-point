@@ -1,5 +1,5 @@
 import { ApiError, http } from '@/shared/api'
-import type { EventResults, MySeries } from '../model/types'
+import type { EventResults, LiveSeriesMeetup, MySeries } from '../model/types'
 
 const eventPath = (meetupId: number, eventId: string) =>
   `/api/meetups/${meetupId}/events/${encodeURIComponent(eventId)}`
@@ -19,4 +19,9 @@ export async function fetchMySeries(meetupId: number, eventId: string): Promise<
 
 export function fetchEventResults(meetupId: number, eventId: string) {
   return http.get<EventResults>(`${eventPath(meetupId, eventId)}/results`)
+}
+
+/** Свои серии на идущих встречах: для вкладки «Статистика». */
+export async function fetchLiveSeries(): Promise<LiveSeriesMeetup[]> {
+  return (await http.get<{ meetups: LiveSeriesMeetup[] }>('/api/me/series')).meetups
 }

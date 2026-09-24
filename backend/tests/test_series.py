@@ -5,7 +5,9 @@ from datetime import date, timedelta
 import pytest
 
 from app.extensions import db
-from app.models import Attempt, ClubRecord, Disqualification, RecordType, User
+from app.models import (
+    Attempt, ClubRecord, Disqualification, Meetup, MeetupStatus, RecordType, User,
+)
 
 from .helpers import MEMBER, ORGANIZER, client_for, create_club, create_user, error
 
@@ -426,3 +428,45 @@ def test_my_active_meetups(clients, meetup_id):
     assert meetups[0]["events"][0]["series"] == {"status": "in_progress", "attempts_done": 1}
     assert meetups[0]["events"][1]["series"] is None
     assert pending == []
+
+
+# Серии пользователя на идущих встречах
+
+def test_my_series_on_live_meetups(clients, meetup_id):
+    solve(clients["anna"], meetup_id, [1000, None])
+    solve(clients["anna"], meetup_id, [900, 1000, 1100], event_id="222")
+    solve(clients["boris"], meetup_id, [1500])
+
+    response = clients["anna"].get("/api/me/series")
+
+    assert response.status_code == 200
+    meetups = response.get_json()["meetups"]
+    assert [m["id"] for m in meetups] == [meetup_id]
+    assert meetups[0]["club"]["timezone"]
+    cube, two = meetups[0]["series"]
+    assert cube == {
+        "id": cube["id"], "event_id": "333", "format": "ao5", "status": "in_progress",
+        "attempts": [
+            {"value": 1000, "penalty": "none"}, {"value": None, "penalty": "dnf"},
+            None, None, None,
+        ],
+        "best": 1000, "average": None,
+    }
+    assert (two["event_id"], two["status"], two["best"]) == ("222", "completed", 900)
+
+
+def test_my_series_without_series(clients, meetup_id):
+    assert clients["boris"].get("/api/me/series").get_json() == {"meetups": []}
+
+
+def test_my_series_skips_finished_meetups(world, org, clients, meetup_id):
+    solve(clients["anna"], meetup_id, [1000])
+    with world["app"].app_context():
+        db.session.get(Meetup, meetup_id).status = MeetupStatus.FINISHED
+        db.session.commit()
+
+    assert clients["anna"].get("/api/me/series").get_json() == {"meetups": []}
+
+
+def test_my_series_requires_login(client):
+    assert client.get("/api/me/series").status_code == 401

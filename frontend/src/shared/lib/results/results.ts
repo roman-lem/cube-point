@@ -1,4 +1,4 @@
-// Подсчёт результатов серии и форматирование для отображения.
+// Подсчёт результатов серии, средних тренировки и форматирование для отображения.
 //
 // Повторяет backend/app/results.py (источник правды) для живого пересчёта
 // при вводе. Обе реализации проверяются общими тестами из
@@ -93,9 +93,7 @@ export function calcSeries(
       const order = [...values.keys()].sort((a, b) => compareValues(values[a]!, values[b]!))
       const dropped = [order[0], order[order.length - 1]]
       counting = values.map((_, i) => !dropped.includes(i))
-      if (average === null) {
-        average = mean(order.slice(1, -1).map((i) => values[i]!), resultType)
-      }
+      average = trimmedMean(values, resultType)
     }
   } else if (seriesFormat === 'mo3') {
     if (dnfCount >= 1) {
@@ -106,6 +104,37 @@ export function calcSeries(
   }
 
   return { best: best(values), average, counting }
+}
+
+/**
+ * Среднее последних n попыток (ao5, ao12 тренировки) или null, если их меньше n.
+ * Отбрасываются одна лучшая и одна худшая попытка, остальные усредняются.
+ * Один DNF отбрасывается как худшая, два и более — среднее DNF.
+ */
+export function averageOf(attempts: Attempt[], n: number, resultType: ResultType): number | null {
+  checkWindow(n)
+  checkResultType(resultType)
+  if (attempts.length < n) {
+    return null
+  }
+  return trimmedMean(attempts.slice(-n).map((a) => attemptValue(a, resultType)), resultType)
+}
+
+/**
+ * Скользящие средние: для каждой попытки — среднее n попыток, которыми
+ * она заканчивается (как averageOf). У первых n - 1 попыток — null.
+ */
+export function rollingAverages(
+  attempts: Attempt[],
+  n: number,
+  resultType: ResultType,
+): (number | null)[] {
+  checkWindow(n)
+  checkResultType(resultType)
+  const values = attempts.map((a) => attemptValue(a, resultType))
+  return values.map((_, i) =>
+    i + 1 >= n ? trimmedMean(values.slice(i + 1 - n, i + 1), resultType) : null,
+  )
 }
 
 /** Результат для отображения: 9.87, 1:02.45, 28, 28.33, DNF, —. */
@@ -169,6 +198,22 @@ function checkAttempt(attempt: Attempt, resultType: ResultType): void {
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`Значение попытки должно быть целым больше нуля: ${value}`)
   }
+}
+
+// Меньше трёх попыток: после отбрасывания лучшей и худшей нечего усреднять.
+function checkWindow(n: number): void {
+  if (!Number.isInteger(n) || n < 3) {
+    throw new Error(`Число попыток для среднего должно быть не меньше 3: ${n}`)
+  }
+}
+
+/** Среднее без одной лучшей и одной худшей попытки; два DNF и более — DNF. */
+function trimmedMean(values: number[], resultType: ResultType): number {
+  if (values.filter((v) => v === DNF).length >= 2) {
+    return DNF
+  }
+  const kept = [...values].sort(compareValues).slice(1, -1)
+  return mean(kept, resultType)
 }
 
 // DNF хуже любого времени.

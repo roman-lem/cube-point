@@ -48,3 +48,23 @@ export interface EventResults {
   event: { event_id: string; format: SeriesFormat }
   rows: ResultsRow[]
 }
+
+/** Своя серия на идущей встрече (GET /api/me/series). */
+export interface LiveSeries {
+  id: number
+  event_id: string
+  format: SeriesFormat
+  status: SeriesStatus
+  /** По ячейке на каждую попытку формата, несобранные — null. */
+  attempts: (Attempt | null)[]
+  best: number | null
+  average: number | null
+}
+
+/** Идущая встреча и свои серии на ней. */
+export interface LiveSeriesMeetup {
+  id: number
+  date: string
+  club: { id: number; name: string; timezone: string }
+  series: LiveSeries[]
+}

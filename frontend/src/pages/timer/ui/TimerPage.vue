@@ -3,36 +3,43 @@ import { useEventListener, useWakeLock } from '@vueuse/core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchActiveMeetups, type ActiveMeetup } from '@/entities/meetup'
+import { TimeValue } from '@/entities/attempt'
 import { fetchMySeries, type MySeries } from '@/entities/series'
+import {
+  TrainingSolveActions,
+  useTrainingSession,
+  type TrainingSolve,
+} from '@/entities/training-session'
 import { submitAttempt } from '@/features/attempt-submit'
 import { StartSeriesButton } from '@/features/series-start'
 import { ApiError } from '@/shared/api'
 import {
   ATTEMPTS_COUNT,
-  EVENT_IDS,
   EVENTS,
+  TIMER_EVENT_IDS,
+  formatAttempt,
   formatResult,
   randomScramble,
   type EventId,
 } from '@/shared/lib'
-import { AppButton, AppCard, AppSelect } from '@/shared/ui'
+import { AppButton, AppCard, AppSelect, ConfirmDialog } from '@/shared/ui'
 import { TimerScreen, type TimerResult } from '@/widgets/timer'
 
 // Таймер. Режим — в адресе, чтобы переживать перезагрузку:
 //   /timer?event=333                          — тренировка (по умолчанию);
 //   /timer?event=333&meetup=5                 — тренировка, «Начать серию» на встрече 5;
 //   /timer?event=333&meetup=5&mode=series     — соревновательный режим.
-// Правила — «Таймер» в CLAUDE.md. FMC здесь пока нет.
+// Правила — «Таймер» в CLAUDE.md. FMC здесь пока нет. Статистика
+// тренировочной сессии — на вкладке «Статистика».
 
 const route = useRoute()
 const router = useRouter()
 
-const TIMER_EVENTS = EVENT_IDS.filter((id) => EVENTS[id].resultType === 'time')
-const eventOptions = TIMER_EVENTS.map((id) => ({ value: id, label: EVENTS[id].name }))
+const eventOptions = TIMER_EVENT_IDS.map((id) => ({ value: id, label: EVENTS[id].name }))
 
 const eventId = computed<EventId>(() => {
   const value = route.query.event as EventId
-  return TIMER_EVENTS.includes(value) ? value : '333'
+  return TIMER_EVENT_IDS.includes(value) ? value : '333'
 })
 const meetupParam = computed(() => Number(route.query.meetup) || null)
 const isSeriesMode = computed(() => route.query.mode === 'series')
@@ -91,6 +98,33 @@ async function nextScramble() {
   if (request === scrambleRequest) {
     trainingScramble.value = scramble
   }
+}
+
+// Сборка сразу попадает в сессию дисциплины, без подтверждения.
+const training = useTrainingSession(eventId)
+const { last: lastSolve } = training
+
+function onSolved(result: TimerResult) {
+  if (result.value !== null) {
+    training.add(result.value, result.penalty)
+  }
+  nextScramble()
+}
+
+// Удаление последней сборки — с подтверждением.
+const removing = ref<TrainingSolve | null>(null)
+const removeOpen = computed({
+  get: () => removing.value !== null,
+  set: (open: boolean) => {
+    if (!open) removing.value = null
+  },
+})
+
+function confirmRemove() {
+  if (removing.value) {
+    training.remove(removing.value.at)
+  }
+  removing.value = null
 }
 
 watch([eventId, isSeriesMode], () => {
@@ -304,7 +338,8 @@ const seriesResult = computed(() => {
       :scramble="trainingScramble"
       scramble-title="Тренировка"
       can-refresh
-      @solved="nextScramble"
+      :last="lastSolve"
+      @solved="onSolved"
       @refresh-scramble="nextScramble"
     >
       <template #header>
@@ -332,7 +367,28 @@ const seriesResult = computed(() => {
           Серия сдана — таблица результатов
         </RouterLink>
       </template>
+      <template v-if="lastSolve" #last>
+        <div class="timer-page__last">
+          <span class="page__muted">Последняя:</span>
+          <TimeValue :value="lastSolve.value" :penalty="lastSolve.penalty" size="large" />
+          <TrainingSolveActions
+            :penalty="lastSolve.penalty"
+            @penalty="(penalty) => training.setPenalty(lastSolve!.at, penalty)"
+            @remove="removing = lastSolve"
+          />
+        </div>
+      </template>
     </TimerScreen>
+
+    <ConfirmDialog
+      v-model:open="removeOpen"
+      :title="`Удалить сборку ${removing ? formatAttempt(removing, 'time') : ''}?`"
+      confirm-label="Удалить"
+      danger
+      @confirm="confirmRemove"
+    >
+      Сборка удалится из тренировочной сессии.
+    </ConfirmDialog>
   </main>
 </template>
 
@@ -349,6 +405,14 @@ const seriesResult = computed(() => {
 
 .timer-page__header > :first-child {
   flex: 1;
+}
+
+.timer-page__last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-3);
 }
 
 .timer-page__notice {

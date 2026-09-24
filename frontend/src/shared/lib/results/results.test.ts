@@ -2,9 +2,11 @@
 import { describe, expect, it } from 'vitest'
 import cases from '../../../../../testdata/results_cases.json'
 import {
+  averageOf,
   calcSeries,
   formatAttempt,
   formatResult,
+  rollingAverages,
   type Attempt,
   type ResultType,
   type SeriesFormat,
@@ -17,6 +19,14 @@ interface SeriesCase {
   resultType: ResultType
   attempts: (Attempt | null)[]
   expected: SeriesResult
+}
+
+interface WindowCase<T> {
+  name: string
+  n: number
+  resultType: ResultType
+  attempts: Attempt[]
+  expected: T
 }
 
 interface FormatResultCase {
@@ -56,5 +66,29 @@ describe('formatResult', () => {
 describe('formatAttempt', () => {
   it.each(cases.formatAttempt as FormatAttemptCase[])('$attempt ($resultType) → $expected', (c) => {
     expect(formatAttempt(c.attempt, c.resultType)).toBe(c.expected)
+  })
+})
+
+describe('averageOf', () => {
+  it.each(cases.averageOf as WindowCase<number | null>[])('$name', (c) => {
+    expect(averageOf(c.attempts, c.n, c.resultType)).toBe(c.expected)
+  })
+})
+
+describe('averageOf: ошибки', () => {
+  it.each(cases.averageOfErrors as Omit<WindowCase<never>, 'expected'>[])('$name', (c) => {
+    expect(() => averageOf(c.attempts, c.n, c.resultType)).toThrow()
+  })
+})
+
+describe('rollingAverages', () => {
+  it.each(cases.rollingAverages as WindowCase<(number | null)[]>[])('$name', (c) => {
+    expect(rollingAverages(c.attempts, c.n, c.resultType)).toEqual(c.expected)
+  })
+})
+
+describe('rollingAverages: ошибки', () => {
+  it.each(cases.rollingAveragesErrors as Omit<WindowCase<never>, 'expected'>[])('$name', (c) => {
+    expect(() => rollingAverages(c.attempts, c.n, c.resultType)).toThrow()
   })
 })

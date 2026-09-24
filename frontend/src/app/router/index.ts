@@ -10,6 +10,7 @@ import { MeetupPage } from '@/pages/meetup'
 import { MeetupCreatePage } from '@/pages/meetup-create'
 import { MeetupManagePage } from '@/pages/meetup-manage'
 import { ProfilePage } from '@/pages/profile'
+import { StatisticsPage } from '@/pages/statistics'
 import { StubPage } from '@/pages/stub'
 import { TimerPage } from '@/pages/timer'
 import { installGuards } from './guards'
@@ -114,8 +115,7 @@ export const router = createRouter({
     {
       path: '/statistics',
       name: 'statistics',
-      component: StubPage,
-      props: { title: 'Статистика' },
+      component: StatisticsPage,
       meta: { requiresAuth: true, tab: 'statistics' },
     },
     {

@@ -15,13 +15,14 @@ export interface TimerResult {
 // Экран таймера (макет timer_series): сверху скрамбл и управление,
 // всё остальное — зона касания.
 //
-// training — сборка сразу попадает в solved, ничего не сохраняется.
+// training — сборка сразу уходит в solved, страница сохраняет её в сессию;
+// last — последняя сборка сессии, слот last — строка «Последняя» под таймером.
 // series — после сборки участник выбирает OK / +2 / DNF и нажимает
 // «Сохранить попытку» (save). Несохранённый результат — v-model:pending,
 // чтобы страница могла пережить с ним перезагрузку.
 const pending = defineModel<TimerResult | null>('pending', { default: null })
 
-const { mode, scramble, saving = false } = defineProps<{
+const { mode, scramble, saving = false, last = null } = defineProps<{
   mode: 'training' | 'series'
   /** null — скрамбл ещё генерируется или загружается. */
   scramble: string | null
@@ -30,6 +31,8 @@ const { mode, scramble, saving = false } = defineProps<{
   /** Кнопка нового скрамбла (только в тренировке). */
   canRefresh?: boolean
   saving?: boolean
+  /** Последняя сборка тренировки: показывается на табло сразу после сборки. */
+  last?: TimerResult | null
 }>()
 
 const emit = defineEmits<{
@@ -42,8 +45,6 @@ const emit = defineEmits<{
 const inspection = useLocalStorage('timer-inspection', false)
 const manual = useLocalStorage('timer-manual', false)
 const isTouch = useMediaQuery('(pointer: coarse)')
-
-const last = ref<TimerResult | null>(null)
 
 const enabled = computed(
   () => !manual.value && scramble !== null && !saving && pending.value === null,
@@ -61,7 +62,6 @@ function finish(solve: StoppedSolve) {
   if (mode === 'series') {
     pending.value = result
   } else {
-    last.value = result
     emit('solved', result)
   }
 }
@@ -80,7 +80,9 @@ const display = computed(() => {
     case 'ready':
       return inspecting ? inspectionCountdown(inspectionElapsed.value!) : '0.00'
     default:
-      return mode === 'training' && last.value ? formatAttempt(last.value, 'time') : '0.00'
+      return mode === 'training' && phase.value === 'stopped' && last
+        ? formatAttempt(last, 'time')
+        : '0.00'
   }
 })
 
@@ -279,6 +281,10 @@ defineExpose({ reset: timer.reset })
         {{ hint }}
       </p>
     </div>
+
+    <div v-if="$slots.last" class="timer__last">
+      <slot name="last" />
+    </div>
   </section>
 </template>
 
@@ -298,7 +304,8 @@ defineExpose({ reset: timer.reset })
 }
 
 /* Во время сборки ничего не отвлекает, но раскладка не прыгает. */
-.timer--running .timer__top {
+.timer--running .timer__top,
+.timer--running .timer__last {
   visibility: hidden;
 }
 
@@ -446,6 +453,11 @@ defineExpose({ reset: timer.reset })
   color: var(--color-text-secondary);
   font-size: var(--font-size-label);
   text-align: center;
+}
+
+.timer__last {
+  display: flex;
+  justify-content: center;
 }
 
 .timer__hint--warning {

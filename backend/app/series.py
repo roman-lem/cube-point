@@ -1,7 +1,7 @@
 """Серии и попытки участника, таблица результатов дисциплины.
 
 Адреса: /api/meetups/<id>/events/<event_id>/…, /api/series/<id>/attempts,
-/api/me/active. Правила — в разделах «Встречи», «Дисциплины и форматы»
+/api/me/active, /api/me/series. Правила — в разделах «Встречи», «Дисциплины и форматы»
 и «Одновременная запись» CLAUDE.md.
 """
 
@@ -268,3 +268,47 @@ def my_active_meetups():
         }
         for meetup in meetups
     ]}
+
+
+@series_bp.get("/me/series")
+@login_required
+def my_live_series():
+    """Серии пользователя на идущих встречах, сгруппированные по встречам.
+
+    Нужны вкладке «Статистика»: серии в процессе и завершённые.
+    """
+    rows = db.session.scalars(
+        db.select(Series)
+        .join(MeetupEvent)
+        .join(Meetup)
+        .where(Series.user_id == current_user.id, Meetup.status == MeetupStatus.LIVE)
+        .order_by(Meetup.starts_at.desc(), Meetup.id, MeetupEvent.id)
+    ).all()
+
+    meetups = {}
+    for series in rows:
+        meetup_event = series.meetup_event
+        meetup = meetup_event.meetup
+        if meetup.id not in meetups:
+            meetups[meetup.id] = {
+                "id": meetup.id,
+                "date": meetup.date.isoformat(),
+                "club": {
+                    "id": meetup.club.id, "name": meetup.club.name,
+                    "timezone": meetup.club.timezone,
+                },
+                "series": [],
+            }
+        attempts = [None] * ATTEMPTS_COUNT[meetup_event.format.value]
+        for attempt in series.attempts:
+            attempts[attempt.attempt_number - 1] = attempt_dict(attempt)
+        meetups[meetup.id]["series"].append({
+            "id": series.id,
+            "event_id": meetup_event.event_id,
+            "format": meetup_event.format.value,
+            "status": series.status.value,
+            "attempts": attempts,
+            "best": series.best,
+            "average": series.average,
+        })
+    return {"meetups": list(meetups.values())}
