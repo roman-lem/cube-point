@@ -2,10 +2,14 @@ from flask import Blueprint, request
 from flask_login import current_user
 
 from .auth import auth
+from .clubs import clubs
 from .errors import ApiError
+from .meetups import meetups
 
 api = Blueprint("api", __name__, url_prefix="/api")
 api.register_blueprint(auth)
+api.register_blueprint(clubs)
+api.register_blueprint(meetups)
 
 # Что доступно, пока пользователь не сменил временный пароль.
 ALLOWED_BEFORE_PASSWORD_CHANGE = {

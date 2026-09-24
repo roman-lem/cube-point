@@ -14,19 +14,8 @@ LOGIN_RE = re.compile(r"[a-z0-9][a-z0-9_.-]*")
 NAME_WORD_RE = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*")
 
 
-def get_str(data, key):
-    """Строковое поле из JSON; всё остальное считается пустой строкой."""
-    value = data.get(key)
-    return value if isinstance(value, str) else ""
-
-
 def normalize_login(login):
     return login.strip().lower()
-
-
-def normalize_name(name):
-    # Лишние пробелы по краям и между словами убираем.
-    return " ".join(name.split())
 
 
 def login_error(login):

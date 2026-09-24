@@ -13,6 +13,16 @@
   --color-dnf: #dc2626;
   /* Ошибки форм и опасные действия: тот же красный (AppInput, AppButton danger в DESIGN.md). */
   --color-danger: var(--color-dnf);
+  /* Фон логотипа клуба (кружок с буквой), см. CLUB_COLORS в backend/app/models.py.
+     Только для логотипов, не для оформления. */
+  --color-logo-blue: #2563eb;
+  --color-logo-sky: #0284c7;
+  --color-logo-teal: #0f766e;
+  --color-logo-amber: #b45309;
+  --color-logo-orange: #c2410c;
+  --color-logo-rose: #be123c;
+  --color-logo-slate: #475569;
+  --color-logo-brown: #78503c;
 
   /* Шрифты */
   --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;

@@ -69,6 +69,11 @@ class Penalty(enum.StrEnum):
     DNS = "dns"
 
 
+# Цвета логотипа клуба (кружок с первой буквой названия). Сами цвета —
+# CSS-переменные --color-logo-* на фронте.
+CLUB_COLORS = ("blue", "sky", "teal", "amber", "orange", "rose", "slate", "brown")
+
+
 class RecordType(enum.StrEnum):
     SINGLE = "single"
     AVERAGE = "average"
@@ -124,6 +129,7 @@ class Club(db.Model):
     timezone = db.Column(db.String(64), nullable=False)  # например, Asia/Yekaterinburg
     description = db.Column(db.Text)
     logo_path = db.Column(db.String(255))
+    logo_color = db.Column(db.String(16), nullable=False, default="blue", server_default="blue")
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     links = db.relationship(
@@ -192,7 +198,7 @@ class Meetup(db.Model):
 
     club = db.relationship("Club")
     events = db.relationship(
-        "MeetupEvent", back_populates="meetup",
+        "MeetupEvent", back_populates="meetup", order_by="MeetupEvent.id",
         cascade="all, delete-orphan", passive_deletes=True,
     )
     participants = db.relationship(

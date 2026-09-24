@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useUserStore } from '@/entities/user'
 import { AppButton, AppInput, FormError } from '@/shared/ui'
 import { register } from '../api/authApi'
-import { useFormErrors } from '../lib/useFormErrors'
+import { useFormErrors } from '@/shared/lib'
 
 const emit = defineEmits<{ success: [] }>()
 

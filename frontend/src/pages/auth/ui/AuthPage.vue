@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { fetchJoinPreview, MeetupJoinBanner, type JoinPreview } from '@/entities/meetup'
 import { LoginForm, RegisterForm } from '@/features/auth'
 import { safeRedirect } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
@@ -16,6 +17,20 @@ const switchTo = computed(() => ({
   query: route.query,
 }))
 
+// Пришли по ссылке встречи (/join/…): ?join=токен, показываем баннер встречи.
+const joinPreview = ref<JoinPreview | null>(null)
+watch(
+  () => route.query.join,
+  async (token) => {
+    joinPreview.value = null
+    if (typeof token === 'string' && token) {
+      // Неверная ссылка — просто без баннера, ошибку покажет страница встречи.
+      joinPreview.value = await fetchJoinPreview(token).catch(() => null)
+    }
+  },
+  { immediate: true },
+)
+
 function onSuccess() {
   router.replace(safeRedirect(route.query.redirect))
 }
@@ -23,6 +38,7 @@ function onSuccess() {
 
 <template>
   <main class="auth-page">
+    <MeetupJoinBanner v-if="joinPreview" :meetup="joinPreview" />
     <PageHeader :title="isLogin ? 'Вход' : 'Регистрация'" :back-to="{ name: 'home' }" />
     <AppCard>
       <LoginForm v-if="isLogin" @success="onSuccess" />

@@ -1,0 +1,30 @@
+/* Общая раскладка страниц: колонка по центру (DESIGN.md, Layout).
+   Узкие формы добавляют .page--narrow. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--page-padding) var(--space-6);
+}
+
+.page--narrow {
+  max-width: 560px;
+}
+
+.page__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.page__section-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-heading);
+}
+
+.page__muted {
+  color: var(--color-text-secondary);
+}

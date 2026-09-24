@@ -6,12 +6,14 @@ const model = defineModel<string>({ required: true })
 
 const { type = 'text' } = defineProps<{
   label: string
-  type?: 'text' | 'password' | 'email'
+  type?: 'text' | 'password' | 'email' | 'date' | 'time'
   /** Ошибка под полем. Пока она есть, подсказка не показывается. */
   error?: string
   hint?: string
   placeholder?: string
   autocomplete?: string
+  /** Для type="date": минимальная дата YYYY-MM-DD. */
+  min?: string
 }>()
 
 const id = useId()
@@ -30,6 +32,7 @@ const inputType = computed(() => (type === 'password' && passwordVisible.value ?
         :type="inputType"
         :placeholder="placeholder"
         :autocomplete="autocomplete"
+        :min="min"
         :aria-invalid="Boolean(error)"
         :aria-describedby="error || hint ? `${id}-note` : undefined"
       />

@@ -1,4 +1,4 @@
-from flask import request, session
+from flask import session
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import generate_csrf
 from sqlalchemy.exc import IntegrityError
@@ -6,11 +6,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..errors import ApiError, ValidationError
 from ..extensions import db
+from ..forms import collapse_spaces, get_str, json_body, raise_if_errors
 from ..models import User
 from . import auth, throttle
-from .validation import (
-    get_str, login_error, name_error, normalize_login, normalize_name, password_error,
-)
+from .validation import login_error, name_error, normalize_login, password_error
 
 # Хеш, с которым сверяется пароль, если логина нет: так ответ приходит
 # за то же время, и по нему нельзя понять, существует ли логин.
@@ -26,17 +25,6 @@ def serialize_user(user):
         "is_admin": user.is_admin,
         "must_change_password": user.must_change_password,
     }
-
-
-def json_body():
-    data = request.get_json(silent=True)
-    return data if isinstance(data, dict) else {}
-
-
-def raise_if_errors(errors):
-    errors = {field: message for field, message in errors.items() if message}
-    if errors:
-        raise ValidationError(errors)
 
 
 def start_session(user, remember):
@@ -60,7 +48,7 @@ def me():
 @auth.post("/register")
 def register():
     data = json_body()
-    display_name = normalize_name(get_str(data, "display_name"))
+    display_name = collapse_spaces(get_str(data, "display_name"))
     login = normalize_login(get_str(data, "login"))
     password = get_str(data, "password")
 

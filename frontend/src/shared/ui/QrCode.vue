@@ -1,0 +1,27 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { qrSvg } from '../lib/qr'
+
+// QR-код строки (обычно ссылки) в виде SVG.
+const { value } = defineProps<{ value: string }>()
+
+const svg = computed(() => qrSvg(value))
+</script>
+
+<template>
+  <!-- SVG строит uqr из value, чужой разметки в нём нет. -->
+  <div class="qr-code" role="img" :aria-label="`QR-код: ${value}`" v-html="svg" />
+</template>
+
+<style scoped>
+.qr-code {
+  aspect-ratio: 1;
+  width: 100%;
+}
+
+.qr-code :deep(svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+</style>

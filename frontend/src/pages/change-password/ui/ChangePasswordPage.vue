@@ -27,7 +27,7 @@ function onLogout() {
     <PageHeader
       title="Смена пароля"
       :subtitle="forced ? 'Вы вошли по временному паролю. Придумайте новый, чтобы продолжить' : undefined"
-      :back-to="forced ? undefined : { name: 'home' }"
+      :back-to="forced ? undefined : { name: 'profile' }"
     />
     <AppCard>
       <ChangePasswordForm @success="onSuccess" />
