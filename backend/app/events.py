@@ -1,6 +1,7 @@
 """Дисциплины. Идентификаторы совпадают с WCA, список можно расширять."""
 
 from dataclasses import dataclass
+from datetime import timedelta
 
 
 @dataclass(frozen=True)
@@ -18,3 +19,10 @@ EVENTS = {
     "333fm": Event(name="Минимум ходов", result_type="moves", default_format="bo1"),
     "333bf": Event(name="3×3 вслепую", result_type="time", default_format="bo5"),
 }
+
+# Время на попытку FMC, у каждой попытки свой час.
+FMC_TIME_LIMIT = timedelta(minutes=60)
+
+
+def is_fmc(event_id):
+    return EVENTS[event_id].result_type == "moves"

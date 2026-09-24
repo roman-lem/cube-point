@@ -29,11 +29,16 @@ class VersionConflict(ApiError):
 
 # Сохранение
 
-def save_attempt(series, number, value, penalty, expected_version, user):
+def save_attempt(
+    series, number, value, penalty, expected_version, user,
+    solution=None, submitted_at=None,
+):
     """Создаёт или меняет попытку серии, пересчитывает серию и рекорды клуба.
 
     Проверка версии: если серию изменили после того, как клиент её прочитал,
     бросает VersionConflict. Права и порядок попыток проверяет вызывающий.
+    solution — текст решения FMC (None — не менять), submitted_at — момент
+    сдачи новой попытки, если это не «сейчас» (заморозка решения FMC).
     """
     if expected_version != series.version:
         raise VersionConflict()
@@ -41,13 +46,15 @@ def save_attempt(series, number, value, penalty, expected_version, user):
     attempt = next((a for a in series.attempts if a.attempt_number == number), None)
     if attempt is None:
         # submitted_at проставляется только при создании и потом не меняется.
-        attempt = Attempt(attempt_number=number, submitted_at=utcnow())
+        attempt = Attempt(attempt_number=number, submitted_at=submitted_at or utcnow())
         series.attempts.append(attempt)
     else:
         attempt.updated_at = utcnow()
     attempt.value = value
     attempt.penalty = penalty
     attempt.entered_by = user.id
+    if solution is not None:
+        attempt.solution = solution
 
     meetup_event = series.meetup_event
     recalc_series(series, meetup_event)

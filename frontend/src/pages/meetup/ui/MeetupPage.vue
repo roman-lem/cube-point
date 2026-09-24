@@ -46,12 +46,12 @@ const showSolveButton = computed(
   () => requestStatus.value === 'approved' || requestStatus.value === 'pending',
 )
 
-// FMC сдаётся отдельным экраном, он появится позже.
-const isFmc = (eventId: string) => EVENTS[eventId as EventId]?.resultType === 'moves'
-
 // «Собрать» открывает тренировку с кнопкой «Начать серию»,
-// «Продолжить» — сразу соревновательный режим.
+// «Продолжить» — сразу соревновательный режим. FMC — отдельный экран.
 function timerRoute(eventId: string, continueSeries: boolean) {
+  if (EVENTS[eventId as EventId]?.resultType === 'moves') {
+    return { name: 'fmc', params: { meetupId } }
+  }
   return {
     name: 'timer',
     query: {
@@ -127,7 +127,7 @@ const participation = computed(() => {
         >
           <template v-if="showSolveButton && event.my_series?.status !== 'completed'" #action>
             <RouterLink
-              v-if="canSolve && !isFmc(event.event_id)"
+              v-if="canSolve"
               class="meetup-page__solve"
               :to="timerRoute(event.event_id, event.my_series?.status === 'in_progress')"
             >
@@ -136,7 +136,7 @@ const participation = computed(() => {
             </RouterLink>
             <span v-else class="meetup-page__solve meetup-page__solve--locked" aria-disabled="true">
               <AppIcon name="lock" :size="18" />
-              {{ isFmc(event.event_id) ? 'Скоро' : 'Собрать' }}
+              Собрать
             </span>
           </template>
         </EventCard>

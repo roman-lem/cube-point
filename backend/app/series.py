@@ -11,13 +11,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
 
 from .errors import ApiError
-from .events import EVENTS
+from .events import FMC_TIME_LIMIT, is_fmc
 from .extensions import db
 from .forms import get_str, json_body
 from .meetups import get_meetup, iso_utc
 from .models import (
     Disqualification, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
-    ParticipantStatus, Penalty, Series, SeriesStatus,
+    ParticipantStatus, Penalty, Series, SeriesStatus, utcnow,
 )
 from .permissions import get_or_404
 from .results import ATTEMPTS_COUNT
@@ -46,13 +46,41 @@ def require_live(meetup):
 
 
 def serialize_attempts(series):
-    return [
-        {"number": a.attempt_number, **attempt_dict(a)} for a in series.attempts
-    ]
+    result = []
+    for a in series.attempts:
+        item = {"number": a.attempt_number, **attempt_dict(a)}
+        if a.solution is not None:
+            item["solution"] = a.solution
+        result.append(item)
+    return result
+
+
+def fmc_deadline(fmc_attempt):
+    return fmc_attempt.started_at + FMC_TIME_LIMIT
+
+
+def serialize_fmc(fmc_attempt):
+    """Состояние начатой попытки FMC. server_now — чтобы клиент поправил свои часы."""
+    return {
+        "started_at": iso_utc(fmc_attempt.started_at),
+        "deadline": iso_utc(fmc_deadline(fmc_attempt)),
+        "server_now": iso_utc(utcnow()),
+        "draft": fmc_attempt.draft,
+        "frozen_solution": fmc_attempt.frozen_solution,
+        "frozen_at": iso_utc(fmc_attempt.frozen_at),
+    }
+
+
+def find_fmc_attempt(series, number):
+    return next((f for f in series.fmc_attempts if f.attempt_number == number), None)
 
 
 def serialize_my_series(series):
-    """Серия для её владельца: скрамбл только у следующей попытки."""
+    """Серия для её владельца: скрамбл только у следующей попытки.
+
+    В FMC скрамбл есть только после старта попытки, а next_attempt.fmc —
+    состояние начатой попытки (None, пока она не начата).
+    """
     meetup_event = series.meetup_event
     next_attempt = None
     if series.status == SeriesStatus.IN_PROGRESS:
@@ -61,6 +89,11 @@ def serialize_my_series(series):
             s for s in meetup_event.scrambles if s.attempt_number == number
         )
         next_attempt = {"number": number, "scramble": scramble.scramble}
+        if is_fmc(meetup_event.event_id):
+            fmc_attempt = find_fmc_attempt(series, number)
+            next_attempt["fmc"] = serialize_fmc(fmc_attempt) if fmc_attempt else None
+            if fmc_attempt is None:
+                next_attempt["scramble"] = None
     return {
         "id": series.id,
         "meetup_id": meetup_event.meetup_id,
@@ -89,9 +122,6 @@ def start_series(meetup_id, event_id):
     meetup = get_meetup(meetup_id)
     meetup_event = get_meetup_event(meetup, event_id)
     require_live(meetup)
-    # FMC сдаётся отдельным экраном с вводом решения, он появится позже.
-    if EVENTS[event_id].result_type == "moves":
-        raise ApiError(409, "not_supported", "Серии FMC пока недоступны")
 
     participant = db.session.get(MeetupParticipant, (meetup.id, current_user.id))
     if participant is None or participant.status != ParticipantStatus.APPROVED:
@@ -134,6 +164,8 @@ def submit_attempt(series_id):
     require_live(series.meetup_event.meetup)
     if series.status == SeriesStatus.COMPLETED:
         raise ApiError(409, "series_completed", "Серия уже завершена")
+    if is_fmc(series.meetup_event.event_id):
+        raise ApiError(409, "fmc_series", "Попытки FMC сдаются с экрана FMC")
 
     data = json_body()
     number, value, penalty, version = parse_attempt(data)

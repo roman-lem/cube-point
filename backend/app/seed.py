@@ -12,6 +12,7 @@ from datetime import datetime, time, timedelta
 
 import click
 from flask.cli import with_appcontext
+from sqlalchemy import inspect
 from werkzeug.security import generate_password_hash
 
 from .events import EVENTS
@@ -74,6 +75,11 @@ EVENT_POPULARITY = {"222": 0.75, "pyram": 0.5}
 @with_appcontext
 def seed_command(reset):
     """Заполнить БД тестовыми данными."""
+    missing = set(db.metadata.tables) - set(inspect(db.engine).get_table_names())
+    if missing:
+        raise click.ClickException(
+            f"В БД нет таблиц {', '.join(sorted(missing))}. Сначала `flask db upgrade`."
+        )
     if reset:
         for table in reversed(db.metadata.sorted_tables):
             db.session.execute(table.delete())
@@ -105,7 +111,8 @@ def seed_command(reset):
     ))
     live = _create_meetup(
         club, organizer, rng, now, days_ago=0, status=MeetupStatus.LIVE,
-        events=[("333", Format.AO5), ("222", Format.AO5), ("333bf", Format.BO5)],
+        events=[("333", Format.AO5), ("222", Format.AO5), ("333bf", Format.BO5),
+                ("333fm", Format.MO3)],
         attendees=[c for c in REGULARS if c.login not in ("katya.n", "polina.f")],
     )
     _add_join_requests(live, organizer, now)

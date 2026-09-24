@@ -4,6 +4,7 @@ import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
 import { ClubSettingsPage } from '@/pages/club-settings'
 import { EventResultsPage } from '@/pages/event-results'
+import { FmcPage } from '@/pages/fmc'
 import { HomePage } from '@/pages/home'
 import { JoinPage } from '@/pages/join'
 import { MeetupPage } from '@/pages/meetup'
@@ -110,6 +111,13 @@ export const router = createRouter({
       path: '/timer',
       name: 'timer',
       component: TimerPage,
+      meta: { requiresAuth: true, tab: 'timer' },
+    },
+    {
+      path: '/meetups/:meetupId(\\d+)/fmc',
+      name: 'fmc',
+      component: FmcPage,
+      props: numberParams('meetupId'),
       meta: { requiresAuth: true, tab: 'timer' },
     },
     {

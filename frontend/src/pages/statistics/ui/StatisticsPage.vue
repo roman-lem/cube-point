@@ -51,9 +51,15 @@ function attemptsLeft(series: LiveSeries) {
 }
 
 const isAverageFormat = (series: LiveSeries) => series.format === 'ao5' || series.format === 'mo3'
+const isFmc = (series: LiveSeries) => EVENTS[series.event_id as EventId]?.resultType === 'moves'
+const resultType = (series: LiveSeries) => (isFmc(series) ? 'moves' : 'time')
 
 // «Продолжить» открывает соревновательный режим сразу, без подтверждения.
+// У FMC свой экран.
 function continueRoute(meetupId: number, series: LiveSeries) {
+  if (isFmc(series)) {
+    return { name: 'fmc', params: { meetupId } }
+  }
   return {
     name: 'timer',
     query: { event: series.event_id, meetup: String(meetupId), mode: 'series' },
@@ -122,7 +128,11 @@ function confirmClear() {
           </span>
         </div>
 
-        <AttemptSeries :attempts="series.attempts" :format="series.format" />
+        <AttemptSeries
+          :attempts="series.attempts"
+          :format="series.format"
+          :result-type="resultType(series)"
+        />
 
         <div v-if="series.status === 'in_progress'" class="statistics__series-foot">
           <span class="page__muted">
@@ -140,6 +150,7 @@ function confirmClear() {
             <TimeValue
               :value="isAverageFormat(series) ? series.average : series.best"
               :is-average="isAverageFormat(series)"
+              :result-type="resultType(series)"
               size="large"
             />
           </span>

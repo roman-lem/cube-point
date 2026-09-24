@@ -299,6 +299,10 @@ class Series(db.Model):
         "Attempt", order_by="Attempt.attempt_number",
         cascade="all, delete-orphan", passive_deletes=True,
     )
+    fmc_attempts = db.relationship(
+        "FmcAttempt", order_by="FmcAttempt.attempt_number",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
 
 
 class Attempt(db.Model):
@@ -325,6 +329,30 @@ class Attempt(db.Model):
     submitted_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated_at = db.Column(db.DateTime)
     entered_by = db.Column(db.Integer, user_fk("SET NULL"))
+
+
+class FmcAttempt(db.Model):
+    """Попытка FMC до сдачи: старт отсчёта, черновик и заморозка решения.
+
+    Строка остаётся и после сдачи, результат и решение — в attempts.
+    Правила — раздел «FMC» CLAUDE.md.
+    """
+
+    __tablename__ = "fmc_attempts"
+    __table_args__ = (
+        db.CheckConstraint("attempt_number BETWEEN 1 AND 5", name="attempt_number_range"),
+    )
+
+    series_id = db.Column(
+        db.Integer, db.ForeignKey("series.id", ondelete="CASCADE"), primary_key=True,
+    )
+    attempt_number = db.Column(db.Integer, primary_key=True)
+    started_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    draft = db.Column(db.Text, nullable=False, default="")
+    draft_saved_at = db.Column(db.DateTime)
+    # Заморозка сдачи: NULL — решение не сдавали или вернулись к нему.
+    frozen_solution = db.Column(db.Text)
+    frozen_at = db.Column(db.DateTime)
 
 
 class Disqualification(db.Model):

@@ -5,6 +5,21 @@ export type SeriesStatus = 'in_progress' | 'completed'
 /** Сохранённая попытка серии. */
 export interface SavedAttempt extends Attempt {
   number: number
+  /** Решение FMC. */
+  solution?: string
+}
+
+/** Начатая попытка FMC (метки времени — ISO в UTC). */
+export interface FmcAttemptState {
+  started_at: string
+  deadline: string
+  /** Время сервера в момент ответа: по нему клиент поправляет свои часы. */
+  server_now: string
+  /** Последний сохранённый на сервере черновик решения. */
+  draft: string
+  /** Замороженное при сдаче решение; null — не заморожено. */
+  frozen_solution: string | null
+  frozen_at: string | null
 }
 
 /** Своя серия участника (GET …/series/me, ответы на старт и сохранение попытки). */
@@ -20,7 +35,13 @@ export interface MySeries {
   best: number | null
   average: number | null
   /** Следующая попытка и её скрамбл; у завершённой серии null. */
-  next_attempt: { number: number; scramble: string } | null
+  next_attempt: {
+    number: number
+    /** В FMC скрамбл есть только после старта попытки. */
+    scramble: string | null
+    /** Только в FMC: состояние попытки, null — ещё не начата. */
+    fmc?: FmcAttemptState | null
+  } | null
 }
 
 /** Строка таблицы дисциплины. */

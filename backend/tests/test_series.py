@@ -274,8 +274,12 @@ def test_cannot_submit_to_someone_elses_series(clients, meetup_id):
     assert submit(clients["boris"], series, 1000).status_code == 403
 
 
-def test_fmc_series_is_not_available_yet(clients, meetup_id):
-    assert start(clients["anna"], meetup_id, "333fm").status_code == 409
+def test_fmc_attempt_is_not_submitted_as_timed(clients, meetup_id):
+    series = start(clients["anna"], meetup_id, "333fm").get_json()["series"]
+
+    response = submit(clients["anna"], series, 30)
+    assert response.status_code == 409
+    assert error(response)["code"] == "fmc_series"
 
 
 # Рекорды клуба

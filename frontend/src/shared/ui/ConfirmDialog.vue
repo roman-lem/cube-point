@@ -5,16 +5,25 @@ import AppButton from './AppButton.vue'
 // Диалог подтверждения поверх страницы (нативный <dialog>).
 const open = defineModel<boolean>('open', { required: true })
 
-const { confirmLabel = 'Подтвердить', danger = false, loading = false } = defineProps<{
+const {
+  confirmLabel = 'Подтвердить',
+  cancelLabel = 'Отмена',
+  cancelable = true,
+  danger = false,
+  loading = false,
+} = defineProps<{
   title: string
   confirmLabel?: string
+  cancelLabel?: string
+  /** false — закрыть диалог можно только подтверждением. */
+  cancelable?: boolean
   /** Опасное действие: кнопка подтверждения в стиле danger. */
   danger?: boolean
   /** Идёт запрос: кнопки неактивны, закрыть диалог нельзя. */
   loading?: boolean
 }>()
 
-const emit = defineEmits<{ confirm: [] }>()
+const emit = defineEmits<{ confirm: []; cancel: [] }>()
 
 const dialog = ref<HTMLDialogElement>()
 
@@ -29,12 +38,17 @@ function sync(value: boolean) {
 watch(open, sync)
 onMounted(() => sync(open.value))
 
-// Esc и клик по фону закрывают диалог, если не идёт запрос.
+// Esc, клик по фону и кнопка отмены закрывают диалог, если не идёт запрос.
+function cancel() {
+  if (!loading && cancelable) {
+    open.value = false
+    emit('cancel')
+  }
+}
+
 function onCancel(event: Event) {
   event.preventDefault()
-  if (!loading) {
-    open.value = false
-  }
+  cancel()
 }
 
 function onBackdropClick(event: MouseEvent) {
@@ -55,7 +69,9 @@ function onBackdropClick(event: MouseEvent) {
         <AppButton :variant="danger ? 'danger' : 'primary'" :loading="loading" @click="emit('confirm')">
           {{ confirmLabel }}
         </AppButton>
-        <AppButton variant="secondary" :disabled="loading" @click="open = false">Отмена</AppButton>
+        <AppButton v-if="cancelable" variant="secondary" :disabled="loading" @click="cancel">
+          {{ cancelLabel }}
+        </AppButton>
       </div>
     </div>
   </dialog>
