@@ -5,7 +5,8 @@ from flask import Flask
 from . import models  # noqa: F401 — регистрирует модели для миграций
 from .api import api
 from .config import Config
-from .extensions import db, migrate
+from .errors import register_error_handlers
+from .extensions import csrf, db, login_manager, migrate
 from .seed import seed_command
 
 
@@ -19,6 +20,9 @@ def create_app(test_config=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    login_manager.init_app(app)
+    csrf.init_app(app)
+    register_error_handlers(app)
     app.register_blueprint(api)
     app.cli.add_command(seed_command)
 

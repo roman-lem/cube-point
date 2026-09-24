@@ -13,6 +13,7 @@ NULL — результата нет.
 import enum
 from datetime import datetime, timezone
 
+from flask_login import UserMixin
 from sqlalchemy.orm import validates
 
 from .events import EVENTS
@@ -89,7 +90,7 @@ def user_fk(ondelete):
     return db.ForeignKey("users.id", ondelete=ondelete)
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -107,6 +108,11 @@ class User(db.Model):
     @validates("login")
     def _lower_login(self, key, login):
         return login.lower()
+
+    def get_id(self):
+        # Версия сессии в идентификаторе: при её увеличении все сессии
+        # и remember-куки пользователя перестают действовать (см. auth.load_user).
+        return f"{self.id}:{self.session_version}"
 
 
 class Club(db.Model):
@@ -345,3 +351,15 @@ class ClubRecord(db.Model):
         db.Integer, db.ForeignKey("series.id", ondelete="CASCADE"), nullable=False,
     )
     achieved_at = db.Column(db.DateTime, nullable=False)
+
+
+class LoginFailure(db.Model):
+    """Неудачная попытка входа, для ограничения перебора паролей (auth/throttle.py)."""
+
+    __tablename__ = "login_failures"
+    __table_args__ = (db.Index("ix_login_failures_login_created_at", "login", "created_at"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    # Логин как его ввели (в нижнем регистре), пользователя с таким логином может не быть.
+    login = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)

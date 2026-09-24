@@ -1,8 +1,10 @@
 import os
 import sqlite3
 
+from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import MetaData, event
 from sqlalchemy.engine import Engine
 
@@ -21,6 +23,10 @@ db = SQLAlchemy(metadata=MetaData(naming_convention=NAMING_CONVENTION))
 # Папка миграций — backend/migrations, независимо от текущей директории.
 MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "migrations")
 migrate = Migrate(directory=MIGRATIONS_DIR, render_as_batch=True)
+
+login_manager = LoginManager()
+# Проверяет заголовок X-CSRFToken у всех изменяющих запросов.
+csrf = CSRFProtect()
 
 
 @event.listens_for(Engine, "connect")

@@ -4,6 +4,8 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:?Задайте SECRET_KEY в файле .env}
       DATABASE_URL: sqlite:////app/instance/cubing.db
+      # Куки только по HTTPS (браузеры делают исключение для localhost).
+      SECURE_COOKIES: ${SECURE_COOKIES:-1}
     volumes:
       - backend-data:/app/instance
     # Наружу не публикуется: доступен только контейнеру web по адресу backend:5000.

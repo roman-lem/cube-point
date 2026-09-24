@@ -11,6 +11,8 @@
   --color-personal-best: #16a34a;
   --color-club-record: #7c3aed;
   --color-dnf: #dc2626;
+  /* Ошибки форм и опасные действия: тот же красный (AppInput, AppButton danger в DESIGN.md). */
+  --color-danger: var(--color-dnf);
 
   /* Шрифты */
   --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
