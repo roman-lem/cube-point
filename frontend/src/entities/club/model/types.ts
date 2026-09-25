@@ -24,7 +24,7 @@ export interface Club {
   links: ClubLink[]
 }
 
-/** Клуб в списке GET /api/clubs. */
+/** Клуб в списке GET /api/clubs (сначала клубы с самыми недавними встречами). */
 export interface ClubSummary {
   id: number
   name: string
@@ -32,6 +32,12 @@ export interface ClubSummary {
   logo_color: LogoColor
   my_role: ClubRole | null
   live_meetup_id: number | null
+  /** Участники без заблокированных. */
+  member_count: number
+  /** Начатые и завершённые встречи, без запланированных. */
+  meetup_count: number
+  /** Дата последней такой встречи ("2026-09-12", в часовом поясе клуба) или null. */
+  last_meetup_date: string | null
 }
 
 /** Страница клуба GET /api/clubs/:id. */

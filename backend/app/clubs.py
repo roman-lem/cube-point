@@ -6,7 +6,9 @@ from flask import Blueprint
 
 from .extensions import db
 from .forms import collapse_spaces, get_list, get_str, json_body, raise_if_errors
-from .models import CLUB_COLORS, Club, ClubLink, LinkType, Meetup, MeetupStatus
+from .models import (
+    CLUB_COLORS, Club, ClubLink, ClubMember, LinkType, Meetup, MeetupStatus,
+)
 from .permissions import get_membership, get_or_404, is_banned, my_role, require_organizer
 
 clubs = Blueprint("clubs", __name__, url_prefix="/clubs")
@@ -28,12 +30,29 @@ def serialize_club(club):
 
 @clubs.get("")
 def list_clubs():
+    """Все клубы, сначала с самыми недавними встречами (лендинг и страница клубов)."""
     live = dict(db.session.execute(
         db.select(Meetup.club_id, Meetup.id).where(Meetup.status == MeetupStatus.LIVE)
     ).all())
+    # Участники — без заблокированных, как в публичном списке участников клуба.
+    member_counts = dict(db.session.execute(
+        db.select(ClubMember.club_id, db.func.count())
+        .where(ClubMember.banned_at.is_(None))
+        .group_by(ClubMember.club_id)
+    ).all())
+    # Встречи — только начатые и завершённые, запланированные не считаются.
+    meetup_stats = {
+        club_id: (count, last_date)
+        for club_id, count, last_date in db.session.execute(
+            db.select(Meetup.club_id, db.func.count(), db.func.max(Meetup.date))
+            .where(Meetup.status != MeetupStatus.PLANNED)
+            .group_by(Meetup.club_id)
+        )
+    }
     result = []
     for club in db.session.scalars(db.select(Club).order_by(Club.name)):
         membership = get_membership(club.id)
+        meetup_count, last_date = meetup_stats.get(club.id, (0, None))
         result.append({
             "id": club.id,
             "name": club.name,
@@ -41,7 +60,14 @@ def list_clubs():
             "logo_color": club.logo_color,
             "my_role": membership.role.value if membership else None,
             "live_meetup_id": live.get(club.id),
+            "member_count": member_counts.get(club.id, 0),
+            "meetup_count": meetup_count,
+            # Дата встречи уже в часовом поясе клуба.
+            "last_meetup_date": last_date.isoformat() if last_date else None,
         })
+    # Сначала свежие встречи, клубы без встреч — в конце; при равенстве — по названию
+    # (сортировка устойчивая, а исходный список уже по названию).
+    result.sort(key=lambda c: c["last_meetup_date"] or "", reverse=True)
     return {"clubs": result}
 
 

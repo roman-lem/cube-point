@@ -9,7 +9,7 @@ from ..consents import consent_errors, consents_required, record_consents
 from ..errors import ApiError, ValidationError
 from ..extensions import db
 from ..forms import collapse_spaces, get_str, json_body, raise_if_errors
-from ..models import User
+from ..models import ClubMember, Meetup, MeetupParticipant, ParticipantStatus, User
 from . import auth, throttle
 from .validation import login_error, name_error, normalize_login, password_error
 
@@ -48,6 +48,40 @@ def me():
     # Гость — не ошибка: фронт вызывает этот эндпоинт при каждом старте.
     user = serialize_user(current_user) if current_user.is_authenticated else None
     return {"user": user}
+
+
+@auth.get("/home-club")
+def home_club():
+    """Клуб, куда корень сайта ведёт вошедшего: клуб его последней встречи.
+
+    Отдельно от /me, потому что меняется, пока открыто приложение: организатор
+    подтверждает первую заявку, и человек вступает в клуб.
+    """
+    if not current_user.is_authenticated:
+        return {"club_id": None}
+    # Только клубы, где человек сейчас состоит.
+    member_of = db.select(ClubMember.club_id).where(ClubMember.user_id == current_user.id)
+    club_id = db.session.scalar(
+        db.select(Meetup.club_id)
+        .join(MeetupParticipant, MeetupParticipant.meetup_id == Meetup.id)
+        .where(
+            MeetupParticipant.user_id == current_user.id,
+            MeetupParticipant.status == ParticipantStatus.APPROVED,
+            Meetup.club_id.in_(member_of),
+        )
+        .order_by(Meetup.date.desc(), Meetup.starts_at.desc(), Meetup.id.desc())
+        .limit(1)
+    )
+    if club_id is None:
+        # Встреч ещё не было (организатор, назначенный администратором, или аккаунт,
+        # созданный организатором) — клуб, куда человек вступил последним.
+        club_id = db.session.scalar(
+            db.select(ClubMember.club_id)
+            .where(ClubMember.user_id == current_user.id)
+            .order_by(ClubMember.joined_at.desc(), ClubMember.club_id.desc())
+            .limit(1)
+        )
+    return {"club_id": club_id}
 
 
 @auth.get("/registration")

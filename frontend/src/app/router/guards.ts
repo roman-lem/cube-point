@@ -14,10 +14,10 @@ export function installGuards(router: Router) {
       return { name: 'change-password', query: { redirect: to.fullPath } }
     }
     // Нет согласий (аккаунт от организатора или обновился текст): пока их не дать,
-    // доступны только страница согласия и сам текст политики.
+    // доступны только страница согласия и тексты политики и согласия на распространение.
     if (
       user?.consents_required && !user.must_change_password &&
-      to.name !== 'consent' && to.name !== 'privacy'
+      !['consent', 'privacy', 'publication-consent'].includes(String(to.name))
     ) {
       return { name: 'consent', query: { redirect: to.fullPath } }
     }

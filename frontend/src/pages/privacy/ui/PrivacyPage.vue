@@ -2,8 +2,9 @@
 import { CONSENT_VERSIONS } from '@/features/auth'
 import { PageHeader } from '@/shared/ui'
 
-// Политика обработки персональных данных и тексты обоих согласий.
-// Чекбоксы регистрации ведут на #processing и #publication.
+// Политика обработки персональных данных и текст согласия на обработку.
+// Чекбокс регистрации ведёт на #processing; согласие на распространение —
+// отдельная страница (pages/publication-consent).
 // При изменении текста согласия меняется его версия в CONSENT_VERSIONS
 // (features/auth/model/consents.ts) и в backend/app/consents.py.
 //
@@ -70,17 +71,6 @@ import { PageHeader } from '@/shared/ui'
         [Полный текст согласия.]
       </p>
     </section>
-
-    <section id="publication" class="page__section">
-      <h2 class="page__section-title">Согласие на распространение персональных данных</h2>
-      <p class="privacy__version">Редакция {{ CONSENT_VERSIONS.publication }}</p>
-      <p>
-        Я даю согласие [ФИО оператора] на публикацию в открытом доступе на сайте [адрес сайта]
-        моего отображаемого имени и результатов на встречах клуба: в таблицах результатов,
-        рекордах клуба и в публичном профиле. Другие данные не публикуются. Согласие действует
-        до удаления аккаунта или отзыва согласия. [Условия и запреты, полный текст согласия.]
-      </p>
-    </section>
   </main>
 </template>
 
@@ -91,7 +81,7 @@ import { PageHeader } from '@/shared/ui'
 }
 
 .privacy section {
-  /* Якоря #processing и #publication не прячутся под верхней навигацией. */
+  /* Якорь #processing не прячется под верхней навигацией. */
   scroll-margin-top: 80px;
 }
 

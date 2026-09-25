@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { RouteLocationRaw } from 'vue-router'
+
 const {
   variant = 'primary',
   type = 'button',
@@ -10,11 +12,17 @@ const {
   /** Идёт запрос: кнопка неактивна, чтобы не отправить форму дважды. */
   loading?: boolean
   disabled?: boolean
+  /** Кнопка-ссылка на страницу приложения. */
+  to?: RouteLocationRaw
 }>()
 </script>
 
 <template>
+  <RouterLink v-if="to" :to="to" :class="['app-button', `app-button--${variant}`]">
+    <slot />
+  </RouterLink>
   <button
+    v-else
     :type="type"
     :class="['app-button', `app-button--${variant}`]"
     :disabled="disabled || loading"
@@ -35,6 +43,7 @@ const {
   border: 1px solid transparent;
   border-radius: var(--radius-button);
   font-weight: var(--font-weight-label);
+  text-decoration: none;
   cursor: pointer;
   transition: opacity 0.15s;
 }

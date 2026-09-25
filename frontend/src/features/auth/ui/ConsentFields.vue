@@ -3,8 +3,9 @@ import type { FieldErrors } from '@/shared/api'
 import type { ConsentChoice } from '../model/consents'
 
 // Два отдельных согласия: на обработку и на распространение (ст. 10.1 ФЗ-152
-// требует оформлять его отдельно). Полные тексты — на странице политики,
-// ссылки открываются в новой вкладке, чтобы не потерять заполненную форму.
+// требует оформлять его отдельно). Полные тексты — на странице политики
+// и на странице согласия на распространение. Ссылки открываются в новой
+// вкладке, чтобы не потерять заполненную форму.
 const choice = defineModel<ConsentChoice>({ required: true })
 defineProps<{ errors: FieldErrors }>()
 </script>
@@ -30,7 +31,7 @@ defineProps<{ errors: FieldErrors }>()
         <input v-model="choice.publication" type="checkbox" />
         <span>
           Даю согласие на
-          <RouterLink :to="{ name: 'privacy', hash: '#publication' }" target="_blank">
+          <RouterLink :to="{ name: 'publication-consent' }" target="_blank">
             публикацию
           </RouterLink>
           отображаемого имени и результатов в открытом доступе: в таблицах результатов,

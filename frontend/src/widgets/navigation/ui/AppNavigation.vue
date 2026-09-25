@@ -4,6 +4,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 import { useCurrentClubStore } from '@/entities/club'
 import { useUserStore } from '@/entities/user'
+import { SITE_NAME } from '@/shared/config'
 import { AppIcon, LiveIndicator, type IconName } from '@/shared/ui'
 
 // Навигация строго по разделу «Навигация» в CLAUDE.md:
@@ -66,7 +67,7 @@ const loginRoute = computed(() => ({ name: 'login', query: { redirect: route.ful
 <template>
   <header v-if="isDesktop" class="top-nav">
     <div class="top-nav__inner">
-      <span class="top-nav__brand">{{ clubStore.club?.name ?? 'Клуб спидкуберов' }}</span>
+      <span class="top-nav__brand">{{ clubStore.club?.name ?? SITE_NAME }}</span>
       <nav class="top-nav__items" aria-label="Основная навигация">
         <RouterLink
           v-for="item in items"
@@ -87,7 +88,7 @@ const loginRoute = computed(() => ({ name: 'login', query: { redirect: route.ful
 
   <template v-else>
     <header v-if="showLogin" class="mobile-header">
-      <span class="top-nav__brand">{{ clubStore.club?.name ?? 'Клуб спидкуберов' }}</span>
+      <span class="top-nav__brand">{{ clubStore.club?.name ?? SITE_NAME }}</span>
       <RouterLink :to="loginRoute" class="top-nav__login">
         <AppIcon name="login" :size="20" />
         Войти

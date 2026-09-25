@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
+import { fetchHomeClubId } from '@/entities/club'
 import { useUserStore } from '@/entities/user'
 import { AdminClubCreatePage } from '@/pages/admin-club-create'
 import { AdminClubsPage } from '@/pages/admin-clubs'
@@ -6,18 +7,20 @@ import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
 import { ClubRecordsPage } from '@/pages/club-records'
+import { ClubsPage } from '@/pages/clubs'
 import { ClubMembersPage } from '@/pages/club-members'
 import { ClubSettingsPage } from '@/pages/club-settings'
 import { ConsentPage } from '@/pages/consent'
 import { EventResultsPage } from '@/pages/event-results'
 import { FmcPage } from '@/pages/fmc'
-import { HomePage } from '@/pages/home'
 import { JoinPage } from '@/pages/join'
+import { LandingPage } from '@/pages/landing'
 import { MeetupPage } from '@/pages/meetup'
 import { MeetupCreatePage } from '@/pages/meetup-create'
 import { MeetupManagePage } from '@/pages/meetup-manage'
 import { PrivacyPage } from '@/pages/privacy'
 import { ProfileSettingsPage } from '@/pages/profile-settings'
+import { PublicationConsentPage } from '@/pages/publication-consent'
 import { ScramblePrintPage } from '@/pages/scramble-print'
 import { SeriesEditPage } from '@/pages/series-edit'
 import { StatisticsPage } from '@/pages/statistics'
@@ -35,6 +38,8 @@ declare module 'vue-router' {
     guestOnly?: boolean
     /** Страница без навигации (печать). */
     bare?: boolean
+    /** Раскладка лендинга: своя шапка вместо вкладок приложения. */
+    layout?: 'landing'
     /** Какая вкладка навигации подсвечена. */
     tab?: 'club' | 'timer' | 'records' | 'statistics' | 'profile' | 'members'
   }
@@ -47,7 +52,7 @@ const numberParams = (...names: string[]) => (route: RouteLocationNormalized) =>
 // Страницы без requiresAuth открыты всем, в том числе гостям.
 export const router = createRouter({
   history: createWebHistory(),
-  // Ссылки на разделы страницы (/privacy#publication) прокручивают к ним.
+  // Ссылки на разделы страницы (/privacy#processing) прокручивают к ним.
   scrollBehavior(to, _from, savedPosition) {
     if (to.hash) {
       return { el: to.hash }
@@ -55,10 +60,34 @@ export const router = createRouter({
     return savedPosition ?? false
   },
   routes: [
-    { path: '/', name: 'home', component: HomePage, meta: { tab: 'club' } },
+    // Корень сайта: вошедшего с клубом — в клуб его последней встречи,
+    // гостя и вошедшего без клуба — на лендинг.
+    {
+      path: '/',
+      name: 'home',
+      component: LandingPage,
+      meta: { layout: 'landing' },
+      beforeEnter: async () => {
+        if (!useUserStore().user) {
+          return true
+        }
+        try {
+          const clubId = await fetchHomeClubId()
+          return clubId ? { name: 'club', params: { clubId } } : true
+        } catch {
+          return true
+        }
+      },
+    },
+    { path: '/clubs', name: 'clubs', component: ClubsPage, meta: { layout: 'landing' } },
     { path: '/login', name: 'login', component: AuthPage, meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: AuthPage, meta: { guestOnly: true } },
     { path: '/privacy', name: 'privacy', component: PrivacyPage },
+    {
+      path: '/publication-consent',
+      name: 'publication-consent',
+      component: PublicationConsentPage,
+    },
     {
       path: '/consent',
       name: 'consent',
