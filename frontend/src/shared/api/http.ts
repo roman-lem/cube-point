@@ -1,6 +1,6 @@
 // HTTP-клиент для /api: JSON, куки сессии, CSRF-токен и единый формат ошибок.
 //
-// Ошибка сервера: { error: { code, message, fields?, retry_after? } },
+// Ошибка сервера: { error: { code, message, fields?, ...данные } },
 // см. backend/app/errors.py.
 
 export type FieldErrors = Record<string, string>
@@ -12,6 +12,8 @@ export class ApiError extends Error {
     message: string,
     /** Ошибки под полями формы, только у validation_error. */
     readonly fields: FieldErrors = {},
+    /** Остальные поля ошибки: свежие данные при конфликте, retry_after и т. п. */
+    readonly data: Record<string, unknown> = {},
   ) {
     super(message)
   }
@@ -86,7 +88,8 @@ async function request<T>(method: string, url: string, body?: unknown, retryCsrf
 async function readError(response: Response): Promise<ApiError> {
   try {
     const { error } = await response.json()
-    return new ApiError(response.status, error.code, error.message, error.fields)
+    const { code, message, fields, ...data } = error
+    return new ApiError(response.status, code, message, fields, data)
   } catch {
     // Ответ не от нашего API (например, 502 от nginx).
     return new ApiError(response.status, 'http_error', 'Ошибка сервера, попробуйте ещё раз')

@@ -13,7 +13,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from .errors import ApiError
 from .events import FMC_TIME_LIMIT, is_fmc
 from .extensions import db
-from .forms import get_str, json_body
+from .forms import get_str, is_int, json_body
 from .meetups import get_meetup, iso_utc
 from .models import (
     Disqualification, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
@@ -177,7 +177,7 @@ def submit_attempt(series_id):
         )
 
     try:
-        save_attempt(series, number, value, Penalty(penalty), version, current_user)
+        save_attempt(series, number, value, penalty, version, current_user)
         db.session.commit()
     except (VersionConflict, StaleDataError):
         db.session.rollback()
@@ -189,24 +189,30 @@ def submit_attempt(series_id):
 
 
 def parse_attempt(data):
-    """Номер, время, штраф и версия из запроса. Ошибка — 422 без полей формы."""
+    """Номер, время, штраф и версия из запроса участника. Ошибка — 422 без полей формы."""
     number = data.get("attempt_number")
+    version = data.get("version")
+    if not is_int(number) or not is_int(version):
+        raise ApiError(422, "invalid_attempt", "Некорректные данные попытки")
+    value, penalty = parse_value(data, PARTICIPANT_PENALTIES)
+    return number, value, penalty, version
+
+
+def parse_value(data, penalties, max_value=MAX_VALUE):
+    """Значение и штраф попытки из запроса: время (или ходы) меньше max_value.
+
+    При DNF и DNS значение необязательно: время сохранится, если штраф снимут.
+    """
     value = data.get("value")
     penalty = get_str(data, "penalty")
-    version = data.get("version")
-
-    def is_int(x):
-        # bool — подкласс int в Python, его отсекаем явно.
-        return isinstance(x, int) and not isinstance(x, bool)
-
-    if not is_int(number) or not is_int(version) or penalty not in PARTICIPANT_PENALTIES:
+    if penalty not in penalties:
         raise ApiError(422, "invalid_attempt", "Некорректные данные попытки")
-    # При DNF время необязательно: оно сохранится, если организатор снимет штраф.
-    if value is None and penalty == Penalty.DNF:
-        return number, None, penalty, version
-    if not is_int(value) or not 0 < value < MAX_VALUE:
-        raise ApiError(422, "invalid_attempt", "Некорректное время попытки")
-    return number, value, penalty, version
+    penalty = Penalty(penalty)
+    if value is None and penalty in (Penalty.DNF, Penalty.DNS):
+        return None, penalty
+    if not is_int(value) or not 0 < value < max_value:
+        raise ApiError(422, "invalid_attempt", "Некорректное значение попытки")
+    return value, penalty
 
 
 # Таблица дисциплины

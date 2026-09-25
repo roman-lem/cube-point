@@ -16,6 +16,11 @@ def get_str(data, key):
     return value if isinstance(value, str) else ""
 
 
+def is_int(value):
+    # bool — подкласс int в Python, его отсекаем явно.
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def get_list(data, key):
     value = data.get(key)
     return value if isinstance(value, list) else []

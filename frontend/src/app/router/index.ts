@@ -11,6 +11,8 @@ import { MeetupPage } from '@/pages/meetup'
 import { MeetupCreatePage } from '@/pages/meetup-create'
 import { MeetupManagePage } from '@/pages/meetup-manage'
 import { ProfilePage } from '@/pages/profile'
+import { ScramblePrintPage } from '@/pages/scramble-print'
+import { SeriesEditPage } from '@/pages/series-edit'
 import { StatisticsPage } from '@/pages/statistics'
 import { StubPage } from '@/pages/stub'
 import { TimerPage } from '@/pages/timer'
@@ -22,6 +24,8 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     /** Только для гостей: вошедшего отправляем дальше (вход, регистрация). */
     guestOnly?: boolean
+    /** Страница без навигации (печать). */
+    bare?: boolean
     /** Какая вкладка навигации подсвечена. */
     tab?: 'club' | 'timer' | 'records' | 'statistics' | 'profile' | 'members'
   }
@@ -96,6 +100,20 @@ export const router = createRouter({
       component: MeetupManagePage,
       props: numberParams('meetupId'),
       meta: { requiresAuth: true, tab: 'club' },
+    },
+    {
+      path: '/meetups/:meetupId(\\d+)/participants/:userId(\\d+)',
+      name: 'series-edit',
+      component: SeriesEditPage,
+      props: numberParams('meetupId', 'userId'),
+      meta: { requiresAuth: true, tab: 'club' },
+    },
+    {
+      path: '/meetups/:meetupId(\\d+)/print',
+      name: 'scramble-print',
+      component: ScramblePrintPage,
+      props: numberParams('meetupId'),
+      meta: { requiresAuth: true, bare: true },
     },
     {
       path: '/meetups/:meetupId(\\d+)/events/:eventId',

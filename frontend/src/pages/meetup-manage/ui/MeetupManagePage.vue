@@ -38,7 +38,7 @@ function onUpdate(meetup: Meetup) {
 </script>
 
 <template>
-  <main class="page">
+  <main class="page page--wide">
     <PageHeader
       title="Панель встречи"
       :subtitle="subtitle"

@@ -14,6 +14,11 @@
   max-width: 560px;
 }
 
+/* Панель организатора: таблица ввода результатов на широком экране. */
+.page--wide {
+  max-width: 1280px;
+}
+
 .page__section {
   display: flex;
   flex-direction: column;

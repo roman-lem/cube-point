@@ -1,4 +1,9 @@
-export { fetchActiveMeetups, fetchClubMeetups, fetchJoinPreview, fetchMeetup } from './api/meetupApi'
+export {
+  fetchActiveMeetups, fetchClubMeetups, fetchDesk, fetchJoinPreview, fetchMeetup, fetchPrintScrambles,
+} from './api/meetupApi'
+export type {
+  DeskAttempt, DeskEvent, DeskParticipant, DeskRow, DeskSeries, MeetupDesk, PrintEvent,
+} from './model/desk'
 export type {
   ActiveMeetup, EventLeader, JoinPreview, Meetup, MeetupEvent, MeetupPageData, MeetupStatus,
   MeetupSummary, MyEventSeries, RequestStatus,

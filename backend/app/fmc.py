@@ -16,7 +16,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from .errors import ApiError
 from .events import is_fmc
 from .extensions import db
-from .forms import get_str, json_body
+from .forms import get_str, is_int, json_body
 from .meetups import iso_utc
 from .models import FmcAttempt, Penalty, Series, SeriesStatus, utcnow
 from .permissions import get_or_404
@@ -32,11 +32,6 @@ MAX_SOLUTION_LENGTH = 1000
 MOVE_RE = re.compile(r"(?:[RLUDFB]w?|[xyz])['2]?")
 # Решение длиннее — DNF по регламенту WCA. Сам DNF ставит клиент при проверке.
 MAX_MOVES = 80
-
-
-def is_int(x):
-    # bool — подкласс int в Python, его отсекаем явно.
-    return isinstance(x, int) and not isinstance(x, bool)
 
 
 def get_my_fmc_series(series_id):

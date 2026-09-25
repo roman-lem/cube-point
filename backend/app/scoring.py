@@ -1,8 +1,8 @@
 """Сохранение результатов, рекорды клуба и таблица дисциплины на встрече.
 
 save_attempt — единственное место, где сохраняются результаты: через неё
-проходят сдача попытки участником, а в следующих шагах — правки организатора
-и DNS при завершении встречи. Правила — в разделах «Рекорды» и «Одновременная
+проходят сдача попытки участником, правки организатора и DNS при завершении
+встречи. delete_attempt — стирание ошибочно введённой попытки организатором. Правила — в разделах «Рекорды» и «Одновременная
 запись» CLAUDE.md.
 """
 
@@ -64,6 +64,38 @@ def save_attempt(
     db.session.flush()
 
     recalc_records(meetup_event.meetup.club_id, meetup_event.event_id)
+
+
+def delete_attempt(series, number, expected_version):
+    """Стирает последнюю попытку серии (ошибочный ввод организатора).
+
+    Только последнюю: пропуск в середине сломал бы порядок попыток. Серия без
+    попыток удаляется целиком, чтобы человек не попал в таблицу и не получил
+    DNS при завершении встречи. Исключение — начатые попытки FMC: момент старта
+    остаётся, иначе участник получил бы новый час. Возвращает False, если серия удалена.
+    """
+    if expected_version != series.version:
+        raise VersionConflict()
+    if number != len(series.attempts):
+        raise ApiError(
+            409, "not_last_attempt",
+            "Стереть можно только последнюю попытку серии — сначала сотрите следующие",
+        )
+
+    meetup_event = series.meetup_event
+    series.attempts.pop()
+    kept = bool(series.attempts or series.fmc_attempts)
+    if kept:
+        series.status = SeriesStatus.IN_PROGRESS
+        series.completed_at = None
+        recalc_series(series, meetup_event)
+        attributes.flag_modified(series, "status")
+    else:
+        db.session.delete(series)
+    db.session.flush()
+
+    recalc_records(meetup_event.meetup.club_id, meetup_event.event_id)
+    return kept
 
 
 def recalc_series(series, meetup_event):

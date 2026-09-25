@@ -11,6 +11,8 @@ const {
   cancelable = true,
   danger = false,
   loading = false,
+  confirmDisabled = false,
+  wide = false,
 } = defineProps<{
   title: string
   confirmLabel?: string
@@ -21,6 +23,10 @@ const {
   danger?: boolean
   /** Идёт запрос: кнопки неактивны, закрыть диалог нельзя. */
   loading?: boolean
+  /** Подтвердить пока нельзя (например, не всё разрешено в диалоге). */
+  confirmDisabled?: boolean
+  /** Широкий диалог для содержимого со списками. */
+  wide?: boolean
 }>()
 
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
@@ -59,14 +65,22 @@ function onBackdropClick(event: MouseEvent) {
 </script>
 
 <template>
-  <dialog ref="dialog" class="confirm-dialog" @cancel="onCancel" @click="onBackdropClick">
+  <dialog
+    ref="dialog"
+    :class="['confirm-dialog', { 'confirm-dialog--wide': wide }]"
+    @cancel="onCancel" @click="onBackdropClick">
     <div class="confirm-dialog__body">
       <h2 class="confirm-dialog__title">{{ title }}</h2>
       <div class="confirm-dialog__text">
         <slot />
       </div>
       <div class="confirm-dialog__actions">
-        <AppButton :variant="danger ? 'danger' : 'primary'" :loading="loading" @click="emit('confirm')">
+        <AppButton
+          :variant="danger ? 'danger' : 'primary'"
+          :loading="loading"
+          :disabled="confirmDisabled"
+          @click="emit('confirm')"
+        >
           {{ confirmLabel }}
         </AppButton>
         <AppButton v-if="cancelable" variant="secondary" :disabled="loading" @click="cancel">
@@ -86,6 +100,10 @@ function onBackdropClick(event: MouseEvent) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   color: inherit;
+}
+
+.confirm-dialog--wide {
+  max-width: 560px;
 }
 
 .confirm-dialog::backdrop {

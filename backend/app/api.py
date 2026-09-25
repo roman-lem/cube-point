@@ -3,6 +3,7 @@ from flask_login import current_user
 
 from .auth import auth
 from .clubs import clubs
+from .desk import desk
 from .errors import ApiError
 from .fmc import fmc_bp
 from .meetups import meetups
@@ -14,6 +15,7 @@ api.register_blueprint(clubs)
 api.register_blueprint(meetups)
 api.register_blueprint(series_bp)
 api.register_blueprint(fmc_bp)
+api.register_blueprint(desk)
 
 # Что доступно, пока пользователь не сменил временный пароль.
 ALLOWED_BEFORE_PASSWORD_CHANGE = {
