@@ -2,7 +2,7 @@ import type { RequestStatus } from '@/entities/meetup'
 import { http } from '@/shared/api'
 
 export interface ParticipationRequest {
-  user: { id: number; display_name: string; login: string }
+  user: { id: number; display_name: string; login: string | null }
   status: RequestStatus
   requested_at: string
   decided_at: string | null

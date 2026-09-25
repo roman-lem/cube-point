@@ -159,6 +159,14 @@ def test_create_member_account(world, org):
     assert login.get_json()["user"]["must_change_password"] is True
 
 
+def test_create_member_account_while_registration_closed(world, org):
+    world["app"].config["REGISTRATION_OPEN"] = False
+
+    response = org.post(members_url(world), json={"display_name": "Новичок", "login": "newbie"})
+
+    assert response.status_code == 201, response.get_json()
+
+
 def test_create_member_with_taken_login(world, org):
     response = org.post(members_url(world), json={"display_name": "Анна Вторая", "login": "anna"})
     assert response.status_code == 422

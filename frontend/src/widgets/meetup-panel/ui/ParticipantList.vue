@@ -23,7 +23,7 @@ const participants = computed(() => {
     (p) =>
       !text ||
       p.user.display_name.toLocaleLowerCase('ru').includes(text) ||
-      p.user.login.includes(text),
+      p.user.login?.includes(text),
   )
 })
 

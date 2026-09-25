@@ -1,5 +1,9 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+// Шрифты — из сборки, без сторонних доменов. Браузер скачивает только
+// подмножества (латиница, кириллица), которые встречаются на странице.
+import '@fontsource-variable/jetbrains-mono'
+import '@fontsource-variable/manrope'
 import App from './App.vue'
 import { setupAuthHandlers } from './providers/auth'
 import { router } from './router'

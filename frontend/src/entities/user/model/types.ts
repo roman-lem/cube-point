@@ -8,6 +8,10 @@ export interface User {
   email: string | null
   is_admin: boolean
   must_change_password: boolean
+  /** Нет согласий текущей версии: пока их не дать, API недоступен. */
+  consents_required: boolean
+  /** Почему нельзя удалить аккаунт (последний организатор клуба) или null. */
+  delete_restriction: string | null
 }
 
 /** Встреча, на которой поставлен личный рекорд. Дата — уже в часовом поясе клуба. */

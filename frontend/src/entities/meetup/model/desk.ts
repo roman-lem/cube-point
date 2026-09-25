@@ -38,7 +38,8 @@ export interface DeskEvent {
 }
 
 export interface DeskParticipant {
-  user: { id: number; display_name: string; login: string }
+  /** login — null, если участник удалил аккаунт. */
+  user: { id: number; display_name: string; login: string | null }
   disqualification: { reason: string; created_at: string } | null
 }
 

@@ -7,7 +7,7 @@ export interface UnresolvedFmc {
   series_id: number
   version: number
   attempt_number: number
-  user: { id: number; display_name: string; login: string }
+  user: { id: number; display_name: string; login: string | null }
   scramble: string
   /** Замороженное решение или (если сдачи не было) последний черновик. */
   solution: string
@@ -19,7 +19,7 @@ export interface UnresolvedFmc {
 export interface FinishSummary {
   /** Участники с незавершёнными сериями. */
   unfinished: {
-    user: { id: number; display_name: string; login: string }
+    user: { id: number; display_name: string; login: string | null }
     events: { event_id: string; attempts_done: number; attempts_count: number }[]
   }[]
   /** Сколько попыток станут DNS. */

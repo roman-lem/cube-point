@@ -23,6 +23,7 @@ type Handler = () => void
 
 let unauthorizedHandler: Handler | null = null
 let passwordChangeHandler: Handler | null = null
+let consentsHandler: Handler | null = null
 
 /** Вызывается, когда сессии нет или она отозвана (401 unauthorized). */
 export function onUnauthorized(handler: Handler) {
@@ -32,6 +33,11 @@ export function onUnauthorized(handler: Handler) {
 /** Вызывается, когда сервер требует сменить временный пароль. */
 export function onPasswordChangeRequired(handler: Handler) {
   passwordChangeHandler = handler
+}
+
+/** Вызывается, когда сервер требует дать согласия на обработку данных. */
+export function onConsentsRequired(handler: Handler) {
+  consentsHandler = handler
 }
 
 // Токен привязан к сессии и живёт вместе с ней. Запрашиваем его при первом
@@ -81,6 +87,9 @@ async function request<T>(method: string, url: string, body?: unknown, retryCsrf
   }
   if (error.code === 'password_change_required') {
     passwordChangeHandler?.()
+  }
+  if (error.code === 'consents_required') {
+    consentsHandler?.()
   }
   throw error
 }

@@ -1,9 +1,11 @@
-from flask import session
+from flask import current_app, session
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import generate_csrf
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from ..accounts import delete_account, delete_restriction
+from ..consents import consent_errors, consents_required, record_consents
 from ..errors import ApiError, ValidationError
 from ..extensions import db
 from ..forms import collapse_spaces, get_str, json_body, raise_if_errors
@@ -24,6 +26,9 @@ def serialize_user(user):
         "email": user.email,
         "is_admin": user.is_admin,
         "must_change_password": user.must_change_password,
+        "consents_required": consents_required(user),
+        # Почему нельзя удалить аккаунт (последний организатор клуба) или None.
+        "delete_restriction": delete_restriction(user),
     }
 
 
@@ -45,8 +50,16 @@ def me():
     return {"user": user}
 
 
+@auth.get("/registration")
+def registration_status():
+    return {"open": current_app.config["REGISTRATION_OPEN"]}
+
+
 @auth.post("/register")
 def register():
+    if not current_app.config["REGISTRATION_OPEN"]:
+        raise ApiError(403, "registration_closed", "Регистрация скоро откроется")
+
     data = json_body()
     display_name = collapse_spaces(get_str(data, "display_name"))
     login = normalize_login(get_str(data, "login"))
@@ -56,6 +69,7 @@ def register():
         "display_name": name_error(display_name),
         "login": login_error(login),
         "password": password_error(password),
+        **consent_errors(data),
     })
 
     login_taken = ValidationError({"login": "Логин уже занят"})
@@ -67,6 +81,7 @@ def register():
         display_name=display_name,
         password_hash=generate_password_hash(password),
     )
+    record_consents(user)
     db.session.add(user)
     try:
         db.session.commit()
@@ -154,3 +169,35 @@ def change_password():
 
     start_session(user, remember=session.get("remember", False))
     return {"user": serialize_user(user)}
+
+
+@auth.post("/consents")
+@login_required
+def accept_consents():
+    """Согласия от пользователя, у которого их нет (аккаунт от организатора)
+    или которые устарели после изменения текста."""
+    raise_if_errors(consent_errors(json_body()))
+    record_consents(current_user)
+    db.session.commit()
+    return {"user": serialize_user(current_user)}
+
+
+@auth.post("/delete-account")
+@login_required
+def delete_own_account():
+    password = get_str(json_body(), "password")
+    user = current_user._get_current_object()
+
+    if not password:
+        raise ValidationError({"password": "Введите пароль"})
+    if not check_password_hash(user.password_hash, password):
+        raise ValidationError({"password": "Неверный пароль"})
+    restriction = delete_restriction(user)
+    if restriction:
+        raise ApiError(409, "delete_restricted", restriction)
+
+    delete_account(user)
+    db.session.commit()
+    logout_user()
+    session.pop("remember", None)
+    return "", 204

@@ -13,6 +13,10 @@ class Config:
     # для локальной разработки через Vite выключено.
     SECURE_COOKIES = os.environ.get("SECURE_COOKIES") == "1"
 
+    # 0 — регистрация закрыта: форма показывает «Регистрация скоро откроется»,
+    # сервер отклоняет запросы. Вход и аккаунты от организатора работают.
+    REGISTRATION_OPEN = os.environ.get("REGISTRATION_OPEN", "1") != "0"
+
     # Сессия живёт до закрытия браузера, «Запомнить меня» — remember-кука Flask-Login.
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

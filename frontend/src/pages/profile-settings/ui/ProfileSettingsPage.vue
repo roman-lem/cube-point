@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/entities/user'
+import { DeleteAccountControl } from '@/features/account-delete'
 import { ChangePasswordForm, LogoutButton } from '@/features/auth'
 import { AppCard, AppIcon, PageHeader } from '@/shared/ui'
 
@@ -21,7 +22,7 @@ const passwordChanged = ref(false)
         <h2 class="page__section-title">Профиль</h2>
         <AppCard class="settings__fields">
           <div class="settings__field">
-            <span class="settings__label">Имя и фамилия</span>
+            <span class="settings__label">Имя или никнейм</span>
             <span>{{ userStore.user.display_name }}</span>
             <span class="settings__hint">Так вас видят в таблицах результатов</span>
           </div>
@@ -50,6 +51,13 @@ const passwordChanged = ref(false)
       </AppCard>
 
       <LogoutButton @done="router.replace({ name: 'home' })" />
+
+      <section class="page__section">
+        <h2 class="page__section-title">Удаление аккаунта</h2>
+        <AppCard>
+          <DeleteAccountControl @deleted="router.replace({ name: 'home' })" />
+        </AppCard>
+      </section>
     </template>
   </main>
 </template>

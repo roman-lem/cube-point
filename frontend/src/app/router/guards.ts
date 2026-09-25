@@ -13,6 +13,14 @@ export function installGuards(router: Router) {
     if (user?.must_change_password && to.name !== 'change-password') {
       return { name: 'change-password', query: { redirect: to.fullPath } }
     }
+    // Нет согласий (аккаунт от организатора или обновился текст): пока их не дать,
+    // доступны только страница согласия и сам текст политики.
+    if (
+      user?.consents_required && !user.must_change_password &&
+      to.name !== 'consent' && to.name !== 'privacy'
+    ) {
+      return { name: 'consent', query: { redirect: to.fullPath } }
+    }
     if (to.meta.requiresAuth && !user) {
       return { name: 'login', query: { redirect: to.fullPath } }
     }

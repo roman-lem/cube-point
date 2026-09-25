@@ -3,7 +3,8 @@
 Удаление:
 - вниз по иерархии владения (встреча → дисциплины → серии → попытки) — каскадное;
 - клуб со встречами удалить нельзя (RESTRICT), сначала удаляются встречи;
-- пользователя с результатами удалить нельзя (RESTRICT);
+- пользователя с результатами удалить нельзя (RESTRICT): удаление аккаунта
+  обезличивает его (accounts.delete_account), а результаты остаются;
 - служебные ссылки «кто сделал» (created_by, decided_by и т. п.) обнуляются.
 
 Результаты (value, best, average) — целые числа, DNF = -1 (см. results.py),
@@ -74,6 +75,11 @@ class Penalty(enum.StrEnum):
 CLUB_COLORS = ("blue", "sky", "teal", "amber", "orange", "rose", "slate", "brown")
 
 
+class ConsentType(enum.StrEnum):
+    PROCESSING = "processing"    # согласие на обработку персональных данных
+    PUBLICATION = "publication"  # согласие на распространение (публикацию)
+
+
 class RecordType(enum.StrEnum):
     SINGLE = "single"
     AVERAGE = "average"
@@ -95,13 +101,18 @@ def user_fk(ondelete):
     return db.ForeignKey("users.id", ondelete=ondelete)
 
 
+# Имя удалённого аккаунта в таблицах и профиле (accounts.delete_account).
+DELETED_USER_NAME = "Удалённый участник"
+
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    login = db.Column(db.String(32), nullable=False, unique=True)
+    # login и password_hash — NULL только у удалённого аккаунта.
+    login = db.Column(db.String(32), unique=True)
     display_name = db.Column(db.String(100), nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255))
     email = db.Column(db.String(254), unique=True)
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
     session_version = db.Column(db.Integer, nullable=False, default=1)
@@ -109,15 +120,36 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     created_by = db.Column(db.Integer, user_fk("SET NULL"))
+    deleted_at = db.Column(db.DateTime)
+
+    consents = db.relationship(
+        "UserConsent", cascade="all, delete-orphan", passive_deletes=True,
+    )
 
     @validates("login")
     def _lower_login(self, key, login):
-        return login.lower()
+        return login.lower() if login is not None else None
 
     def get_id(self):
         # Версия сессии в идентификаторе: при её увеличении все сессии
         # и remember-куки пользователя перестают действовать (см. auth.load_user).
         return f"{self.id}:{self.session_version}"
+
+
+class UserConsent(db.Model):
+    """Согласие пользователя: какое, какой версии текста и когда дано.
+
+    Записи только добавляются (новая версия текста — новая запись),
+    удаляются вместе с аккаунтом. Текущие версии — consents.CONSENT_VERSIONS.
+    """
+
+    __tablename__ = "user_consents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, user_fk("CASCADE"), nullable=False, index=True)
+    type = db.Column(enum_type(ConsentType), nullable=False)
+    version = db.Column(db.String(32), nullable=False)
+    accepted_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
 
 class Club(db.Model):

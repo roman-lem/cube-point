@@ -1,6 +1,6 @@
 import type { Router } from 'vue-router'
 import { useUserStore } from '@/entities/user'
-import { onPasswordChangeRequired, onUnauthorized } from '@/shared/api'
+import { onConsentsRequired, onPasswordChangeRequired, onUnauthorized } from '@/shared/api'
 
 /**
  * Реакция на ошибки авторизации из любого запроса.
@@ -24,5 +24,10 @@ export function setupAuthHandlers(router: Router) {
       name: 'change-password',
       query: { redirect: router.currentRoute.value.fullPath },
     })
+  })
+
+  onConsentsRequired(() => {
+    userStore.requireConsents()
+    router.push({ name: 'consent', query: { redirect: router.currentRoute.value.fullPath } })
   })
 }

@@ -25,8 +25,9 @@
   --color-logo-brown: #78503c;
 
   /* Шрифты */
-  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  /* Подключаются в main.ts из @fontsource-variable (вариативные, все начертания). */
+  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
   --font-size-body: 16px;
   --font-weight-body: 400;

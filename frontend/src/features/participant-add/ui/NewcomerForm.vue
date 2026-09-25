@@ -34,7 +34,7 @@ async function submit() {
   <form class="newcomer-form" @submit.prevent="submit">
     <AppInput
       v-model="displayName"
-      label="Имя и фамилия"
+      label="Имя или никнейм"
       autocomplete="off"
       :error="fieldErrors.display_name"
     />

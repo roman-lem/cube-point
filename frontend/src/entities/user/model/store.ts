@@ -46,5 +46,15 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { user, loaded, isAuthenticated, ensureLoaded, setUser, clear, requirePasswordChange }
+  /** Сервер ответил consents_required. */
+  function requireConsents() {
+    if (user.value) {
+      user.value.consents_required = true
+    }
+  }
+
+  return {
+    user, loaded, isAuthenticated, ensureLoaded, setUser, clear, requirePasswordChange,
+    requireConsents,
+  }
 })

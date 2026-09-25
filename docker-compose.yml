@@ -6,6 +6,8 @@ services:
       DATABASE_URL: sqlite:////app/instance/cubing.db
       # Куки только по HTTPS (браузеры делают исключение для localhost).
       SECURE_COOKIES: ${SECURE_COOKIES:-1}
+      # 0 — регистрация закрыта, вход для созданных аккаунтов работает.
+      REGISTRATION_OPEN: ${REGISTRATION_OPEN:-1}
     volumes:
       - backend-data:/app/instance
     # Наружу не публикуется: доступен только контейнеру web по адресу backend:5000.

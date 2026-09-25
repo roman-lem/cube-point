@@ -204,7 +204,7 @@ def make_admin_command(login):
         if error := login_error(login):
             raise click.ClickException(f"Логин: {error}")
         click.echo(f"Пользователя {login} нет, создаём нового.")
-        display_name = collapse_spaces(click.prompt("Имя и фамилия"))
+        display_name = collapse_spaces(click.prompt("Имя или никнейм"))
         if error := name_error(display_name):
             raise click.ClickException(f"Имя: {error}")
         password = click.prompt("Пароль", hide_input=True, confirmation_prompt=True)

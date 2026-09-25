@@ -15,6 +15,7 @@ from flask.cli import with_appcontext
 from sqlalchemy import inspect
 from werkzeug.security import generate_password_hash
 
+from .consents import record_consents
 from .events import EVENTS
 from .extensions import db
 from .models import (
@@ -149,10 +150,15 @@ def _create_users(now):
         db.session.add(cuber.user)
     db.session.flush()
 
-    # Аккаунт для пришедшего без телефона создал организатор.
+    # Аккаунт для пришедшего без телефона создал организатор: согласия
+    # человек даст при первом входе. Остальные дали их при регистрации.
     nikita = next(c for c in REGULARS if c.no_phone).user
     nikita.created_by = ORGANIZER.user.id
     nikita.must_change_password = True
+    for cuber in REGULARS + PENDING + [REJECTED]:
+        if cuber.user is not nikita:
+            record_consents(cuber.user)
+    record_consents(admin)
     return admin, ORGANIZER.user
 
 

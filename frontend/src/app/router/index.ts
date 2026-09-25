@@ -8,6 +8,7 @@ import { ClubPage } from '@/pages/club'
 import { ClubRecordsPage } from '@/pages/club-records'
 import { ClubMembersPage } from '@/pages/club-members'
 import { ClubSettingsPage } from '@/pages/club-settings'
+import { ConsentPage } from '@/pages/consent'
 import { EventResultsPage } from '@/pages/event-results'
 import { FmcPage } from '@/pages/fmc'
 import { HomePage } from '@/pages/home'
@@ -15,6 +16,7 @@ import { JoinPage } from '@/pages/join'
 import { MeetupPage } from '@/pages/meetup'
 import { MeetupCreatePage } from '@/pages/meetup-create'
 import { MeetupManagePage } from '@/pages/meetup-manage'
+import { PrivacyPage } from '@/pages/privacy'
 import { ProfileSettingsPage } from '@/pages/profile-settings'
 import { ScramblePrintPage } from '@/pages/scramble-print'
 import { SeriesEditPage } from '@/pages/series-edit'
@@ -45,10 +47,24 @@ const numberParams = (...names: string[]) => (route: RouteLocationNormalized) =>
 // Страницы без requiresAuth открыты всем, в том числе гостям.
 export const router = createRouter({
   history: createWebHistory(),
+  // Ссылки на разделы страницы (/privacy#publication) прокручивают к ним.
+  scrollBehavior(to, _from, savedPosition) {
+    if (to.hash) {
+      return { el: to.hash }
+    }
+    return savedPosition ?? false
+  },
   routes: [
     { path: '/', name: 'home', component: HomePage, meta: { tab: 'club' } },
     { path: '/login', name: 'login', component: AuthPage, meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: AuthPage, meta: { guestOnly: true } },
+    { path: '/privacy', name: 'privacy', component: PrivacyPage },
+    {
+      path: '/consent',
+      name: 'consent',
+      component: ConsentPage,
+      meta: { requiresAuth: true, tab: 'profile' },
+    },
     {
       path: '/change-password',
       name: 'change-password',

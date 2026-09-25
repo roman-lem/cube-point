@@ -5,17 +5,21 @@ from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.auth import throttle
+from app.consents import CONSENT_VERSIONS
 from app.extensions import db
 from app.models import LoginFailure, User
 
 from .conftest import TEST_CONFIG
 
 PASSWORD = "secret-pass"
+CONSENTS = {t.value: version for t, version in CONSENT_VERSIONS.items()}
 
 
-def register(client, login="ivan_petrov", display_name="Иван Петров", password=PASSWORD):
+def register(client, login="ivan_petrov", display_name="Иван Петров", password=PASSWORD,
+             consents=CONSENTS):
     return client.post("/api/auth/register", json={
         "display_name": display_name, "login": login, "password": password,
+        "consents": consents,
     })
 
 
@@ -79,9 +83,13 @@ def test_register_duplicate_login_in_other_case(client, app):
     ("login", "_ivan"),
     ("login", "ivan petrov"),
     ("display_name", ""),
-    ("display_name", "Иван"),
-    ("display_name", "Иван 123"),
-    ("display_name", "Иван -Петров"),
+    ("display_name", "И"),
+    ("display_name", "x" * 101),
+    ("display_name", "2000"),
+    ("display_name", "__"),
+    ("display_name", "Иван!"),
+    ("display_name", "Удалённый участник"),
+    ("display_name", "удаленный УЧАСТНИК"),
     ("password", ""),
     ("password", "short"),
     ("password", "x" * 129),
@@ -96,15 +104,119 @@ def test_register_invalid_field(client, field, value):
     assert list(error(response)["fields"]) == [field]
 
 
-@pytest.mark.parametrize("display_name", ["Анна-Мария Д'Артаньян", "Jean Dupont", "Ли Мин Хо"])
-def test_register_accepts_names(client, display_name):
+@pytest.mark.parametrize("display_name", [
+    "Анна-Мария Д'Артаньян", "Jean Dupont", "Ли Мин Хо", "Ли", "alex_cube", "Cuber 2000",
+    "st.petrov",
+])
+def test_register_accepts_names_and_nicknames(client, display_name):
     assert register(client, display_name=display_name).status_code == 201
 
 
 def test_register_reports_all_invalid_fields(client):
     response = client.post("/api/auth/register", json={})
 
-    assert set(error(response)["fields"]) == {"display_name", "login", "password"}
+    assert set(error(response)["fields"]) == {
+        "display_name", "login", "password", "consent_processing", "consent_publication",
+    }
+
+
+# Согласия
+
+def consent_rows(app, login="ivan_petrov"):
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.login == login))
+        return [(c.type.value, c.version, c.accepted_at) for c in user.consents]
+
+
+def test_register_saves_both_consents_with_version_and_date(client, app):
+    register(client)
+
+    rows = consent_rows(app)
+    assert {(t, v) for t, v, _ in rows} == set(CONSENTS.items())
+    assert all(accepted_at is not None for _, _, accepted_at in rows)
+    assert me(client)["consents_required"] is False
+
+
+@pytest.mark.parametrize("missing", ["processing", "publication"])
+def test_register_requires_each_consent(client, app, missing):
+    consents = {**CONSENTS, missing: None}
+
+    response = register(client, consents=consents)
+
+    assert response.status_code == 422
+    assert error(response)["fields"] == {f"consent_{missing}": "Нужно ваше согласие"}
+
+
+def test_register_rejects_outdated_consent_version(client):
+    response = register(client, consents={**CONSENTS, "publication": "2000-01-01"})
+
+    assert response.status_code == 422
+    assert error(response)["fields"] == {
+        "consent_publication": "Текст согласия обновился, обновите страницу",
+    }
+
+
+def create_account_without_consents(app, login="newbie"):
+    """Аккаунт, созданный организатором: согласий нет."""
+    with app.app_context():
+        db.session.add(User(
+            login=login, display_name="Новичок", password_hash=generate_password_hash(PASSWORD),
+        ))
+        db.session.commit()
+
+
+def test_account_without_consents_must_accept_them(client, app):
+    create_account_without_consents(app)
+    login(client, login="newbie")
+
+    assert me(client)["consents_required"] is True
+    blocked = client.get("/api/clubs")
+    assert blocked.status_code == 403
+    assert error(blocked)["code"] == "consents_required"
+
+    missing = client.post("/api/auth/consents", json={"consents": {"processing": CONSENTS["processing"]}})
+    assert missing.status_code == 422
+    assert list(error(missing)["fields"]) == ["consent_publication"]
+
+    response = client.post("/api/auth/consents", json={"consents": CONSENTS})
+    assert response.status_code == 200
+    assert response.get_json()["user"]["consents_required"] is False
+    assert {(t, v) for t, v, _ in consent_rows(app, "newbie")} == set(CONSENTS.items())
+    assert client.get("/api/clubs").status_code == 200
+
+
+def test_new_consent_version_is_asked_again(client, app, monkeypatch):
+    register(client)
+    new_versions = {**CONSENT_VERSIONS}
+    new_versions[next(iter(new_versions))] = "2099-01-01"
+    monkeypatch.setattr("app.consents.CONSENT_VERSIONS", new_versions)
+
+    assert me(client)["consents_required"] is True
+    assert client.get("/api/clubs").status_code == 403
+
+    new_consents = {t.value: v for t, v in new_versions.items()}
+    assert client.post("/api/auth/consents", json={"consents": new_consents}).status_code == 200
+    # Прежние записи остаются: журнал согласий только дополняется.
+    assert len(consent_rows(app)) == 4
+    assert client.get("/api/clubs").status_code == 200
+
+
+# Закрытая регистрация
+
+def test_registration_open_by_default(client):
+    assert client.get("/api/auth/registration").get_json() == {"open": True}
+
+
+def test_closed_registration_rejects_register_but_allows_login(client, app):
+    register(client)
+    app.config["REGISTRATION_OPEN"] = False
+    browser = app.test_client()
+
+    assert browser.get("/api/auth/registration").get_json() == {"open": False}
+    response = register(browser, login="another_user")
+    assert response.status_code == 403
+    assert error(response)["code"] == "registration_closed"
+    assert login(browser).status_code == 200
 
 
 def test_register_with_non_json_body(client):
@@ -354,7 +466,10 @@ def test_request_with_csrf_token_is_accepted(csrf_client):
 
     response = csrf_client.post(
         "/api/auth/register",
-        json={"display_name": "Иван Петров", "login": "ivan_petrov", "password": PASSWORD},
+        json={
+            "display_name": "Иван Петров", "login": "ivan_petrov", "password": PASSWORD,
+            "consents": CONSENTS,
+        },
         headers={"X-CSRFToken": token},
     )
 

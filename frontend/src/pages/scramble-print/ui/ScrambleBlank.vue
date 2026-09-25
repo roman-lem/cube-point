@@ -26,7 +26,7 @@ const rowHeight = computed(() => {
         <p class="scramble-blank__title">{{ title }}</p>
         <p class="scramble-blank__subtitle">{{ subtitle }}</p>
       </div>
-      <p class="scramble-blank__name">Имя и фамилия</p>
+      <p class="scramble-blank__name">Имя</p>
     </header>
 
     <section v-for="event in events" :key="event.event_id" class="scramble-blank__event">

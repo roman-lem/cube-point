@@ -2,6 +2,7 @@
 
 from werkzeug.security import generate_password_hash
 
+from app.consents import record_consents
 from app.extensions import db
 from app.models import Club, ClubMember, ClubRole, User, utcnow
 
@@ -11,9 +12,10 @@ PASSWORD_HASH = generate_password_hash(PASSWORD, method="pbkdf2:sha256:1")
 
 
 def create_user(app, login, role=None, club_id=None, banned=False):
-    """Пользователь и (если указана роль) его членство в клубе. Возвращает id."""
+    """Пользователь (с согласиями) и, если указана роль, его членство в клубе. Возвращает id."""
     with app.app_context():
         user = User(login=login, display_name="Иван Петров", password_hash=PASSWORD_HASH)
+        record_consents(user)
         db.session.add(user)
         db.session.flush()
         if role:

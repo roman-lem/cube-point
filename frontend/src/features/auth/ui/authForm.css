@@ -23,3 +23,7 @@
   margin: 0;
   accent-color: var(--color-primary);
 }
+
+.auth-form__closed {
+  text-align: center;
+}
