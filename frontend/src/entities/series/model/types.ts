@@ -2,8 +2,14 @@ import type { Attempt, SeriesFormat } from '@/shared/lib'
 
 export type SeriesStatus = 'in_progress' | 'completed'
 
+/** Попытка в таблицах и сериях. У исправленной организатором — отметка и исходное значение. */
+export interface SeriesAttempt extends Attempt {
+  edited?: boolean
+  original?: Attempt
+}
+
 /** Сохранённая попытка серии. */
-export interface SavedAttempt extends Attempt {
+export interface SavedAttempt extends SeriesAttempt {
   number: number
   /** Решение FMC. */
   solution?: string
@@ -51,7 +57,7 @@ export interface ResultsRow {
   user: { id: number; display_name: string }
   status: SeriesStatus
   /** По ячейке на каждую попытку формата, несобранные — null. */
-  attempts: (Attempt | null)[]
+  attempts: (SeriesAttempt | null)[]
   best: number | null
   average: number | null
   /** Отметки рекордов (entities не импортируют друг друга, поэтому без RecordMark). */
@@ -77,7 +83,7 @@ export interface LiveSeries {
   format: SeriesFormat
   status: SeriesStatus
   /** По ячейке на каждую попытку формата, несобранные — null. */
-  attempts: (Attempt | null)[]
+  attempts: (SeriesAttempt | null)[]
   best: number | null
   average: number | null
 }

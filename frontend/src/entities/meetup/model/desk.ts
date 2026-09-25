@@ -3,6 +3,10 @@ import type { Attempt, SeriesFormat } from '@/shared/lib'
 /** Попытка в таблице ввода; у FMC — с текстом решения. */
 export interface DeskAttempt extends Attempt {
   solution?: string
+  /** Попытку исправляли: в журнале больше одной записи. */
+  edited?: boolean
+  /** Исходный результат (первая запись журнала), только у исправленной. */
+  original?: Attempt
 }
 
 /** Серия участника в таблице ввода организатора. */

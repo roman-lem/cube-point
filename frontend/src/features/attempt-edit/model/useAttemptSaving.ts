@@ -2,7 +2,7 @@ import { ref, shallowReactive } from 'vue'
 import type { DeskEvent } from '@/entities/meetup'
 import { ApiError } from '@/shared/api'
 import { eventName, type Attempt } from '@/shared/lib'
-import { deleteAttempt, saveAttempt } from '../api/saveAttempt'
+import { deleteAttempt, restoreAttempt, saveAttempt } from '../api/saveAttempt'
 
 /** Состояние сохранения ячейки. Нет состояния — ничего не происходит. */
 export interface CellState {
@@ -23,7 +23,8 @@ function cellKey(eventId: string, userId: number, number: number) {
 /**
  * Автосохранение ручного ввода: у каждой ячейки своё состояние.
  *
- * attempt = null — стереть попытку (только последнюю в серии, проверяет сервер).
+ * attempt = null — стереть попытку (только последнюю в серии и не сданную самим
+ * участником, проверяет сервер). restore — вернуть попытке исходный результат.
  *
  * Сохранения одной серии идут по очереди и берут версию серии в момент
  * отправки: иначе быстрый ввод двух попыток подряд давал бы ложный конфликт.
@@ -50,22 +51,20 @@ export function useAttemptSaving(options: {
     }
   }
 
-  function save(
+  /** Запрос по ячейке в очереди серии. send получает версию серии в момент отправки. */
+  function enqueue(
     eventId: string,
     user: { id: number; display_name: string },
     number: number,
-    attempt: Attempt | null,
+    send: (version: number | null) => Promise<DeskEvent>,
   ): Promise<void> {
     const key = cellKey(eventId, user.id, number)
-    const retry = () => void save(eventId, user, number, attempt)
+    const retry = () => void enqueue(eventId, user, number, send)
     setState(key, { status: 'saving' })
 
     const run = async () => {
       try {
-        const version = options.version(eventId, user.id)
-        const event = attempt
-          ? await saveAttempt(options.meetupId(), eventId, user.id, number, attempt, version)
-          : await deleteAttempt(options.meetupId(), eventId, user.id, number, version)
+        const event = await send(options.version(eventId, user.id))
         options.onEvent(event)
         setState(key, { status: 'saved' })
         timers.set(key, setTimeout(() => states.delete(key), SAVED_VISIBLE_MS))
@@ -94,6 +93,29 @@ export function useAttemptSaving(options: {
     return next
   }
 
+  function save(
+    eventId: string,
+    user: { id: number; display_name: string },
+    number: number,
+    attempt: Attempt | null,
+  ): Promise<void> {
+    return enqueue(eventId, user, number, (version) =>
+      attempt
+        ? saveAttempt(options.meetupId(), eventId, user.id, number, attempt, version)
+        : deleteAttempt(options.meetupId(), eventId, user.id, number, version),
+    )
+  }
+
+  function restore(
+    eventId: string,
+    user: { id: number; display_name: string },
+    number: number,
+  ): Promise<void> {
+    return enqueue(eventId, user, number, (version) =>
+      restoreAttempt(options.meetupId(), eventId, user.id, number, version),
+    )
+  }
+
   function stateOf(eventId: string, userId: number, number: number) {
     return states.get(cellKey(eventId, userId, number))
   }
@@ -103,7 +125,7 @@ export function useAttemptSaving(options: {
     setState(cellKey(eventId, userId, number), { status: 'error', message: INVALID_INPUT_MESSAGE })
   }
 
-  return { notice, save, stateOf, markInvalid }
+  return { notice, meetupId: options.meetupId, save, restore, stateOf, markInvalid }
 }
 
 export type AttemptSaving = ReturnType<typeof useAttemptSaving>

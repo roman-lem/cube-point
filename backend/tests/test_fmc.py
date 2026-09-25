@@ -6,7 +6,7 @@ import pytest
 
 from app.events import FMC_TIME_LIMIT
 from app.extensions import db
-from app.models import Attempt, ClubRecord, FmcAttempt, User
+from app.models import Attempt, AttemptHistory, ClubRecord, FmcAttempt, User
 
 from .helpers import MEMBER, ORGANIZER, client_for, create_club, create_user, error
 
@@ -264,6 +264,12 @@ def test_result_is_saved_with_frozen_solution(world, bo1):
     ]
     attempt = saved_attempt(world, series["id"])
     assert attempt.submitted_at.isoformat() + "Z" == frozen["next_attempt"]["fmc"]["frozen_at"]
+    with world["app"].app_context():
+        [entry] = db.session.scalars(
+            db.select(AttemptHistory).where(AttemptHistory.attempt_id == attempt.id)
+        ).all()
+        assert (entry.value, entry.solution) == (3, SOLUTION)
+        assert entry.changed_by == user_id_of(world, "anna")
 
 
 def test_result_goes_through_records(world, bo1):

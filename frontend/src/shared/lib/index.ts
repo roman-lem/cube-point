@@ -10,7 +10,8 @@ export {
 } from './events'
 export type { EventId, EventInfo } from './events'
 export {
-  DEFAULT_TIME_ZONE, formatDate, formatTime, formatTimeRange, timeZoneOptions, todayIn,
+  DEFAULT_TIME_ZONE, formatDate, formatDateTime, formatTime, formatTimeRange,
+  timeZoneOptions, todayIn,
 } from './datetime'
 export { plural } from './plural'
 export { downloadBlob, qrPng, qrSvg } from './qr'

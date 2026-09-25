@@ -1,9 +1,11 @@
 """Сохранение результатов, рекорды клуба и таблица дисциплины на встрече.
 
 save_attempt — единственное место, где сохраняются результаты: через неё
-проходят сдача попытки участником, правки организатора и DNS при завершении
-встречи. delete_attempt — стирание ошибочно введённой попытки организатором. Правила — в разделах «Рекорды» и «Одновременная
-запись» CLAUDE.md.
+проходят сдача попытки участником, правки организатора, возврат исходного
+результата и DNS при завершении встречи. Она же ведёт журнал попытки
+(attempt_history). delete_attempt — стирание ошибочно введённой попытки
+организатором. Правила — в разделах «Рекорды», «Панель организатора»
+и «Одновременная запись» CLAUDE.md.
 """
 
 from sqlalchemy.orm import attributes, selectinload
@@ -12,7 +14,7 @@ from .errors import ApiError
 from .events import EVENTS
 from .extensions import db
 from .models import (
-    Attempt, ClubRecord, Disqualification, Format, Meetup, MeetupEvent, Penalty,
+    Attempt, AttemptHistory, ClubRecord, Disqualification, Format, Meetup, MeetupEvent, Penalty,
     RecordType, Series, SeriesStatus, utcnow,
 )
 from .results import ATTEMPTS_COUNT, DNF, PLUS_TWO, calc_series
@@ -39,22 +41,34 @@ def save_attempt(
     бросает VersionConflict. Права и порядок попыток проверяет вызывающий.
     solution — текст решения FMC (None — не менять), submitted_at — момент
     сдачи новой попытки, если это не «сейчас» (заморозка решения FMC).
+
+    Каждое создание и изменение добавляет запись в журнал попытки. Сохранение
+    того же значения попытку и журнал не трогает.
     """
     if expected_version != series.version:
         raise VersionConflict()
 
     attempt = next((a for a in series.attempts if a.attempt_number == number), None)
+    if solution is None and attempt is not None:
+        solution = attempt.solution
     if attempt is None:
         # submitted_at проставляется только при создании и потом не меняется.
         attempt = Attempt(attempt_number=number, submitted_at=submitted_at or utcnow())
         series.attempts.append(attempt)
+        changed = True
     else:
-        attempt.updated_at = utcnow()
-    attempt.value = value
-    attempt.penalty = penalty
-    attempt.entered_by = user.id
-    if solution is not None:
+        changed = (attempt.value, attempt.penalty, attempt.solution) != (value, penalty, solution)
+        if changed:
+            attempt.updated_at = utcnow()
+    if changed:
+        attempt.value = value
+        attempt.penalty = penalty
         attempt.solution = solution
+        attempt.entered_by = user.id
+        attempt.history.append(AttemptHistory(
+            value=value, penalty=penalty, solution=solution,
+            changed_by=user.id, changed_at=utcnow(),
+        ))
 
     meetup_event = series.meetup_event
     recalc_series(series, meetup_event)
@@ -73,6 +87,9 @@ def delete_attempt(series, number, expected_version):
     попыток удаляется целиком, чтобы человек не попал в таблицу и не получил
     DNS при завершении встречи. Исключение — начатые попытки FMC: момент старта
     остаётся, иначе участник получил бы новый час. Возвращает False, если серия удалена.
+
+    Попытку, которую сдал сам участник, стереть нельзя, только исправить: иначе
+    вместе с ней пропал бы журнал с исходным результатом.
     """
     if expected_version != series.version:
         raise VersionConflict()
@@ -80,6 +97,11 @@ def delete_attempt(series, number, expected_version):
         raise ApiError(
             409, "not_last_attempt",
             "Стереть можно только последнюю попытку серии — сначала сотрите следующие",
+        )
+    if is_participant_attempt(series, series.attempts[-1]):
+        raise ApiError(
+            409, "participant_attempt",
+            "Попытку сдал сам участник — её можно исправить, но не стереть",
         )
 
     meetup_event = series.meetup_event
@@ -96,6 +118,11 @@ def delete_attempt(series, number, expected_version):
 
     recalc_records(meetup_event.meetup.club_id, meetup_event.event_id)
     return kept
+
+
+def is_participant_attempt(series, attempt):
+    """Попытку сдал сам участник: первая запись журнала — от владельца серии."""
+    return bool(attempt.history) and attempt.history[0].changed_by == series.user_id
 
 
 def recalc_series(series, meetup_event):
@@ -120,6 +147,20 @@ def recalc_series(series, meetup_event):
 
 def attempt_dict(attempt):
     return {"value": attempt.value, "penalty": attempt.penalty.value}
+
+
+def serialize_attempt(attempt):
+    """Попытка для таблиц: у исправленной — отметка и исходное значение.
+
+    Исправленная — у которой в журнале больше одной записи. Исходное значение
+    видят все, полную историю (кто и когда) — только организатор.
+    """
+    item = attempt_dict(attempt)
+    if len(attempt.history) > 1:
+        original = attempt.history[0]
+        item["edited"] = True
+        item["original"] = {"value": original.value, "penalty": original.penalty.value}
+    return item
 
 
 # Лучшие результаты: рекорды клуба и личные рекорды
@@ -290,7 +331,10 @@ def event_table(meetup_event):
         s for s in db.session.scalars(
             db.select(Series)
             .where(Series.meetup_event_id == meetup_event.id)
-            .options(selectinload(Series.attempts), selectinload(Series.user))
+            .options(
+                selectinload(Series.attempts).selectinload(Attempt.history),
+                selectinload(Series.user),
+            )
         )
         if s.user_id not in disqualified
     ]

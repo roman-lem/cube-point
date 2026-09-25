@@ -28,7 +28,7 @@ from .models import (
 from .permissions import is_banned, require_organizer
 from .results import ATTEMPTS_COUNT
 from .scoring import (
-    VersionConflict, attempt_dict, delete_attempt, event_table, recalc_records, save_attempt,
+    VersionConflict, delete_attempt, event_table, recalc_records, save_attempt, serialize_attempt,
 )
 from .series import fmc_deadline, get_meetup_event, parse_value
 
@@ -58,7 +58,7 @@ def serialize_user(user):
 def serialize_desk_attempts(series, count):
     attempts = [None] * count
     for attempt in series.attempts:
-        item = attempt_dict(attempt)
+        item = serialize_attempt(attempt)
         if attempt.solution is not None:
             item["solution"] = attempt.solution
         attempts[attempt.attempt_number - 1] = item
@@ -230,6 +230,69 @@ def remove_attempt(meetup_id, event_id, user_id, number):
         db.session.rollback()
         error.extra = {"event": desk_event(meetup, meetup_event)}
         raise
+    return {"event": desk_event(meetup, meetup_event)}
+
+
+def find_attempt(meetup_event, user_id, number):
+    series = db.session.scalar(db.select(Series).where(
+        Series.meetup_event_id == meetup_event.id, Series.user_id == user_id,
+    ))
+    attempts = series.attempts if series else []
+    attempt = next((a for a in attempts if a.attempt_number == number), None)
+    if attempt is None:
+        raise ApiError(404, "not_found", "Попытка не найдена")
+    return series, attempt
+
+
+@desk.get(
+    "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>/history"
+)
+def attempt_history(meetup_id, event_id, user_id, number):
+    """Журнал попытки: значения по порядку, кто и когда их установил. Первое — исходное."""
+    meetup = get_organizer_meetup(meetup_id)
+    _, attempt = find_attempt(get_meetup_event(meetup, event_id), user_id, number)
+    return {"history": [
+        {
+            "value": entry.value,
+            "penalty": entry.penalty.value,
+            "solution": entry.solution,
+            "changed_by": None if entry.user is None else {
+                "id": entry.user.id, "display_name": entry.user.display_name,
+            },
+            "changed_at": iso_utc(entry.changed_at),
+        }
+        for entry in attempt.history
+    ]}
+
+
+@desk.post(
+    "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>/restore"
+)
+def restore_attempt(meetup_id, event_id, user_id, number):
+    """Возвращает попытке исходный результат (первую запись журнала).
+
+    Это обычная правка через save_attempt: она тоже попадает в журнал и
+    пересчитывает рекорды. Тело запроса — {"version"} прочитанной серии.
+    """
+    meetup = get_organizer_meetup(meetup_id)
+    meetup_event = get_meetup_event(meetup, event_id)
+    version = json_body().get("version")
+    if not is_int(version):
+        raise ApiError(422, "invalid_attempt", "Некорректные данные попытки")
+    series, attempt = find_attempt(meetup_event, user_id, number)
+    original = attempt.history[0]
+
+    try:
+        save_attempt(
+            series, number, original.value, original.penalty, version, current_user,
+            solution=original.solution,
+        )
+        db.session.commit()
+    except (VersionConflict, StaleDataError):
+        db.session.rollback()
+        conflict = VersionConflict()
+        conflict.extra = {"event": desk_event(meetup, meetup_event)}
+        raise conflict
     return {"event": desk_event(meetup, meetup_event)}
 
 

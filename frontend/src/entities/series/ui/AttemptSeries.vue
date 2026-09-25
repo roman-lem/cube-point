@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import {
   ATTEMPTS_COUNT,
   calcSeries,
   formatAttempt,
-  type Attempt,
   type ResultType,
   type SeriesFormat,
 } from '@/shared/lib'
+import type { SeriesAttempt } from '../model/types'
 
 // Попытки серии в ряд, отброшенные в ao5 — в скобках, несобранные — пустые.
+// Исправленная организатором попытка — с отметкой в углу, по нажатию под рядом
+// видно исходное значение.
 const { attempts, format, resultType = 'time' } = defineProps<{
-  attempts: (Attempt | null)[]
+  attempts: (SeriesAttempt | null)[]
   format: SeriesFormat
   resultType?: ResultType
 }>()
@@ -30,26 +32,59 @@ const cells = computed(() => {
     return {
       text: attempt && !counting[i] ? `(${text})` : text,
       isDnf: attempt?.penalty === 'dnf' || attempt?.penalty === 'dns',
+      original: attempt?.edited && attempt.original
+        ? formatAttempt(attempt.original, resultType)
+        : null,
     }
   })
 })
+
+/** Номер попытки (с нуля), у которой показано исходное значение. */
+const shown = ref<number | null>(null)
+const shownOriginal = computed(() => (shown.value === null ? null : cells.value[shown.value]?.original))
+
+function toggle(i: number) {
+  shown.value = shown.value === i ? null : i
+}
 </script>
 
 <template>
-  <ol class="attempt-series">
-    <li
-      v-for="(cell, i) in cells"
-      :key="i"
-      :class="['attempt-series__cell', { 'attempt-series__cell--dnf': cell.isDnf }]"
-      :aria-label="`Попытка ${i + 1}: ${cell.text || 'не собрана'}`"
-    >
-      {{ cell.text }}
-    </li>
-  </ol>
+  <div class="attempt-series">
+    <ol class="attempt-series__row">
+      <li
+        v-for="(cell, i) in cells"
+        :key="i"
+        :class="['attempt-series__cell', { 'attempt-series__cell--dnf': cell.isDnf }]"
+        :aria-label="cell.original ? undefined : `Попытка ${i + 1}: ${cell.text || 'не собрана'}`"
+      >
+        <button
+          v-if="cell.original"
+          type="button"
+          class="attempt-series__edited"
+          :aria-expanded="shown === i"
+          :aria-label="`Попытка ${i + 1}: ${cell.text}, исправлена организатором`"
+          @click="toggle(i)"
+        >
+          {{ cell.text }}
+        </button>
+        <template v-else>{{ cell.text }}</template>
+      </li>
+    </ol>
+    <p v-if="shownOriginal" class="attempt-series__original">
+      Попытку {{ shown! + 1 }} исправил организатор, исходно:
+      <span class="attempt-series__original-value">{{ shownOriginal }}</span>
+    </p>
+  </div>
 </template>
 
 <style scoped>
 .attempt-series {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.attempt-series__row {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
@@ -59,6 +94,7 @@ const cells = computed(() => {
 }
 
 .attempt-series__cell {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,5 +110,38 @@ const cells = computed(() => {
 
 .attempt-series__cell--dnf {
   color: var(--color-dnf);
+}
+
+.attempt-series__edited {
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Отметка исправленной попытки — уголок, как у примечания в электронной таблице. */
+.attempt-series__edited::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-top: 8px solid var(--color-primary);
+  border-left: 8px solid transparent;
+  border-top-right-radius: var(--radius-badge);
+}
+
+.attempt-series__original {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.attempt-series__original-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 </style>

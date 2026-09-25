@@ -21,7 +21,7 @@ from .models import (
 )
 from .permissions import get_or_404
 from .results import ATTEMPTS_COUNT
-from .scoring import VersionConflict, attempt_dict, event_table, save_attempt
+from .scoring import VersionConflict, event_table, save_attempt, serialize_attempt
 
 series_bp = Blueprint("series", __name__)
 
@@ -48,7 +48,7 @@ def require_live(meetup):
 def serialize_attempts(series):
     result = []
     for a in series.attempts:
-        item = {"number": a.attempt_number, **attempt_dict(a)}
+        item = {"number": a.attempt_number, **serialize_attempt(a)}
         if a.solution is not None:
             item["solution"] = a.solution
         result.append(item)
@@ -228,7 +228,7 @@ def event_results(meetup_id, event_id):
         series = row["series"]
         attempts = [None] * count
         for attempt in series.attempts:
-            attempts[attempt.attempt_number - 1] = attempt_dict(attempt)
+            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt)
         rows.append({
             "place": row["place"],
             "user": {"id": series.user.id, "display_name": series.user.display_name},
@@ -339,7 +339,7 @@ def my_live_series():
             }
         attempts = [None] * ATTEMPTS_COUNT[meetup_event.format.value]
         for attempt in series.attempts:
-            attempts[attempt.attempt_number - 1] = attempt_dict(attempt)
+            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt)
         meetups[meetup.id]["series"].append({
             "id": series.id,
             "event_id": meetup_event.event_id,

@@ -23,6 +23,17 @@ export function formatTime(isoMoment: string, timeZone: string): string {
   }).format(new Date(isoMoment))
 }
 
+/** «19 октября, 18:05» по часам клуба. */
+export function formatDateTime(isoMoment: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
+  }).format(new Date(isoMoment))
+}
+
 /** «18:00–21:00» или «18:00», если время окончания не указано. */
 export function formatTimeRange(startsAt: string, endsAt: string | null, timeZone: string): string {
   const start = formatTime(startsAt, timeZone)

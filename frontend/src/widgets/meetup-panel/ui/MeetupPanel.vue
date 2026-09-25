@@ -201,6 +201,7 @@ function onParticipantsChanged() {
             :key="activeEvent.event_id"
             :event="activeEvent"
             :saving="saving"
+            :time-zone="meetup.club.timezone"
           />
           <ParticipantList
             v-else

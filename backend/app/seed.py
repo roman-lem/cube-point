@@ -18,7 +18,7 @@ from werkzeug.security import generate_password_hash
 from .events import EVENTS
 from .extensions import db
 from .models import (
-    Attempt, Club, ClubLink, ClubMember, ClubRole, Disqualification, Format,
+    Attempt, AttemptHistory, Club, ClubLink, ClubMember, ClubRole, Disqualification, Format,
     LinkType, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
     ParticipantStatus, Penalty, Scramble, Series, SeriesStatus, User, utcnow,
 )
@@ -254,17 +254,17 @@ def _add_series(meetup, meetup_event, scrambles, cuber, organizer, rng):
             submitted_at += timedelta(seconds=rng.randint(90, 240))
             value, penalty = _timed_attempt(cuber, meetup_event.event_id, rng)
             solution = None
-        series.attempts.append(Attempt(
-            attempt_number=number, value=value, penalty=penalty, solution=solution,
-            submitted_at=submitted_at, entered_by=entered_by,
-        ))
+        attempt = _attempt(number, value, penalty, solution, submitted_at, entered_by)
+        # Изредка организатор исправляет сданную попытку: +2, которого не было.
+        if penalty == Penalty.NONE and solution is None and rng.random() < 0.03:
+            _edit(attempt, Penalty.PLUS2, organizer.id, submitted_at + timedelta(minutes=5))
+        series.attempts.append(attempt)
 
     # При завершении встречи несобранные попытки начатых серий становятся DNS.
     if meetup.status == MeetupStatus.FINISHED:
         for number in range(solved + 1, count + 1):
-            series.attempts.append(Attempt(
-                attempt_number=number, value=None, penalty=Penalty.DNS,
-                submitted_at=meetup.finished_at,
+            series.attempts.append(_attempt(
+                number, None, Penalty.DNS, None, meetup.finished_at, organizer.id,
             ))
 
     if len(series.attempts) == count:
@@ -277,6 +277,29 @@ def _add_series(meetup, meetup_event, scrambles, cuber, organizer, rng):
     )
     series.best = result["best"]
     series.average = result["average"]
+
+
+def _attempt(number, value, penalty, solution, submitted_at, entered_by):
+    """Попытка с первой записью журнала, как её создала бы save_attempt."""
+    attempt = Attempt(
+        attempt_number=number, value=value, penalty=penalty, solution=solution,
+        submitted_at=submitted_at, entered_by=entered_by,
+    )
+    attempt.history.append(AttemptHistory(
+        value=value, penalty=penalty, solution=solution,
+        changed_by=entered_by, changed_at=submitted_at,
+    ))
+    return attempt
+
+
+def _edit(attempt, penalty, user_id, changed_at):
+    attempt.penalty = penalty
+    attempt.entered_by = user_id
+    attempt.updated_at = changed_at
+    attempt.history.append(AttemptHistory(
+        value=attempt.value, penalty=penalty, solution=attempt.solution,
+        changed_by=user_id, changed_at=changed_at,
+    ))
 
 
 def _timed_attempt(cuber, event_id, rng):

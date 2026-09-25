@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
-import type { DeskEvent, DeskRow } from '@/entities/meetup'
+import type { DeskAttempt, DeskEvent, DeskRow } from '@/entities/meetup'
 import { RecordBadge } from '@/entities/record'
 import {
-  attemptToText, parseAttemptText, sameAttempt, SaveIndicator, toggleDnf, togglePlus2,
-  type AttemptSaving,
+  AttemptHistoryDialog, attemptToText, parseAttemptText, sameAttempt, SaveIndicator, toggleDnf,
+  togglePlus2, type AttemptSaving,
 } from '@/features/attempt-edit'
 import {
   ATTEMPTS_COUNT, EVENTS, calcSeries, formatAttempt, formatResult, type Attempt, type EventId,
@@ -14,8 +14,14 @@ import { AppIcon } from '@/shared/ui'
 // Таблица ввода результатов организатора как электронная таблица (макет org_meetup_desk):
 // стрелки и Enter — навигация, цифры — время (1234 → 12.34), «+» — +2, «d» — DNF.
 // Ячейка сохраняется сама при потере фокуса и по Enter. Delete, Backspace или пустая
-// ячейка стирают попытку — только последнюю в серии (ошибочный ввод).
-const { event, saving } = defineProps<{ event: DeskEvent; saving: AttemptSaving }>()
+// ячейка стирают попытку — только последнюю в серии (ошибочный ввод). Уголок в ячейке —
+// попытку исправляли, по нажатию — её история и возврат исходного результата.
+const { event, saving } = defineProps<{
+  event: DeskEvent
+  saving: AttemptSaving
+  /** Часовой пояс клуба: время правок в истории. */
+  timeZone: string
+}>()
 
 const count = computed(() => ATTEMPTS_COUNT[event.format])
 const resultType = computed(() => EVENTS[event.event_id as EventId]?.resultType ?? 'time')
@@ -30,7 +36,7 @@ const draft = ref('')
 const table = ref<HTMLElement>()
 const input = ref<HTMLInputElement[]>([])
 
-function attemptsOf(row: DeskRow): (Attempt | null)[] {
+function attemptsOf(row: DeskRow): (DeskAttempt | null)[] {
   return row.series?.attempts ?? Array(count.value).fill(null)
 }
 
@@ -62,6 +68,21 @@ function isActive(rowIndex: number, col: number) {
 
 function isEditing(row: DeskRow, col: number) {
   return editCell.value?.userId === row.user.id && editCell.value.col === col
+}
+
+/** Попытка, история которой открыта. */
+const historyCell = ref<{ user: DeskRow['user']; col: number } | null>(null)
+const historyOpen = ref(false)
+/** Текущее значение попытки: строка обновляется после возврата и опроса сервера. */
+const historyAttempt = computed(() => {
+  const cell = historyCell.value
+  const row = event.rows.find((r) => r.user.id === cell?.user.id)
+  return cell && row ? (attemptsOf(row)[cell.col] ?? null) : null
+})
+
+function showHistory(row: DeskRow, col: number) {
+  historyCell.value = { user: row.user, col }
+  historyOpen.value = true
 }
 
 // Навигация
@@ -284,6 +305,15 @@ function onInputBlur() {
                 @blur="onInputBlur"
               />
               <span v-else class="results-table__value">{{ cellTexts(row)[col] }}</span>
+              <button
+                v-if="attemptsOf(row)[col]?.edited"
+                type="button"
+                class="results-table__edited"
+                title="Попытку исправляли — история"
+                :aria-label="`Попытка ${col + 1}: история исправлений`"
+                @mousedown.stop
+                @click="showHistory(row, col)"
+              />
               <SaveIndicator
                 class="results-table__state"
                 :state="saving.stateOf(event.event_id, row.user.id, col + 1)"
@@ -307,9 +337,22 @@ function onInputBlur() {
       </table>
     </div>
 
+    <AttemptHistoryDialog
+      v-if="historyCell"
+      v-model:open="historyOpen"
+      :saving="saving"
+      :event-id="event.event_id"
+      :user="historyCell.user"
+      :number="historyCell.col + 1"
+      :attempt="historyAttempt"
+      :result-type="resultType"
+      :time-zone="timeZone"
+    />
+
     <p class="results-table__hint">
       Стрелки и Enter — переход по ячейкам, цифры — время (1234 → 12.34, 10234 → 1:02.34),
-      «+» — +2, «d» — DNF, Delete — стереть последнюю попытку, Esc — отмена.
+      «+» — +2, «d» — DNF, Delete — стереть последнюю попытку, Esc — отмена. Попытку,
+      которую сдал сам участник, можно исправить, но не стереть; уголок в ячейке — история правок.
       Все изменения сохраняются автоматически.
     </p>
   </div>
@@ -441,6 +484,19 @@ tbody tr:last-child td {
   outline: none;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* Уголок исправленной попытки, как у примечания в электронной таблице. */
+.results-table__edited {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  background: linear-gradient(135deg, var(--color-primary) 50%, transparent 50%);
+  border: none;
+  cursor: pointer;
 }
 
 .results-table__state {

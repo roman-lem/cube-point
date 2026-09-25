@@ -37,3 +37,34 @@ export async function deleteAttempt(
   const url = attemptUrl(meetupId, eventId, userId, number)
   return (await http.delete<{ event: DeskEvent }>(url, { version })).event
 }
+
+/** Запись журнала попытки: значение, кто и когда его установил (ISO в UTC). */
+export interface AttemptHistoryEntry extends Attempt {
+  solution: string | null
+  /** null — аккаунт удалён. */
+  changed_by: { id: number; display_name: string } | null
+  changed_at: string
+}
+
+/** Журнал попытки по порядку, первая запись — исходный результат. */
+export async function fetchAttemptHistory(
+  meetupId: number,
+  eventId: string,
+  userId: number,
+  number: number,
+) {
+  const url = `${attemptUrl(meetupId, eventId, userId, number)}/history`
+  return (await http.get<{ history: AttemptHistoryEntry[] }>(url)).history
+}
+
+/** Возвращает попытке исходный результат — обычная правка, тоже попадает в журнал. */
+export async function restoreAttempt(
+  meetupId: number,
+  eventId: string,
+  userId: number,
+  number: number,
+  version: number | null,
+) {
+  const url = `${attemptUrl(meetupId, eventId, userId, number)}/restore`
+  return (await http.post<{ event: DeskEvent }>(url, { version })).event
+}

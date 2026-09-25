@@ -6,3 +6,4 @@ export {
 } from './model/useAttemptSaving'
 export { default as AttemptField } from './ui/AttemptField.vue'
 export { default as SaveIndicator } from './ui/SaveIndicator.vue'
+export { default as AttemptHistoryDialog } from './ui/AttemptHistoryDialog.vue'

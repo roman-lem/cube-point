@@ -4,7 +4,7 @@ import { TimeValue } from '@/entities/attempt'
 import {
   fetchDesk, fetchMeetup, type DeskEvent, type MeetupDesk, type MeetupPageData,
 } from '@/entities/meetup'
-import { AttemptField, useAttemptSaving } from '@/features/attempt-edit'
+import { AttemptField, AttemptHistoryDialog, useAttemptSaving } from '@/features/attempt-edit'
 import { DisqualificationControl } from '@/features/disqualification'
 import { ApiError } from '@/shared/api'
 import { ATTEMPTS_COUNT, EVENTS, FORMAT_NAMES, eventName, type EventId } from '@/shared/lib'
@@ -66,6 +66,15 @@ const saving = useAttemptSaving({
       ?.series?.version ?? null,
   onEvent: replaceEvent,
 })
+
+/** Номер попытки, история которой открыта. */
+const historyNumber = ref<number | null>(null)
+const historyOpen = ref(false)
+
+function showHistory(number: number) {
+  historyNumber.value = number
+  historyOpen.value = true
+}
 </script>
 
 <template>
@@ -131,7 +140,20 @@ const saving = useAttemptSaving({
           :disabled="number > done + 1"
           :state="saving.stateOf(event.event_id, userId, number)"
           :solution="row?.series?.attempts[number - 1]?.solution"
+          :edited="row?.series?.attempts[number - 1]?.edited"
           @save="saving.save(event.event_id, participant.user, number, $event)"
+          @history="showHistory(number)"
+        />
+        <AttemptHistoryDialog
+          v-if="historyNumber"
+          v-model:open="historyOpen"
+          :saving="saving"
+          :event-id="event.event_id"
+          :user="participant.user"
+          :number="historyNumber"
+          :attempt="row?.series?.attempts[historyNumber - 1] ?? null"
+          :result-type="resultType"
+          :time-zone="page.meetup.club.timezone"
         />
 
         <AppCard class="series-edit__summary">

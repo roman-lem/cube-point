@@ -9,7 +9,8 @@ import SaveIndicator from './SaveIndicator.vue'
 
 // Поле попытки для ручного ввода на телефоне (макет org_series_edit).
 // Сохраняется само: при потере фокуса, по Enter и по кнопкам +2 / DNF.
-// Пустое поле стирает попытку (сервер разрешает стереть только последнюю).
+// Пустое поле стирает попытку (сервер разрешает стереть только последнюю и только
+// введённую организатором).
 const { attempt, resultType, disabled = false, state } = defineProps<{
   number: number
   attempt: Attempt | null
@@ -19,8 +20,10 @@ const { attempt, resultType, disabled = false, state } = defineProps<{
   state?: CellState
   /** Текст решения FMC, только для просмотра. */
   solution?: string
+  /** Попытку исправляли: ссылка на историю правок. */
+  edited?: boolean
 }>()
-const emit = defineEmits<{ save: [attempt: Attempt | null] }>()
+const emit = defineEmits<{ save: [attempt: Attempt | null]; history: [] }>()
 
 const text = ref('')
 const focused = ref(false)
@@ -89,7 +92,10 @@ function applyPenalty(next: Attempt | null) {
   <div :class="['attempt-field', { 'attempt-field--disabled': disabled }]">
     <div class="attempt-field__head">
       <label class="attempt-field__label" :for="`attempt-${number}`">Попытка {{ number }}</label>
-      <SaveIndicator :state="state" />
+      <button v-if="edited" type="button" class="attempt-field__history" @click="emit('history')">
+        Исправлено · история
+      </button>
+      <SaveIndicator class="attempt-field__state" :state="state" />
     </div>
     <div class="attempt-field__row">
       <input
@@ -157,7 +163,21 @@ function applyPenalty(next: Attempt | null) {
 .attempt-field__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.attempt-field__history {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  cursor: pointer;
+}
+
+.attempt-field__state {
+  margin-left: auto;
 }
 
 .attempt-field__label {

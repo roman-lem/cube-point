@@ -55,7 +55,10 @@ def test_edit_keeps_submitted_at(world, org, clients, meetup_id):
     assert after.submitted_at == before.submitted_at
     assert after.updated_at is not None
     assert after.entered_by == user_id_of(world, "org")
-    assert desk_row(response, anna)["series"]["attempts"][0] == {"value": 1000, "penalty": "plus2"}
+    assert desk_row(response, anna)["series"]["attempts"][0] == {
+        "value": 1000, "penalty": "plus2",
+        "edited": True, "original": {"value": 1000, "penalty": "none"},
+    }
 
 
 def test_organizer_and_participant_conflict(world, org, clients, meetup_id):
@@ -147,21 +150,43 @@ def remove(client, meetup_id, user_id, number, version, event_id="333"):
     return client.delete(attempt_url(meetup_id, user_id, number, event_id), json={"version": version})
 
 
+def enter(org, meetup_id, user_id, values):
+    """Серия, целиком введённая организатором. Возвращает серию из таблицы ввода."""
+    series = None
+    for number, value in enumerate(values, 1):
+        response = put(org, meetup_id, user_id, number, value, version=series and series["version"])
+        series = desk_row(response, user_id)["series"]
+    return series
+
+
 def test_remove_last_attempt(world, org, clients, meetup_id):
-    series = solve(clients["anna"], meetup_id, [1000] * 5)
-    anna = user_id_of(world, "anna")
+    boris = user_id_of(world, "boris")
+    series = enter(org, meetup_id, boris, [1000] * 5)
     first = saved_attempt(world, series["id"], 1)
 
-    response = remove(org, meetup_id, anna, 5, series["version"])
+    response = remove(org, meetup_id, boris, 5, series["version"])
 
     assert response.status_code == 200, response.get_json()
-    row = desk_row(response, anna)["series"]
+    row = desk_row(response, boris)["series"]
     assert row["status"] == "in_progress"
     assert row["attempts"][4] is None
     assert row["average"] is None
     assert saved_attempt(world, series["id"], 1).submitted_at == first.submitted_at
     # Стёртую попытку можно ввести заново.
-    assert put(org, meetup_id, anna, 5, 1200, version=row["version"]).status_code == 200
+    assert put(org, meetup_id, boris, 5, 1200, version=row["version"]).status_code == 200
+
+
+def test_participant_attempt_cannot_be_removed(world, org, clients, meetup_id):
+    series = solve(clients["anna"], meetup_id, [1000, 1100])
+    anna = user_id_of(world, "anna")
+
+    response = remove(org, meetup_id, anna, 2, series["version"])
+    assert error(response)["code"] == "participant_attempt"
+    # Исправленную организатором попытку участника тоже нельзя стереть.
+    series = desk_row(put(org, meetup_id, anna, 2, 1200, version=series["version"]), anna)["series"]
+    response = remove(org, meetup_id, anna, 2, series["version"])
+    assert error(response)["code"] == "participant_attempt"
+    assert saved_attempt(world, series["id"], 2).value == 1200
 
 
 def test_remove_only_last_attempt(world, org, clients, meetup_id):

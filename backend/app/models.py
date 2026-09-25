@@ -330,6 +330,34 @@ class Attempt(db.Model):
     updated_at = db.Column(db.DateTime)
     entered_by = db.Column(db.Integer, user_fk("SET NULL"))
 
+    history = db.relationship(
+        "AttemptHistory", order_by="(AttemptHistory.changed_at, AttemptHistory.id)",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
+
+
+class AttemptHistory(db.Model):
+    """Журнал попытки: значение после каждого создания и изменения.
+
+    Записи только добавляются (scoring.save_attempt). Первая — исходный результат.
+    Журнал удаляется только вместе с попыткой (стирание ошибочного ввода организатора).
+    """
+
+    __tablename__ = "attempt_history"
+
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(
+        db.Integer, db.ForeignKey("attempts.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    value = db.Column(db.Integer)
+    penalty = db.Column(enum_type(Penalty), nullable=False)
+    solution = db.Column(db.Text)
+    changed_by = db.Column(db.Integer, user_fk("SET NULL"))
+    changed_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    user = db.relationship("User")
+
 
 class FmcAttempt(db.Model):
     """Попытка FMC до сдачи: старт отсчёта, черновик и заморозка решения.
