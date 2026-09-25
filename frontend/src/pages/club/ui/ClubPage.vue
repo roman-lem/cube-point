@@ -65,6 +65,17 @@ const meetupRoute = (meetup: MeetupSummary) => ({
         <ClubLinks :links="data.club.links" />
       </header>
 
+      <nav class="club-page__actions" aria-label="Разделы клуба">
+        <RouterLink class="club-page__action" :to="{ name: 'club-records', params: { clubId } }">
+          <AppIcon name="trophy" :size="20" />
+          Рекорды
+        </RouterLink>
+        <RouterLink class="club-page__action" :to="{ name: 'club-members', params: { clubId } }">
+          <AppIcon name="group" :size="20" />
+          Участники
+        </RouterLink>
+      </nav>
+
       <nav v-if="isOrganizer" class="club-page__actions" aria-label="Управление клубом">
         <RouterLink
           v-if="currentMeetup"
@@ -77,10 +88,6 @@ const meetupRoute = (meetup: MeetupSummary) => ({
         <RouterLink class="club-page__action" :to="{ name: 'club-settings', params: { clubId } }">
           <AppIcon name="settings" :size="20" />
           Настройки
-        </RouterLink>
-        <RouterLink class="club-page__action" :to="{ name: 'club-members', params: { clubId } }">
-          <AppIcon name="group" :size="20" />
-          Участники
         </RouterLink>
         <RouterLink
           class="club-page__action club-page__action--primary"
@@ -181,6 +188,11 @@ const meetupRoute = (meetup: MeetupSummary) => ({
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+/* Без кнопки «Управление» «Новая встреча» остаётся одна в ряду — на всю ширину. */
+.club-page__action:nth-child(odd):last-child {
+  grid-column: 1 / -1;
 }
 
 .club-page__section-header {

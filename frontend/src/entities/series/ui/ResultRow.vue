@@ -1,15 +1,22 @@
 <script setup lang="ts">
+import type { RouteLocationRaw } from 'vue-router'
 import { plural } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
 // Строка таблицы результатов. Время и отметки рекордов передаются слотами
 // (TimeValue и RecordBadge — в других слайсах entities), развёрнутая часть
 // (обычно AttemptSeries) — слотом по умолчанию.
+//
+// Имя — ссылка на профиль, строка разворачивается нажатием в любом другом месте:
+// кнопка разворота растянута на всю строку (::after), а ссылка лежит поверх неё.
+// Так ссылка не оказывается внутри кнопки.
 const expanded = defineModel<boolean>('expanded', { default: false })
 
 defineProps<{
   place: number | null
   name: string
+  /** Профиль участника, на который ведёт имя. */
+  profileTo?: RouteLocationRaw
   /** Строка текущего пользователя: подсветка и пометка «Вы». */
   isMe?: boolean
   /** Подпись под основным результатом: ao5, mo3, bo3… */
@@ -21,16 +28,12 @@ defineProps<{
 
 <template>
   <article :class="['result-row', { 'result-row--me': isMe, 'result-row--open': expanded }]">
-    <button
-      type="button"
-      class="result-row__main"
-      :aria-expanded="expanded"
-      @click="expanded = !expanded"
-    >
+    <div class="result-row__main">
       <span class="result-row__place">{{ place ?? '—' }}</span>
       <span class="result-row__who">
         <span class="result-row__name">
-          {{ name }}
+          <RouterLink v-if="profileTo" :to="profileTo" class="result-row__link">{{ name }}</RouterLink>
+          <template v-else>{{ name }}</template>
           <span v-if="isMe" class="result-row__me">Вы</span>
         </span>
         <span v-if="$slots.single" class="result-row__single">
@@ -44,8 +47,16 @@ defineProps<{
         <slot name="result" />
         <span class="result-row__label">{{ resultLabel }}</span>
       </span>
-      <AppIcon :name="expanded ? 'expand-less' : 'expand-more'" :size="20" class="result-row__chevron" />
-    </button>
+      <button
+        type="button"
+        class="result-row__toggle"
+        :aria-expanded="expanded"
+        :aria-label="`Попытки: ${name}`"
+        @click="expanded = !expanded"
+      >
+        <AppIcon :name="expanded ? 'expand-less' : 'expand-more'" :size="20" />
+      </button>
+    </div>
     <div v-if="expanded" class="result-row__details">
       <slot />
     </div>
@@ -76,22 +87,48 @@ defineProps<{
 }
 
 .result-row__main {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  width: 100%;
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+}
+
+.result-row__toggle {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0;
   background: none;
   border: 0;
-  color: inherit;
-  font: inherit;
-  text-align: left;
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
-.result-row__main:focus-visible {
+.result-row__toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.result-row__toggle:focus-visible {
+  outline: none;
+}
+
+.result-row__toggle:focus-visible::after {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+.result-row__link {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+.result-row__link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .result-row__place {
@@ -152,11 +189,6 @@ defineProps<{
 .result-row__label {
   color: var(--color-text-secondary);
   font-size: 12px;
-}
-
-.result-row__chevron {
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
 }
 
 .result-row__details {

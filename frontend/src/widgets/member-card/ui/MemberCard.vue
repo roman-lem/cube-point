@@ -86,6 +86,12 @@ function mainResult(result: MemberEventResult) {
           В клубе с {{ joined }} ·
           {{ plural(member.meetups_count, ['встреча', 'встречи', 'встреч']) }}
         </p>
+        <RouterLink
+          class="member-card__profile"
+          :to="{ name: 'user-profile', params: { userId: member.user.id } }"
+        >
+          Публичный профиль
+        </RouterLink>
       </div>
     </AppCard>
 
@@ -209,6 +215,10 @@ function mainResult(result: MemberEventResult) {
   border-radius: 50%;
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-heading);
+}
+
+.member-card__profile {
+  font-size: var(--font-size-label);
 }
 
 .member-card__who {

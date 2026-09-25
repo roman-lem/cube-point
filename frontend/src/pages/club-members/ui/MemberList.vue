@@ -6,7 +6,7 @@ import { plural } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
 // Список участников клуба (макет org_club_competitors): поиск, у организатора —
-// фильтры и переход к карточке участника.
+// фильтры и переход к карточке участника, у остальных — к публичному профилю.
 const query = defineModel<string>('query', { required: true })
 const filter = defineModel<MemberFilter>('filter', { required: true })
 
@@ -25,14 +25,25 @@ const FILTERS: { value: MemberFilter; label: string }[] = [
   { value: 'banned', label: 'Заблокированные' },
 ]
 
-const meetups = (count: number) => plural(count, ['встреча', 'встречи', 'встреч'])
+function details(member: ClubMemberSummary) {
+  const parts = [plural(member.meetups_count, ['встреча', 'встречи', 'встреч'])]
+  if (member.records_count) {
+    parts.push(plural(member.records_count, ['рекорд клуба', 'рекорда клуба', 'рекордов клуба']))
+  }
+  return parts.join(' · ')
+}
 </script>
 
 <template>
   <div class="member-list">
     <label class="member-list__search">
       <AppIcon name="search" :size="20" />
-      <input v-model="query" type="search" placeholder="Имя или логин" aria-label="Поиск участника" />
+      <input
+        v-model="query"
+        type="search"
+        :placeholder="canManage ? 'Имя или логин' : 'Имя'"
+        aria-label="Поиск участника"
+      />
       <button
         v-if="query"
         type="button"
@@ -68,7 +79,7 @@ const meetups = (count: number) => plural(count, ['встреча', 'встре�
           <UserRow
             :display-name="member.user.display_name"
             :login="member.user.login"
-            :details="meetups(member.meetups_count)"
+            :details="details(member)"
           >
             <template #badges>
               <MemberBadge v-if="member.role === 'organizer'" kind="organizer" />
@@ -77,21 +88,22 @@ const meetups = (count: number) => plural(count, ['встреча', 'встре�
             <AppIcon name="chevron-right" :size="20" class="member-list__chevron" />
           </UserRow>
         </RouterLink>
-        <div v-else class="member-list__item">
-          <UserRow
-            :display-name="member.user.display_name"
-            :login="member.user.login"
-            :details="meetups(member.meetups_count)"
-          >
+        <RouterLink
+          v-else
+          :to="{ name: 'user-profile', params: { userId: member.user.id } }"
+          class="member-list__item"
+        >
+          <UserRow :display-name="member.user.display_name" :details="details(member)">
             <template #badges>
               <MemberBadge v-if="member.role === 'organizer'" kind="organizer" />
             </template>
+            <AppIcon name="chevron-right" :size="20" class="member-list__chevron" />
           </UserRow>
-        </div>
+        </RouterLink>
       </li>
     </ul>
     <p v-else class="member-list__empty">
-      {{ query ? 'Никого не нашли. Проверьте имя или логин.' : 'Здесь пока никого нет' }}
+      {{ query ? `Никого не нашли. Проверьте ${canManage ? 'имя или логин' : 'имя'}.` : 'Здесь пока никого нет' }}
     </p>
   </div>
 </template>

@@ -97,7 +97,9 @@ def test_public_list_hides_banned(world):
 
     body = world["app"].test_client().get(members_url(world)).get_json()
 
-    assert {m["user"]["login"] for m in body["members"]} == {"anna", "boris", "org", "pending"}
+    assert {m["user"]["id"] for m in body["members"]} == {
+        user_id_of(world, login) for login in ("anna", "boris", "org", "pending")
+    }
     assert body["can_manage"] is False
     assert "filter_counts" not in body
 

@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
+import { useUserStore } from '@/entities/user'
 import { AdminClubCreatePage } from '@/pages/admin-club-create'
 import { AdminClubsPage } from '@/pages/admin-clubs'
 import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
+import { ClubRecordsPage } from '@/pages/club-records'
 import { ClubMembersPage } from '@/pages/club-members'
 import { ClubSettingsPage } from '@/pages/club-settings'
 import { EventResultsPage } from '@/pages/event-results'
@@ -13,12 +15,12 @@ import { JoinPage } from '@/pages/join'
 import { MeetupPage } from '@/pages/meetup'
 import { MeetupCreatePage } from '@/pages/meetup-create'
 import { MeetupManagePage } from '@/pages/meetup-manage'
-import { ProfilePage } from '@/pages/profile'
+import { ProfileSettingsPage } from '@/pages/profile-settings'
 import { ScramblePrintPage } from '@/pages/scramble-print'
 import { SeriesEditPage } from '@/pages/series-edit'
 import { StatisticsPage } from '@/pages/statistics'
-import { StubPage } from '@/pages/stub'
 import { TimerPage } from '@/pages/timer'
+import { UserProfilePage } from '@/pages/user-profile'
 import { installGuards } from './guards'
 
 declare module 'vue-router' {
@@ -79,8 +81,8 @@ export const router = createRouter({
     {
       path: '/clubs/:clubId(\\d+)/records',
       name: 'club-records',
-      component: StubPage,
-      props: { title: 'Рекорды' },
+      component: ClubRecordsPage,
+      props: numberParams('clubId'),
       meta: { tab: 'records' },
     },
     {
@@ -136,6 +138,15 @@ export const router = createRouter({
     },
     { path: '/join/:token', name: 'join', component: JoinPage, props: true, meta: { tab: 'club' } },
 
+    // Публичный профиль участника. Свой подсвечивает вкладку «Профиль» (см. AppNavigation).
+    {
+      path: '/users/:userId(\\d+)',
+      name: 'user-profile',
+      component: UserProfilePage,
+      props: numberParams('userId'),
+      meta: { tab: 'members' },
+    },
+
     // Вкладки вошедшего пользователя
     {
       path: '/timer',
@@ -156,13 +167,20 @@ export const router = createRouter({
       component: StatisticsPage,
       meta: { requiresAuth: true, tab: 'statistics' },
     },
+    // Вкладка «Профиль» — свой публичный профиль (requiresAuth: пользователь уже загружен).
     {
       path: '/profile',
       name: 'profile',
-      component: ProfilePage,
+      component: UserProfilePage,
+      props: () => ({ userId: useUserStore().user?.id }),
       meta: { requiresAuth: true, tab: 'profile' },
     },
-
+    {
+      path: '/profile/settings',
+      name: 'profile-settings',
+      component: ProfileSettingsPage,
+      meta: { requiresAuth: true, tab: 'profile' },
+    },
 
     // Администрирование (пункт во вкладке «Профиль»)
     {

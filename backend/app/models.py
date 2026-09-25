@@ -414,6 +414,9 @@ class ClubRecord(db.Model):
     )
     achieved_at = db.Column(db.DateTime, nullable=False)
 
+    user = db.relationship("User")
+    series = db.relationship("Series")
+
 
 class LoginFailure(db.Model):
     """Неудачная попытка входа, для ограничения перебора паролей (auth/throttle.py)."""

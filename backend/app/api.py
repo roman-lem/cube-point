@@ -9,12 +9,14 @@ from .errors import ApiError
 from .fmc import fmc_bp
 from .meetups import meetups
 from .members import members
+from .profiles import profiles
 from .series import series_bp
 
 api = Blueprint("api", __name__, url_prefix="/api")
 api.register_blueprint(auth)
 api.register_blueprint(clubs)
 api.register_blueprint(members)
+api.register_blueprint(profiles)
 api.register_blueprint(meetups)
 api.register_blueprint(series_bp)
 api.register_blueprint(fmc_bp)

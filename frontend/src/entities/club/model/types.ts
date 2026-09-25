@@ -78,11 +78,14 @@ export type MemberFilter = 'all' | 'organizers' | 'banned'
 
 /** Участник в списке GET /api/clubs/:id/members. */
 export interface ClubMemberSummary {
-  user: UserRef
+  /** Логин есть только в ответе организатору и администратору. */
+  user: { id: number; display_name: string; login?: string }
   role: ClubRole
   banned: boolean
   /** Встречи клуба, где у человека есть хотя бы одна серия. */
   meetups_count: number
+  /** Текущие рекорды клуба (LR) человека. */
+  records_count: number
 }
 
 export interface ClubMembersList {

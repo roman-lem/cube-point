@@ -13,7 +13,8 @@ export {
   DEFAULT_TIME_ZONE, formatDate, formatDateTime, formatTime, formatTimeRange,
   timeZoneOptions, todayIn,
 } from './datetime'
-export { plural } from './plural'
+export { movesWord } from './moves'
+export { plural, pluralForm } from './plural'
 export { downloadBlob, qrPng, qrSvg } from './qr'
 export { safeRedirect } from './safeRedirect'
 export { useFormErrors } from './useFormErrors'

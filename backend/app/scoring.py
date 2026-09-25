@@ -165,7 +165,8 @@ def serialize_attempt(attempt):
 
 # Лучшие результаты: рекорды клуба и личные рекорды
 
-def _not_disqualified():
+def not_disqualified():
+    """Условие для запроса с Series и Meetup: участник не дисквалифицирован на встрече."""
     return ~db.select(Disqualification.id).where(
         Disqualification.meetup_id == Meetup.id,
         Disqualification.user_id == Series.user_id,
@@ -194,7 +195,7 @@ def _single_query(event_id):
         .where(
             MeetupEvent.event_id == event_id,
             Attempt.penalty.in_([Penalty.NONE, Penalty.PLUS2]),
-            _not_disqualified(),
+            not_disqualified(),
         )
     )
     return query, order
@@ -203,6 +204,7 @@ def _single_query(event_id):
 def _average_query(event_id):
     """Средние дисциплины (без DNF) в порядке рекорда.
 
+    Среднее есть только у форматов со средним (ao5, mo3), у bo-форматов — только сингл.
     Момент получения среднего — сдача последней попытки серии.
     """
     last_submitted = (
@@ -221,9 +223,10 @@ def _average_query(event_id):
         .join(Meetup, MeetupEvent.meetup_id == Meetup.id)
         .where(
             MeetupEvent.event_id == event_id,
+            MeetupEvent.format.in_(AVERAGE_FORMATS),
             Series.average.is_not(None),
             Series.average != DNF,
-            _not_disqualified(),
+            not_disqualified(),
         )
     )
     return query, order
@@ -232,13 +235,19 @@ def _average_query(event_id):
 RECORD_QUERIES = {RecordType.SINGLE: _single_query, RecordType.AVERAGE: _average_query}
 
 
+def best_result(event_id, record_type, *conditions):
+    """Лучший результат дисциплины среди отобранных условиями или None.
+
+    Строка: user_id, series_id, value, achieved_at.
+    """
+    query, order = RECORD_QUERIES[record_type](event_id)
+    return db.session.execute(query.where(*conditions).order_by(*order).limit(1)).first()
+
+
 def recalc_records(club_id, event_id):
     """Полностью пересчитывает кеш рекордов клуба (сингл и среднее) в дисциплине."""
-    for record_type, make_query in RECORD_QUERIES.items():
-        query, order = make_query(event_id)
-        best = db.session.execute(
-            query.where(Meetup.club_id == club_id).order_by(*order).limit(1)
-        ).first()
+    for record_type in RecordType:
+        best = best_result(event_id, record_type, Meetup.club_id == club_id)
         record = db.session.get(ClubRecord, (club_id, event_id, record_type))
         if best is None:
             if record:

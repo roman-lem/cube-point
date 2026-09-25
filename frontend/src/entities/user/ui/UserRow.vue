@@ -3,7 +3,8 @@ import { computed } from 'vue'
 
 // Строка пользователя: инициалы, имя и логин, справа — действие (слот).
 // Слот badges — отметки после имени, details — текст после логина через «·».
-const { displayName } = defineProps<{ displayName: string; login: string; details?: string }>()
+// Логин видят только организаторы и администратор: без него строка — имя и details.
+const { displayName } = defineProps<{ displayName: string; login?: string; details?: string }>()
 
 const initials = computed(() =>
   displayName
@@ -22,7 +23,8 @@ const initials = computed(() =>
         {{ displayName }}
         <slot name="badges" />
       </span>
-      <span class="user-row__login">@{{ login }}<template v-if="details"> · {{ details }}</template></span>
+      <span v-if="login" class="user-row__login">@{{ login }}<template v-if="details"> · {{ details }}</template></span>
+      <span v-else-if="details" class="user-row__login">{{ details }}</span>
     </span>
     <slot />
   </div>

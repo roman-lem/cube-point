@@ -49,6 +49,13 @@ const items = computed<NavItem[]>(() => {
   ]
 })
 
+// Свой публичный профиль, открытый по ссылке из таблиц, — это тоже вкладка «Профиль».
+const activeTab = computed(() =>
+  route.name === 'user-profile' && Number(route.params.userId) === userStore.user?.id
+    ? 'profile'
+    : route.meta.tab,
+)
+
 // «Войти» не нужна на самих страницах входа и регистрации.
 const showLogin = computed(
   () => !userStore.user && route.name !== 'login' && route.name !== 'register',
@@ -65,7 +72,7 @@ const loginRoute = computed(() => ({ name: 'login', query: { redirect: route.ful
           v-for="item in items"
           :key="item.tab"
           :to="item.to"
-          :class="['top-nav__item', { 'top-nav__item--active': route.meta.tab === item.tab }]"
+          :class="['top-nav__item', { 'top-nav__item--active': activeTab === item.tab }]"
         >
           {{ item.label }}
           <LiveIndicator v-if="item.tab === 'club' && clubStore.isLive" />
@@ -93,7 +100,7 @@ const loginRoute = computed(() => ({ name: 'login', query: { redirect: route.ful
         v-for="item in items"
         :key="item.tab"
         :to="item.to"
-        :class="['bottom-nav__item', { 'bottom-nav__item--active': route.meta.tab === item.tab }]"
+        :class="['bottom-nav__item', { 'bottom-nav__item--active': activeTab === item.tab }]"
       >
         <span class="bottom-nav__icon">
           <AppIcon :name="item.icon" />

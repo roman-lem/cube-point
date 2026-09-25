@@ -64,7 +64,7 @@ function create() {
     <PageHeader
       title="Клубы"
       subtitle="Создание клубов и назначение организаторов"
-      :back-to="{ name: 'profile' }"
+      :back-to="{ name: 'profile-settings' }"
     >
       <template #action>
         <AppButton @click="create">
@@ -99,7 +99,7 @@ function create() {
     <PageHeader
       title="Клубы"
       :subtitle="clubs ? `Всего: ${clubs.length}` : undefined"
-      :back-to="{ name: 'profile' }"
+      :back-to="{ name: 'profile-settings' }"
     />
     <AppButton @click="create">
       <AppIcon name="add" :size="20" />

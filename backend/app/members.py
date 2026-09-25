@@ -17,7 +17,7 @@ from .extensions import db
 from .forms import json_body
 from .meetups import iso_utc
 from .models import (
-    Club, ClubMember, ClubRole, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
+    Club, ClubMember, ClubRecord, ClubRole, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
     ParticipantStatus, Series, User, utcnow,
 )
 from .permissions import get_or_404, is_last_organizer, is_organizer, require_club_manager
@@ -53,6 +53,15 @@ def meetups_counts(club_id):
     ).all())
 
 
+def records_counts(club_id):
+    """Число текущих рекордов клуба (LR) у каждого: {user_id: n}."""
+    return dict(db.session.execute(
+        db.select(ClubRecord.user_id, func.count())
+        .where(ClubRecord.club_id == club_id)
+        .group_by(ClubRecord.user_id)
+    ).all())
+
+
 def serialize_ban(membership):
     if membership.banned_at is None:
         return None
@@ -70,10 +79,11 @@ def serialize_ban(membership):
 
 @members.get("/clubs/<int:club_id>/members")
 def list_members(club_id):
-    """Участники клуба с поиском по имени и логину.
+    """Участники клуба с поиском по имени (организатору — и по логину).
 
-    Организатор и администратор видят и заблокированных, фильтры и число людей
-    в каждом фильтре. Поиск — в Python: LOWER в SQLite не понимает кириллицу.
+    Организатор и администратор видят и заблокированных, логины, фильтры и число
+    людей в каждом фильтре. Остальным логин не отдаётся. Поиск — в Python: LOWER
+    в SQLite не понимает кириллицу.
     """
     get_or_404(Club, club_id, "Клуб не найден")
     manager = can_manage(club_id)
@@ -88,6 +98,7 @@ def list_members(club_id):
     if not manager:
         memberships = [m for m in memberships if m.banned_at is None]
     counts = meetups_counts(club_id)
+    records = records_counts(club_id)
 
     def in_filter(membership, name):
         if name == "organizers":
@@ -98,16 +109,24 @@ def list_members(club_id):
 
     found = [
         m for m in memberships
-        if query in m.user.display_name.casefold() or query in m.user.login
+        if query in m.user.display_name.casefold() or (manager and query in m.user.login)
     ]
+
+    def serialize(membership):
+        user = {"id": membership.user.id, "display_name": membership.user.display_name}
+        if manager:
+            user["login"] = membership.user.login
+        return {
+            "user": user,
+            "role": membership.role.value,
+            "banned": membership.banned_at is not None,
+            "meetups_count": counts.get(membership.user_id, 0),
+            "records_count": records.get(membership.user_id, 0),
+        }
+
     result = {
         "members": [
-            {
-                "user": {"id": m.user.id, "display_name": m.user.display_name, "login": m.user.login},
-                "role": m.role.value,
-                "banned": m.banned_at is not None,
-                "meetups_count": counts.get(m.user_id, 0),
-            }
+            serialize(m)
             for m in sorted(
                 (m for m in found if in_filter(m, selected)),
                 key=lambda m: m.user.display_name,
