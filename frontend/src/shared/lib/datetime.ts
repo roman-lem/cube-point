@@ -34,3 +34,24 @@ export function todayIn(timeZone: string): string {
   // Шведская локаль даёт как раз формат YYYY-MM-DD.
   return new Intl.DateTimeFormat('sv-SE', { timeZone }).format(new Date())
 }
+
+/** Часовой пояс нового клуба по умолчанию — время Тюмени. */
+export const DEFAULT_TIME_ZONE = 'Asia/Yekaterinburg'
+
+/**
+ * Часовые пояса IANA для выбора: «Asia/Yekaterinburg (GMT+5)».
+ * Список — из браузера, сервер проверяет пояс по своей базе tzdata.
+ */
+export function timeZoneOptions(): { value: string; label: string }[] {
+  const zones = Intl.supportedValuesOf('timeZone')
+  if (!zones.includes(DEFAULT_TIME_ZONE)) {
+    zones.push(DEFAULT_TIME_ZONE)
+  }
+  const now = new Date()
+  return zones.sort().map((zone) => {
+    const offset = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' })
+      .formatToParts(now)
+      .find((part) => part.type === 'timeZoneName')?.value
+    return { value: zone, label: offset ? `${zone} (${offset})` : zone }
+  })
+}

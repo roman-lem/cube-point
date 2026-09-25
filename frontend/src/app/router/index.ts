@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
+import { AdminClubCreatePage } from '@/pages/admin-club-create'
+import { AdminClubsPage } from '@/pages/admin-clubs'
 import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
@@ -22,6 +24,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Только для вошедших: гостя отправляем на вход. */
     requiresAuth?: boolean
+    /** Только для администратора: остальных отправляем на главную. */
+    requiresAdmin?: boolean
     /** Только для гостей: вошедшего отправляем дальше (вход, регистрация). */
     guestOnly?: boolean
     /** Страница без навигации (печать). */
@@ -149,6 +153,28 @@ export const router = createRouter({
       name: 'profile',
       component: ProfilePage,
       meta: { requiresAuth: true, tab: 'profile' },
+    },
+
+
+    // Администрирование (пункт во вкладке «Профиль»)
+    {
+      path: '/admin/clubs',
+      name: 'admin-clubs',
+      component: AdminClubsPage,
+      meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
+    },
+    {
+      path: '/admin/clubs/new',
+      name: 'admin-club-create',
+      component: AdminClubCreatePage,
+      meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
+    },
+    {
+      path: '/admin/clubs/:clubId(\\d+)',
+      name: 'admin-club',
+      component: AdminClubsPage,
+      props: numberParams('clubId'),
+      meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
     },
 
     { path: '/:pathMatch(.*)*', redirect: '/' },

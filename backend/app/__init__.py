@@ -3,6 +3,7 @@ import os
 from flask import Flask
 
 from . import models  # noqa: F401 — регистрирует модели для миграций
+from .admin import make_admin_command
 from .api import api
 from .config import Config
 from .errors import register_error_handlers
@@ -25,5 +26,6 @@ def create_app(test_config=None):
     register_error_handlers(app)
     app.register_blueprint(api)
     app.cli.add_command(seed_command)
+    app.cli.add_command(make_admin_command)
 
     return app

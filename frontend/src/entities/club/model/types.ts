@@ -38,3 +38,35 @@ export interface ClubPageData {
   my_role: ClubRole | null
   banned: boolean
 }
+
+/** Пользователь в администрировании: организатор или найденный по логину. */
+export interface UserRef {
+  id: number
+  display_name: string
+  login: string
+}
+
+/** Клуб в списке администратора GET /api/admin/clubs. */
+export interface AdminClubSummary {
+  id: number
+  name: string
+  city: string
+  logo_color: LogoColor
+  members_count: number
+  organizers_count: number
+  /** Дата последней проведённой встречи (YYYY-MM-DD) или null. */
+  last_meetup_date: string | null
+}
+
+/** Клуб в администрировании GET /api/admin/clubs/:id. */
+export interface AdminClub {
+  id: number
+  name: string
+  city: string
+  timezone: string
+  logo_color: LogoColor
+  members_count: number
+  /** Проведённые встречи (идут или завершены). */
+  meetups_count: number
+  organizers: UserRef[]
+}

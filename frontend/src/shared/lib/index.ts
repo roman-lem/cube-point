@@ -9,7 +9,9 @@ export {
   formatName,
 } from './events'
 export type { EventId, EventInfo } from './events'
-export { formatDate, formatTime, formatTimeRange, todayIn } from './datetime'
+export {
+  DEFAULT_TIME_ZONE, formatDate, formatTime, formatTimeRange, timeZoneOptions, todayIn,
+} from './datetime'
 export { plural } from './plural'
 export { downloadBlob, qrPng, qrSvg } from './qr'
 export { safeRedirect } from './safeRedirect'

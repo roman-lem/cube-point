@@ -4,7 +4,7 @@ import { useUserStore } from '@/entities/user'
 import { LogoutButton } from '@/features/auth'
 import { AppCard, PageHeader } from '@/shared/ui'
 
-// Пока только имя, смена пароля и выход; полный профиль — по макету profile_settings.
+// Пока только имя, смена пароля, администрирование и выход; полный профиль — по макету profile_settings.
 const router = useRouter()
 const userStore = useUserStore()
 </script>
@@ -18,6 +18,9 @@ const userStore = useUserStore()
         <p class="page__muted">{{ userStore.user.login }}</p>
       </div>
       <RouterLink :to="{ name: 'change-password' }">Сменить пароль</RouterLink>
+      <RouterLink v-if="userStore.user.is_admin" :to="{ name: 'admin-clubs' }">
+        Администрирование
+      </RouterLink>
     </AppCard>
     <LogoutButton @done="router.replace({ name: 'home' })" />
   </main>

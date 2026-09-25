@@ -16,6 +16,10 @@ export function installGuards(router: Router) {
     if (to.meta.requiresAuth && !user) {
       return { name: 'login', query: { redirect: to.fullPath } }
     }
+    // Права проверяет сервер, здесь только не открываем страницу, которая не загрузится.
+    if (to.meta.requiresAdmin && !user?.is_admin) {
+      return { name: 'home' }
+    }
     if (to.meta.guestOnly && user) {
       return safeRedirect(to.query.redirect)
     }
