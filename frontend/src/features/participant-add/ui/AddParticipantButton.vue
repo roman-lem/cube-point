@@ -2,11 +2,11 @@
 import { watchDebounced } from '@vueuse/core'
 import { ref, watch } from 'vue'
 import { ApiError } from '@/shared/api'
-import { useFormErrors } from '@/shared/lib'
-import { AppButton, AppIcon, AppInput } from '@/shared/ui'
+import { AppButton, AppIcon, AppInput, TemporaryPassword } from '@/shared/ui'
 import {
   addMember, addNewcomer, fetchCandidates, type AddedParticipant, type Candidate,
 } from '../api/participantsApi'
+import NewcomerForm from './NewcomerForm.vue'
 
 // Ручное добавление участника на встречу (сразу подтверждённым): поиск среди
 // участников клуба или новый аккаунт с временным паролем для пришедших без телефона.
@@ -18,13 +18,8 @@ const mode = ref<'search' | 'new'>('search')
 const query = ref('')
 const candidates = ref<Candidate[]>([])
 const busyId = ref<number | null>(null)
-const displayName = ref('')
-const login = ref('')
-const creating = ref(false)
 const created = ref<AddedParticipant | null>(null)
-const copied = ref(false)
 const error = ref('')
-const { fieldErrors, formError, clearErrors, showError } = useFormErrors()
 
 async function search() {
   try {
@@ -40,11 +35,8 @@ watch(mode, () => (error.value = ''))
 function open() {
   mode.value = 'search'
   query.value = ''
-  displayName.value = ''
-  login.value = ''
   created.value = null
   error.value = ''
-  clearErrors()
   dialog.value?.showModal()
   search()
 }
@@ -67,28 +59,12 @@ async function add(candidate: Candidate) {
   }
 }
 
-async function create() {
-  creating.value = true
-  error.value = ''
-  clearErrors()
-  try {
-    created.value = await addNewcomer(meetupId, displayName.value, login.value)
-    emit('added')
-  } catch (e) {
-    showError(e)
-  } finally {
-    creating.value = false
-  }
-}
+const createNewcomer = (displayName: string, login: string) =>
+  addNewcomer(meetupId, displayName, login)
 
-async function copyPassword() {
-  try {
-    await navigator.clipboard.writeText(created.value!.temporary_password!)
-    copied.value = true
-    setTimeout(() => (copied.value = false), 2000)
-  } catch {
-    // Пароль виден на экране, его можно переписать вручную.
-  }
+function onCreated(result: AddedParticipant) {
+  created.value = result
+  emit('added')
 }
 
 const STATUS_NAMES = { approved: 'На встрече', pending: 'Ждёт подтверждения', rejected: 'Отклонён' }
@@ -110,17 +86,7 @@ const STATUS_NAMES = { approved: 'На встрече', pending: 'Ждёт по�
           Передайте логин и временный пароль — <strong>пароль показывается один раз</strong>.
           При первом входе его нужно будет сменить.
         </p>
-        <dl class="add-participant__credentials">
-          <dt>Логин</dt>
-          <dd>{{ created.user.login }}</dd>
-          <dt>Пароль</dt>
-          <dd>
-            {{ created.temporary_password }}
-            <button type="button" class="add-participant__copy" aria-label="Скопировать пароль" @click="copyPassword">
-              <AppIcon :name="copied ? 'check' : 'copy'" :size="18" />
-            </button>
-          </dd>
-        </dl>
+        <TemporaryPassword :login="created.user.login" :password="created.temporary_password!" />
         <AppButton @click="close">Готово</AppButton>
       </template>
 
@@ -173,23 +139,12 @@ const STATUS_NAMES = { approved: 'На встрече', pending: 'Ждёт по�
           </ul>
         </template>
 
-        <form v-else class="add-participant__form" @submit.prevent="create">
-          <AppInput
-            v-model="displayName"
-            label="Имя и фамилия"
-            autocomplete="off"
-            :error="fieldErrors.display_name"
-          />
-          <AppInput
-            v-model="login"
-            label="Логин"
-            autocomplete="off"
-            hint="Латинские буквы и цифры"
-            :error="fieldErrors.login"
-          />
-          <p v-if="formError" class="add-participant__error" role="alert">{{ formError }}</p>
-          <AppButton type="submit" :loading="creating">Создать и добавить</AppButton>
-        </form>
+        <NewcomerForm
+          v-else
+          :create="createNewcomer"
+          submit-label="Создать и добавить"
+          @created="onCreated"
+        />
 
         <p v-if="error" class="add-participant__error" role="alert">{{ error }}</p>
         <AppButton variant="secondary" @click="close">Закрыть</AppButton>
@@ -213,8 +168,7 @@ const STATUS_NAMES = { approved: 'На встрече', pending: 'Ждёт по�
   background: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
 }
 
-.add-participant__body,
-.add-participant__form {
+.add-participant__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -279,38 +233,6 @@ const STATUS_NAMES = { approved: 'На встрече', pending: 'Ждёт по�
 .add-participant__muted {
   color: var(--color-text-secondary);
   font-size: var(--font-size-label);
-}
-
-.add-participant__credentials {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-2) var(--space-4);
-  margin: 0;
-  padding: var(--space-3);
-  background: var(--color-background);
-  border-radius: var(--radius-button);
-}
-
-.add-participant__credentials dt {
-  color: var(--color-text-secondary);
-}
-
-.add-participant__credentials dd {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 18px;
-}
-
-.add-participant__copy {
-  display: inline-flex;
-  padding: 0;
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
 }
 
 .add-participant__error {

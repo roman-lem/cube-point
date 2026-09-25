@@ -4,6 +4,7 @@ import { AdminClubsPage } from '@/pages/admin-clubs'
 import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
+import { ClubMembersPage } from '@/pages/club-members'
 import { ClubSettingsPage } from '@/pages/club-settings'
 import { EventResultsPage } from '@/pages/event-results'
 import { FmcPage } from '@/pages/fmc'
@@ -85,9 +86,16 @@ export const router = createRouter({
     {
       path: '/clubs/:clubId(\\d+)/members',
       name: 'club-members',
-      component: StubPage,
-      props: { title: 'Участники' },
+      component: ClubMembersPage,
+      props: numberParams('clubId'),
       meta: { tab: 'members' },
+    },
+    {
+      path: '/clubs/:clubId(\\d+)/members/:userId(\\d+)',
+      name: 'club-member',
+      component: ClubMembersPage,
+      props: numberParams('clubId', 'userId'),
+      meta: { requiresAuth: true, tab: 'members' },
     },
 
     // Встречи

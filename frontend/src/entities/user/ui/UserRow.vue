@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 
 // Строка пользователя: инициалы, имя и логин, справа — действие (слот).
-const { displayName } = defineProps<{ displayName: string; login: string }>()
+// Слот badges — отметки после имени, details — текст после логина через «·».
+const { displayName } = defineProps<{ displayName: string; login: string; details?: string }>()
 
 const initials = computed(() =>
   displayName
@@ -17,8 +18,11 @@ const initials = computed(() =>
   <div class="user-row">
     <span class="user-row__avatar" aria-hidden="true">{{ initials }}</span>
     <span class="user-row__who">
-      <span class="user-row__name">{{ displayName }}</span>
-      <span class="user-row__login">@{{ login }}</span>
+      <span class="user-row__name">
+        {{ displayName }}
+        <slot name="badges" />
+      </span>
+      <span class="user-row__login">@{{ login }}<template v-if="details"> · {{ details }}</template></span>
     </span>
     <slot />
   </div>
@@ -54,6 +58,10 @@ const initials = computed(() =>
 }
 
 .user-row__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
   font-weight: var(--font-weight-label);
   overflow-wrap: anywhere;
 }

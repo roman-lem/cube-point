@@ -43,3 +43,24 @@ def require_organizer(club_id):
         raise ApiError(401, "unauthorized", "Нужно войти")
     if not is_organizer(club_id):
         raise ApiError(403, "forbidden", "Это может только организатор клуба")
+
+
+def require_club_manager(club_id):
+    """Управление участниками клуба: организатор клуба или администратор."""
+    if not current_user.is_authenticated:
+        raise ApiError(401, "unauthorized", "Нужно войти")
+    if not (current_user.is_admin or is_organizer(club_id)):
+        raise ApiError(403, "forbidden", "Это может только организатор клуба")
+
+
+def require_not_banned(club_id):
+    """Заблокированный сразу перестаёт сдавать попытки, в том числе на идущей встрече."""
+    if is_banned(club_id):
+        raise ApiError(403, "banned", "Вы заблокированы в этом клубе")
+
+
+def is_last_organizer(club_id, user_id):
+    organizers = db.session.scalars(db.select(ClubMember.user_id).where(
+        ClubMember.club_id == club_id, ClubMember.role == ClubRole.ORGANIZER,
+    )).all()
+    return organizers == [user_id]

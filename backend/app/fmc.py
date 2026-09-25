@@ -19,7 +19,7 @@ from .extensions import db
 from .forms import get_str, is_int, json_body
 from .meetups import iso_utc
 from .models import FmcAttempt, Penalty, Series, SeriesStatus, utcnow
-from .permissions import get_or_404
+from .permissions import get_or_404, require_not_banned
 from .scoring import VersionConflict, save_attempt
 from .series import (
     find_fmc_attempt, fmc_deadline, require_live, serialize_my_series,
@@ -41,6 +41,7 @@ def get_my_fmc_series(series_id):
     if not is_fmc(series.meetup_event.event_id):
         raise ApiError(409, "not_fmc", "Это не серия FMC")
     require_live(series.meetup_event.meetup)
+    require_not_banned(series.meetup_event.meetup.club_id)
     if series.status == SeriesStatus.COMPLETED:
         raise ApiError(409, "series_completed", "Серия уже завершена")
     return series

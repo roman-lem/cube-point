@@ -19,6 +19,7 @@ from .errors import ApiError, ValidationError
 from .extensions import db
 from .forms import collapse_spaces, get_str, json_body, raise_if_errors
 from .models import Club, ClubMember, ClubRole, Meetup, MeetupStatus, User
+from .permissions import is_last_organizer
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -169,8 +170,7 @@ def remove_organizer(club_id, user_id):
     membership = db.session.get(ClubMember, (club.id, user_id))
     if membership is None or membership.role != ClubRole.ORGANIZER:
         raise ApiError(404, "not_found", "Организатор не найден")
-    organizers = sum(1 for m in club.members if m.role == ClubRole.ORGANIZER)
-    if organizers == 1:
+    if is_last_organizer(club.id, user_id):
         raise ApiError(409, "last_organizer", "Нельзя снять последнего организатора клуба")
 
     membership.role = ClubRole.MEMBER

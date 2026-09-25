@@ -1,3 +1,5 @@
+import type { EventId, SeriesFormat } from '@/shared/lib'
+
 export type ClubRole = 'member' | 'organizer'
 
 export type LinkType = 'vk' | 'youtube' | 'site' | 'other'
@@ -69,4 +71,70 @@ export interface AdminClub {
   /** Проведённые встречи (идут или завершены). */
   meetups_count: number
   organizers: UserRef[]
+}
+
+/** Фильтр списка участников клуба (для организатора). */
+export type MemberFilter = 'all' | 'organizers' | 'banned'
+
+/** Участник в списке GET /api/clubs/:id/members. */
+export interface ClubMemberSummary {
+  user: UserRef
+  role: ClubRole
+  banned: boolean
+  /** Встречи клуба, где у человека есть хотя бы одна серия. */
+  meetups_count: number
+}
+
+export interface ClubMembersList {
+  members: ClubMemberSummary[]
+  /** Организатор или администратор: видит заблокированных, фильтры и карточки. */
+  can_manage: boolean
+  /** Только для can_manage: сколько людей в каждом фильтре с учётом поиска. */
+  filter_counts?: Record<MemberFilter, number>
+}
+
+/** Результат участника в дисциплине встречи. */
+export interface MemberEventResult {
+  event_id: EventId
+  format: SeriesFormat
+  status: 'in_progress' | 'completed'
+  best: number | null
+  average: number | null
+  place: number | null
+  /** Отметки рекордов (entities не импортируют друг друга, поэтому без RecordMark). */
+  marks: { single: ('PB' | 'LR')[]; average: ('PB' | 'LR')[] }
+}
+
+export interface MemberMeetup {
+  id: number
+  date: string
+  place: string | null
+  status: 'planned' | 'live' | 'finished'
+  disqualification: { reason: string; created_at: string } | null
+  events: MemberEventResult[]
+}
+
+/** Действие в карточке участника: null — доступно, строка — почему недоступно. */
+export type Restriction = string | null
+
+/** Карточка участника GET /api/clubs/:id/members/:userId (организатору). */
+export interface ClubMemberCard {
+  user: UserRef
+  role: ClubRole
+  joined_at: string
+  ban: {
+    reason: string
+    banned_at: string
+    banned_by: { id: number; display_name: string } | null
+  } | null
+  meetups_count: number
+  /** Встречи от новых к старым. */
+  meetups: MemberMeetup[]
+  /** Идущая встреча, где участник подтверждён: блокировка прервёт его серии. */
+  live_meetup: { id: number; date: string } | null
+  restrictions: {
+    reset_password: Restriction
+    organizer: Restriction
+    ban: Restriction
+  }
 }

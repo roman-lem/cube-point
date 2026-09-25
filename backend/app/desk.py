@@ -6,16 +6,12 @@
 «Панель организатора» и «Дисквалификация и блокировка» CLAUDE.md.
 """
 
-import secrets
-
 from flask import Blueprint, request
 from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
-from werkzeug.security import generate_password_hash
-
-from .auth.validation import login_error, name_error, normalize_login
-from .errors import ApiError, ValidationError
+from .accounts import create_account
+from .errors import ApiError
 from .events import is_fmc
 from .extensions import db
 from .fmc import MAX_MOVES, parse_solution
@@ -38,9 +34,6 @@ desk = Blueprint("desk", __name__)
 TIME_PENALTIES = {p.value for p in Penalty}
 FMC_PENALTIES = TIME_PENALTIES - {Penalty.PLUS2.value}
 MAX_REASON_LENGTH = 500
-# Временный пароль: без похожих символов (0/O, 1/l/I), чтобы его легко было продиктовать.
-PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
-PASSWORD_LENGTH = 10
 
 
 def get_organizer_meetup(meetup_id):
@@ -356,32 +349,23 @@ def add_participant(meetup_id):
     return {"user": serialize_user(user), "temporary_password": password}, 201
 
 
-def create_account(data):
-    display_name = collapse_spaces(get_str(data, "display_name"))
-    login = normalize_login(get_str(data, "login"))
-    raise_if_errors({"display_name": name_error(display_name), "login": login_error(login)})
-    if db.session.scalar(db.select(User.id).where(User.login == login)):
-        raise ValidationError({"login": "Логин уже занят"})
-
-    password = "".join(secrets.choice(PASSWORD_ALPHABET) for _ in range(PASSWORD_LENGTH))
-    user = User(
-        login=login,
-        display_name=display_name,
-        password_hash=generate_password_hash(password),
-        must_change_password=True,
-        created_by=current_user.id,
-    )
-    db.session.add(user)
-    db.session.flush()
-    return user, password
-
-
 # Дисквалификация
 
 def serialize_disqualification(disqualification):
     if disqualification is None:
         return None
     return {"reason": disqualification.reason, "created_at": iso_utc(disqualification.created_at)}
+
+
+def parse_reason():
+    """Обязательная причина дисквалификации или блокировки из тела запроса."""
+    reason = collapse_spaces(get_str(json_body(), "reason"))
+    raise_if_errors({
+        "reason": "Укажите причину" if not reason else (
+            f"Максимум {MAX_REASON_LENGTH} символов" if len(reason) > MAX_REASON_LENGTH else None
+        ),
+    })
+    return reason
 
 
 def recalc_meetup_records(meetup):
@@ -396,12 +380,7 @@ def disqualify(meetup_id, user_id):
     meetup = get_organizer_meetup(meetup_id)
     if db.session.get(MeetupParticipant, (meetup.id, user_id)) is None:
         raise ApiError(404, "not_found", "Участника нет на встрече")
-    reason = collapse_spaces(get_str(json_body(), "reason"))
-    raise_if_errors({
-        "reason": "Укажите причину" if not reason else (
-            f"Максимум {MAX_REASON_LENGTH} символов" if len(reason) > MAX_REASON_LENGTH else None
-        ),
-    })
+    reason = parse_reason()
 
     disqualification = find_disqualification(meetup, user_id)
     if disqualification is None:

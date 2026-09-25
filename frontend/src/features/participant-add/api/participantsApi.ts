@@ -32,3 +32,11 @@ export function addNewcomer(meetupId: number, displayName: string, login: string
     login,
   })
 }
+
+/** Новый аккаунт с временным паролем сразу в клубе (из списка участников клуба). */
+export function createClubMember(clubId: number, displayName: string, login: string) {
+  return http.post<AddedParticipant>(`/api/clubs/${clubId}/members`, {
+    display_name: displayName,
+    login,
+  })
+}

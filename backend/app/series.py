@@ -19,7 +19,7 @@ from .models import (
     Disqualification, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
     ParticipantStatus, Penalty, Series, SeriesStatus, utcnow,
 )
-from .permissions import get_or_404
+from .permissions import get_or_404, require_not_banned
 from .results import ATTEMPTS_COUNT
 from .scoring import VersionConflict, event_table, save_attempt, serialize_attempt
 
@@ -126,6 +126,7 @@ def start_series(meetup_id, event_id):
     participant = db.session.get(MeetupParticipant, (meetup.id, current_user.id))
     if participant is None or participant.status != ParticipantStatus.APPROVED:
         raise ApiError(403, "not_approved", "Организатор ещё не подтвердил участие")
+    require_not_banned(meetup.club_id)
     if db.session.scalar(db.select(Disqualification.id).where(
         Disqualification.meetup_id == meetup.id,
         Disqualification.user_id == current_user.id,
@@ -162,6 +163,7 @@ def submit_attempt(series_id):
     if series.user_id != current_user.id:
         raise ApiError(403, "forbidden", "Это чужая серия")
     require_live(series.meetup_event.meetup)
+    require_not_banned(series.meetup_event.meetup.club_id)
     if series.status == SeriesStatus.COMPLETED:
         raise ApiError(409, "series_completed", "Серия уже завершена")
     if is_fmc(series.meetup_event.event_id):
