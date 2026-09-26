@@ -3,7 +3,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  fetchAdminClub, fetchAdminClubs, type AdminClub, type AdminClubSummary,
+  fetchAdminClub, fetchAdminClubs, useCurrentClubStore, type AdminClub, type AdminClubSummary,
 } from '@/entities/club'
 import { ApiError } from '@/shared/api'
 import { AppButton, AppCard, AppIcon, PageHeader } from '@/shared/ui'
@@ -54,6 +54,13 @@ function onChanged(changed: AdminClub) {
   loadList()
 }
 
+async function onDeleted() {
+  // The tabs of the app lead to the current club: the deleted one must leave the list.
+  useCurrentClubStore().load(true)
+  await router.push({ name: 'admin-clubs' })
+  loadList()
+}
+
 function create() {
   router.push({ name: 'admin-club-create' })
 }
@@ -81,7 +88,9 @@ function create() {
       </section>
       <section>
         <AppCard v-if="clubError">{{ clubError }}</AppCard>
-        <AdminClubDetails v-else-if="club" :club="club" @changed="onChanged" />
+        <AdminClubDetails
+          v-else-if="club" :club="club" @changed="onChanged" @deleted="onDeleted"
+        />
         <AppCard v-else-if="clubId === undefined" class="admin-clubs__placeholder">
           Выберите клуб в списке
         </AppCard>
@@ -92,7 +101,9 @@ function create() {
   <main v-else-if="clubId !== undefined" class="page">
     <PageHeader :title="club?.name ?? 'Клуб'" :back-to="{ name: 'admin-clubs' }" />
     <AppCard v-if="clubError">{{ clubError }}</AppCard>
-    <AdminClubDetails v-else-if="club" :club="club" @changed="onChanged" />
+    <AdminClubDetails
+      v-else-if="club" :club="club" @changed="onChanged" @deleted="onDeleted"
+    />
   </main>
 
   <main v-else class="page">

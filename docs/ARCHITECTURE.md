@@ -51,7 +51,7 @@ A Flask app with SQLAlchemy models, Flask-Login sessions and Flask-WTF CSRF prot
 | `desk.py` | Organizer desk: manual entry, participants, disqualification, finishing a meetup |
 | `members.py` | Club member list, member card, bans, organizer role, password reset |
 | `profiles.py` | Public pages: club records and member profiles |
-| `admin.py` | Administration: clubs, organizers, `flask make-admin` |
+| `admin.py` | Administration: clubs (including deletion), organizers, `flask make-admin` |
 | `accounts.py` | Account creation by organizers and account deletion |
 | `consents.py` | Personal data consents |
 | `permissions.py` | Role checks. All permission checks happen on the server |
@@ -125,7 +125,7 @@ Deleting a meetup cascades to its events, series and attempts. A club with meetu
 
 - **Participant:** any logged-in user. There is no guest mode for taking part.
 - **Organizer:** a role within a specific club (`club_members.role`), not a separate user type. Organizers see extra management buttons.
-- **Administrator:** a global flag (`users.is_admin`). Administrators create clubs and appoint their first organizer. A club always has at least one organizer. The first administrator is created with `flask make-admin LOGIN`.
+- **Administrator:** a global flag (`users.is_admin`). Administrators create clubs and appoint their first organizer. A club always has at least one organizer. The first administrator is created with `flask make-admin LOGIN`. Administrators also delete clubs: everything of the club goes in one transaction (meetups with all their contents, records, links, memberships), users stay; not while a meetup is live, and the club name must be typed in to confirm.
 - There are no judges: participants are responsible for their own attempts.
 - A person can belong to several clubs.
 

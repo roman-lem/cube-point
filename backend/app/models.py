@@ -2,7 +2,8 @@
 
 Deletion:
 - down the ownership hierarchy (meetup → events → series → attempts) it cascades;
-- a club with meetups cannot be deleted (RESTRICT), meetups are deleted first;
+- a club with meetups cannot be deleted by accident (RESTRICT): the administrator's
+  club deletion (admin.delete_club) deletes the meetups first;
 - a user with results cannot be deleted (RESTRICT): account deletion
   anonymizes it (accounts.delete_account) and the results stay;
 - auxiliary "who did it" references (created_by, decided_by, etc.) are set to NULL.
@@ -226,7 +227,7 @@ class Meetup(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    # RESTRICT: a club with meetups cannot be deleted, so results are not lost.
+    # RESTRICT: results are not lost by accident; admin.delete_club deletes meetups first.
     club_id = db.Column(
         db.Integer, db.ForeignKey("clubs.id", ondelete="RESTRICT"), nullable=False,
     )

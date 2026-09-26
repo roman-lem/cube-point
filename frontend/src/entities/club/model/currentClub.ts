@@ -21,23 +21,26 @@ function readStoredId(): number | null {
  */
 export const useCurrentClubStore = defineStore('currentClub', () => {
   const clubs = ref<ClubSummary[]>([])
+  const loaded = ref(false)
   const storedId = ref(readStoredId())
   let loading: Promise<void> | null = null
 
   const club = computed(
     () => clubs.value.find((c) => c.id === storedId.value) ?? clubs.value[0] ?? null,
   )
-  const clubId = computed(() => club.value?.id ?? storedId.value)
+  // The remembered id only until the list is loaded: the club may have been deleted.
+  const clubId = computed(() => club.value?.id ?? (loaded.value ? null : storedId.value))
   const isLive = computed(() => club.value?.live_meetup_id != null)
 
   /** Loads the club list; again only with reload (e.g. after a meetup starts). */
   function load(reload = false): Promise<void> {
-    if (clubs.value.length > 0 && !reload) {
+    if (loaded.value && !reload) {
       return Promise.resolve()
     }
     loading ??= fetchClubs()
       .then((items) => {
         clubs.value = items
+        loaded.value = true
       })
       .catch(() => {
         // Without the list, navigation simply leads to the last club.

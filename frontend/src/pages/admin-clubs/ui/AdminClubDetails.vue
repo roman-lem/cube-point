@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ClubLogo, type AdminClub } from '@/entities/club'
+import { DeleteClubControl } from '@/features/club-delete'
 import { ClubOrganizers } from '@/features/club-organizers'
 import { plural } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
 // Club management (right panel on a wide screen).
 const { club } = defineProps<{ club: AdminClub }>()
-const emit = defineEmits<{ changed: [club: AdminClub] }>()
+const emit = defineEmits<{ changed: [club: AdminClub]; deleted: [] }>()
 </script>
 
 <template>
@@ -27,6 +28,7 @@ const emit = defineEmits<{ changed: [club: AdminClub] }>()
       </div>
     </AppCard>
     <ClubOrganizers :club="club" @changed="emit('changed', $event)" />
+    <DeleteClubControl :club="club" @deleted="emit('deleted')" />
   </div>
 </template>
 

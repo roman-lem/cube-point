@@ -52,6 +52,7 @@ def admin_requests(club_id):
         ("post", "/api/admin/clubs", new_club()),
         ("post", f"/api/admin/clubs/{club_id}/organizers", {"login": "member"}),
         ("delete", f"/api/admin/clubs/{club_id}/organizers/1", None),
+        ("delete", f"/api/admin/clubs/{club_id}", {"name": "Tyumen | Speedcubing"}),
         ("get", "/api/admin/users?q=me", None),
         ("get", "/api/admin/deleted-users", None),
         ("post", "/api/admin/deleted-users/1/anonymize", None),

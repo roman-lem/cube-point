@@ -12,7 +12,7 @@ import click
 from flask import Blueprint, request
 from flask.cli import with_appcontext
 from flask_login import current_user
-from sqlalchemy import func
+from sqlalchemy import delete, func
 from werkzeug.security import generate_password_hash
 
 from .auth.validation import login_error, name_error, normalize_login, password_error
@@ -22,8 +22,8 @@ from .extensions import db
 from .forms import collapse_spaces, get_str, json_body, raise_if_errors
 from .meetups import iso_utc
 from .models import (
-    DELETED_USER_NAME, Club, ClubMember, ClubRole, ConsentType, Meetup, MeetupStatus, User,
-    UserConsent,
+    DELETED_USER_NAME, Attempt, Club, ClubMember, ClubRole, ConsentType, Meetup, MeetupEvent,
+    MeetupStatus, Series, User, UserConsent,
 )
 from .permissions import is_last_organizer
 
@@ -105,7 +105,36 @@ def club_details(club):
             db.select(func.count()).select_from(Meetup).where(Meetup.club_id == club.id, HELD)
         ),
         "organizers": [serialize_user(user) for user in organizers],
+        # What deleting the club takes with it, and why it cannot be deleted now (or None).
+        "deletion": deletion_summary(club),
+        "delete_restriction": delete_restriction(club),
     }
+
+
+def deletion_summary(club):
+    """All meetups (planned too), all members (banned too) and all saved attempts."""
+    def count(query):
+        return db.session.scalar(db.select(func.count()).select_from(query.subquery()))
+
+    return {
+        "meetups": count(db.select(Meetup.id).where(Meetup.club_id == club.id)),
+        "members": len(club.members),
+        "results": count(
+            db.select(Attempt.id).join(Series).join(MeetupEvent).join(Meetup)
+            .where(Meetup.club_id == club.id)
+        ),
+    }
+
+
+def delete_restriction(club):
+    has_live = db.session.scalar(
+        db.select(Meetup.id)
+        .where(Meetup.club_id == club.id, Meetup.status == MeetupStatus.LIVE)
+        .limit(1)
+    )
+    if has_live is not None:
+        return "Идёт встреча — удалить клуб можно после её завершения"
+    return None
 
 
 @admin.get("/clubs/<int:club_id>")
@@ -145,6 +174,29 @@ def create_club():
     db.session.add(club)
     db.session.commit()
     return {"club": club_details(club)}, 201
+
+
+@admin.delete("/clubs/<int:club_id>")
+def delete_club(club_id):
+    """Deletes the club with everything in it; users stay, only their membership goes.
+
+    meetups.club_id is RESTRICT so a club is never deleted by accident: meetups are
+    deleted here explicitly. Everything below them (events, scrambles, requests, series,
+    attempts, their history, FMC attempts, disqualifications) and the club's links,
+    members and records go by ON DELETE CASCADE. One transaction.
+    Personal bests are computed from results, so nothing else needs recalculating.
+    """
+    club = get_club(club_id)
+    if reason := delete_restriction(club):
+        raise ApiError(409, "meetup_live", reason)
+    # Names are saved with collapse_spaces, so only the edges are trimmed.
+    if get_str(json_body(), "name").strip() != club.name:
+        raise ValidationError({"name": "Название не совпадает"})
+
+    db.session.execute(delete(Meetup).where(Meetup.club_id == club.id))
+    db.session.delete(club)
+    db.session.commit()
+    return "", 204
 
 
 @admin.post("/clubs/<int:club_id>/organizers")

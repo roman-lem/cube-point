@@ -77,6 +77,10 @@ export interface AdminClub {
   /** Held meetups (live or finished). */
   meetups_count: number
   organizers: UserRef[]
+  /** What deleting the club takes with it: all meetups, all members, saved attempts. */
+  deletion: { meetups: number; members: number; results: number }
+  /** Why the club cannot be deleted now (a meetup is live), or null. */
+  delete_restriction: Restriction
 }
 
 /** Club member list filter (for organizers). */
