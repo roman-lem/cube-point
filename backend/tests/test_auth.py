@@ -444,6 +444,61 @@ def test_failures_are_counted_per_login(client, app):
     assert login(client).status_code == 200
 
 
+# nginx appends the address it sees as the last X-Forwarded-For entry.
+def login_from(client, ip, spoofed=None, **kwargs):
+    forwarded = f"{spoofed}, {ip}" if spoofed else ip
+    return client.post("/api/auth/login", json={
+        "login": kwargs.get("login", "ivan_petrov"),
+        "password": kwargs.get("password", PASSWORD),
+    }, headers={"X-Forwarded-For": forwarded})
+
+
+def fail_from_ip(client, ip, times, spoofed=None):
+    # A new login each time: only the IP limit can trigger.
+    for i in range(times):
+        response = login_from(client, ip, spoofed, login=f"guess_{i}", password="wrong-password")
+        assert response.status_code == 401
+
+
+def test_too_many_failures_from_one_ip_block_it(client, app):
+    register(client)
+    fail_from_ip(client, "203.0.113.7", throttle.MAX_FAILURES_PER_IP)
+
+    blocked = login_from(client, "203.0.113.7")
+
+    assert blocked.status_code == 429
+    assert error(blocked)["code"] == "too_many_attempts"
+    # The same login from another address works: the block is per IP.
+    assert login_from(client, "198.51.100.20").status_code == 200
+
+
+def test_ip_limit_uses_real_ip_behind_proxy(client, app):
+    register(client)
+    fail_from_ip(client, "203.0.113.7", throttle.MAX_FAILURES_PER_IP - 1, spoofed="10.0.0.1")
+
+    # A client that sends its own X-Forwarded-For does not get a fresh address:
+    # the entry nginx appended (the real IP) is the one counted.
+    response = login_from(client, "203.0.113.7", spoofed="10.0.0.2",
+                          login="guess_last", password="wrong-password")
+    assert response.status_code == 401
+
+    assert login_from(client, "203.0.113.7", spoofed="10.0.0.3").status_code == 429
+    with app.app_context():
+        ips = set(db.session.scalars(db.select(LoginFailure.ip)))
+    assert ips == {"203.0.113.7"}
+
+
+def test_forwarded_proto_is_seen_by_flask(app):
+    @app.get("/api/test-scheme")
+    def scheme():
+        from flask import request
+        return {"scheme": request.scheme}
+
+    response = app.test_client().get("/api/test-scheme", headers={"X-Forwarded-Proto": "https"})
+
+    assert response.get_json() == {"scheme": "https"}
+
+
 # CSRF
 
 @pytest.fixture

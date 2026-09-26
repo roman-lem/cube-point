@@ -203,7 +203,7 @@ def test_password_reset_clears_login_throttle(world, org):
     org.post(members_url(world, user_id_of(world, "anna"), "password-reset"))
 
     with world["app"].app_context():
-        assert throttle.seconds_until_unblocked("anna") is None
+        assert throttle.seconds_until_unblocked("anna", None) is None
 
 
 def test_organizer_cannot_reset_organizer_password(world, org):

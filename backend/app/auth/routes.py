@@ -1,4 +1,4 @@
-from flask import current_app, session
+from flask import current_app, request, session
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import generate_csrf
 from sqlalchemy.exc import IntegrityError
@@ -141,7 +141,8 @@ def login():
         "password": None if password else "Введите пароль",
     })
 
-    wait = throttle.seconds_until_unblocked(login)
+    ip = request.remote_addr
+    wait = throttle.seconds_until_unblocked(login, ip)
     if wait is not None:
         minutes = -(-wait // 60)  # round up to whole minutes
         raise ApiError(
@@ -156,7 +157,7 @@ def login():
         user.password_hash if user else DUMMY_PASSWORD_HASH, password,
     )
     if user is None or not password_ok:
-        throttle.record_failure(login)
+        throttle.record_failure(login, ip)
         raise ApiError(401, "invalid_credentials", "Неверный логин или пароль")
 
     throttle.clear_failures(login)

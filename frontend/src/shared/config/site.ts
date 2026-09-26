@@ -5,8 +5,7 @@ export const SITE_NAME = 'Точка сбора'
 
 /** Developer contacts: the landing ("Contact the developer"). */
 export const DEVELOPER_CONTACTS = {
-  // PLACEHOLDERS: the project owner fills in the real values.
-  email: 'developer@example.com',
-  telegram: 'https://t.me/username',
-  vk: 'https://vk.com/username',
+  email: 'cube-point@mail.ru',
+  telegram: 'https://t.me/Roman_Lem',
+  vk: 'https://vk.ru/roman_lem',
 }

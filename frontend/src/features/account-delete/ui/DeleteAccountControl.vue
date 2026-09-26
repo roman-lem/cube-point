@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useUserStore } from '@/entities/user'
 import { ApiError } from '@/shared/api'
+import { DEVELOPER_CONTACTS } from '@/shared/config'
 import { AppButton, AppInput, ConfirmDialog, SettingRow } from '@/shared/ui'
 import { deleteAccount } from '../api/deleteAccount'
 
@@ -96,7 +97,8 @@ async function submit() {
         </label>
         <p class="delete-account__hint">
           Имя останется в таблицах результатов и рекордов. Всё остальное — логин, почта,
-          пароль — будет удалено. Отозвать это согласие можно, написав разработчику
+          пароль — будет удалено. Отозвать это согласие можно, написав разработчику на
+          {{ DEVELOPER_CONTACTS.email }}
         </p>
       </div>
       <AppInput

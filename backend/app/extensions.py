@@ -30,9 +30,14 @@ csrf = CSRFProtect()
 
 
 @event.listens_for(Engine, "connect")
-def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
-    # By default SQLite neither checks foreign keys nor runs ON DELETE.
+def _configure_sqlite(dbapi_connection, connection_record):
     if isinstance(dbapi_connection, sqlite3.Connection):
         cursor = dbapi_connection.cursor()
+        # By default SQLite neither checks foreign keys nor runs ON DELETE.
         cursor.execute("PRAGMA foreign_keys=ON")
+        # WAL: reads do not wait for a write, so a meetup with many phones saving
+        # attempts at once does not stall. A writer waiting for another one
+        # retries for up to 5 seconds (the sqlite3 module's default timeout).
+        # The mode is stored in the database file; an in-memory test DB ignores it.
+        cursor.execute("PRAGMA journal_mode=WAL")
         cursor.close()

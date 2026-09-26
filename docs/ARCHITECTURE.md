@@ -11,16 +11,27 @@ backend/            Flask application
   tests/            pytest tests
 frontend/           Vue application
   src/              source code, organized by Feature-Sliced Design
-  nginx.conf        production web server config (static files, /api proxy, CSP)
+  nginx/            web server config: app.conf (static files, /api proxy, CSP),
+                    local.conf (HTTP), prod.conf.template (HTTPS, redirects)
 testdata/           test cases shared by the backend and frontend test suites
-docker-compose.yml  production setup: `web` (nginx + built frontend) and `backend`
+docker-compose.yml       local run in Docker: `web` (nginx + built frontend) and `backend`
+docker-compose.prod.yml  production on a VPS: the same plus HTTPS and `certbot`
+deploy.ps1          builds the images on the developer's computer and sends them to the server
+deploy/             server scripts: update, certificate, database backup and restore
 ```
 
 In production, the `web` container serves the built frontend and proxies `/api/` to the `backend` container (`http://backend:5000`). The backend is not exposed to the outside. The frontend and the API share one domain, so CORS is not needed. In development, the Vite dev server proxies `/api` to the backend in the same way.
 
+Production (`docker-compose.prod.yml`):
+- nginx terminates HTTPS with a Let's Encrypt certificate. The `certbot` container renews it, nginx reloads every 6 hours to pick it up. HTTP, `www` and `EXTRA_DOMAINS` redirect to `https://DOMAIN` with the path kept.
+- The site address comes only from `DOMAIN` in `.env`: nginx gets it through the image's template substitution, the backend as `SITE_URL`, which builds meetup links and QR codes (`join_url`).
+- gunicorn settings: `backend/gunicorn.conf.py`. Migrations run when the backend container starts.
+- SQLite runs in WAL mode. `flask backup-db` makes a consistent copy through the SQLite backup API, `flask restore-db` restores one (`backend/app/backup.py`).
+- Container logs go to the server's journald, so they survive re-deploys.
+
 ## External resources
 
-The app loads nothing from third-party domains: no CDNs, web fonts, analytics or external APIs. Meetups often happen in places with a poor connection, and keeping everything on one domain also keeps personal data from leaving the server. Fonts come from `@fontsource-variable/*` packages bundled into the build. The rule is enforced by the `Content-Security-Policy` header in `frontend/nginx.conf`, so anything new has to work under that policy.
+The app loads nothing from third-party domains: no CDNs, web fonts, analytics or external APIs. Meetups often happen in places with a poor connection, and keeping everything on one domain also keeps personal data from leaving the server. Fonts come from `@fontsource-variable/*` packages bundled into the build. The rule is enforced by the `Content-Security-Policy` header in `frontend/nginx/app.conf`, so anything new has to work under that policy.
 
 ## Backend
 
@@ -219,7 +230,7 @@ A series can be changed by both the participant and the organizer. Each series h
 - Passwords are hashed on the server (Werkzeug). Logins are case-insensitive.
 - Sessions can be revoked instantly: the session ID includes `session_version`, which increases on a password reset.
 - Without email, a password is recovered through a club organizer, who issues a temporary password that must be changed at the next login. An organizer cannot reset the password of another organizer or an administrator; only an administrator can.
-- Login attempts are throttled per login.
+- Login attempts are throttled per login and per client IP. The backend trusts exactly one proxy (`ProxyFix` in `create_app`): the real IP and scheme come from the headers nginx sets.
 
 ### Personal data
 

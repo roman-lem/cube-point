@@ -175,6 +175,17 @@ def test_meetup_page_is_public_but_token_is_for_organizer(world, meetup):
     assert "join_token" not in as_guest["meetup"]
     assert as_member["my_role"] == "member"
     assert "join_token" not in as_member["meetup"]
+    assert "join_url" not in as_member["meetup"]
+
+
+def test_join_url_is_built_from_site_url(world, org, meetup):
+    world["app"].config["SITE_URL"] = "https://club.example"
+
+    page = org.get(f"/api/meetups/{meetup['id']}").get_json()["meetup"]
+    reissued = org.post(f"/api/meetups/{meetup['id']}/token").get_json()
+
+    assert page["join_url"] == f"https://club.example/join/{page['join_token']}"
+    assert reissued["join_url"] == f"https://club.example/join/{reissued['join_token']}"
 
 
 def test_club_meetups_list(world, meetup):

@@ -476,9 +476,14 @@ class LoginFailure(db.Model):
     """A failed login attempt, for password brute-force protection (auth/throttle.py)."""
 
     __tablename__ = "login_failures"
-    __table_args__ = (db.Index("ix_login_failures_login_created_at", "login", "created_at"),)
+    __table_args__ = (
+        db.Index("ix_login_failures_login_created_at", "login", "created_at"),
+        db.Index("ix_login_failures_ip_created_at", "ip", "created_at"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     # Login as entered (lowercased); a user with this login may not exist.
     login = db.Column(db.String(64), nullable=False)
+    # Client address (IPv6 is up to 45 characters). NULL for records made before it was stored.
+    ip = db.Column(db.String(45))
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)

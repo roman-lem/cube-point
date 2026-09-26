@@ -9,6 +9,10 @@ class Config:
     # A relative SQLite path is resolved against the instance/ folder.
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///cubing.db")
 
+    # Site address without a trailing slash: meetup links and QR codes are built
+    # from it. In production it is https://<DOMAIN> (docker-compose.prod.yml).
+    SITE_URL = os.environ.get("SITE_URL", "http://localhost:5173").rstrip("/")
+
     # Cookies over HTTPS only. Enabled by default in docker-compose,
     # disabled for local development with Vite.
     SECURE_COOKIES = os.environ.get("SECURE_COOKIES") == "1"

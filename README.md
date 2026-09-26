@@ -75,6 +75,11 @@ docker compose exec backend flask make-admin LOGIN
 | `REGISTRATION_OPEN` | `1` | `0` closes registration. Login and organizer-created accounts keep working. |
 | `ALLOW_SEED` | off | `1` allows `flask seed`, which wipes the database and fills it with demo data. Never set it in production. |
 | `DATABASE_URL` | `sqlite:///cubing.db` | SQLAlchemy database URL. A relative SQLite path is resolved against `backend/instance/`. |
+| `SITE_URL` | `http://localhost:5173` | Site address; meetup links and QR codes are built from it. In production it is `https://DOMAIN`. |
+
+### Production
+
+`docker-compose.prod.yml` runs the app on a single VPS with HTTPS (Let's Encrypt), automatic certificate renewal and daily database backups. The images are built on the developer's computer and sent to the server by `deploy.ps1`; server-side scripts are in `deploy/`. All production variables are described in `.env.example`.
 
 ## Tests
 

@@ -4,6 +4,8 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in the .env file}
       DATABASE_URL: sqlite:////app/instance/cubing.db
+      # Meetup links and QR codes are built from it.
+      SITE_URL: ${SITE_URL:-http://localhost}
       # Cookies over HTTPS only (browsers make an exception for localhost).
       SECURE_COOKIES: ${SECURE_COOKIES:-1}
       # 0 closes registration; login for existing accounts works.

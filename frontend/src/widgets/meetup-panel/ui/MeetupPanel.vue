@@ -36,8 +36,8 @@ const error = ref('')
 const tab = ref<string>('participants')
 
 const startTime = computed(() => formatTime(meetup.starts_at, meetup.club.timezone))
-const withToken = computed(() =>
-  meetup.join_token ? { ...meetup, join_token: meetup.join_token } : null,
+const withLink = computed(() =>
+  meetup.join_url ? { ...meetup, join_url: meetup.join_url } : null,
 )
 const editable = computed(() => meetup.status !== 'planned')
 
@@ -90,8 +90,8 @@ const progress = computed(() => {
 
 const activeEvent = computed(() => desk.value?.events.find((e) => e.event_id === tab.value))
 
-function onReissued(token: string) {
-  emit('update', { ...meetup, join_token: token })
+function onReissued(link: { join_token: string; join_url: string }) {
+  emit('update', { ...meetup, ...link })
 }
 
 function onFinished(finished: Meetup) {
@@ -139,7 +139,7 @@ function onParticipantsChanged() {
 
       <section class="meetup-panel__section">
         <h2 class="meetup-panel__heading">Материалы</h2>
-        <JoinLinkCard v-if="withToken" :meetup="withToken" @reissued="onReissued" />
+        <JoinLinkCard v-if="withLink" :meetup="withLink" @reissued="onReissued" />
         <RouterLink
           :to="{ name: 'scramble-print', params: { meetupId: meetup.id } }"
           class="meetup-panel__material"

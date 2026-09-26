@@ -53,6 +53,8 @@ export interface Meetup extends Omit<MeetupSummary, 'events'> {
   events: MeetupEvent[]
   /** Only for organizers and only until the meetup is finished. */
   join_token?: string
+  /** Ready link for sharing and the QR code, built by the server from SITE_URL. */
+  join_url?: string
 }
 
 /** Meetup page GET /api/meetups/:id. */

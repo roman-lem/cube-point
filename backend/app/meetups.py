@@ -9,7 +9,7 @@ import secrets
 from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint
+from flask import Blueprint, current_app
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
@@ -41,6 +41,11 @@ def iso_utc(moment):
 
 def new_join_token():
     return secrets.token_urlsafe(24)
+
+
+def join_url(token):
+    """Meetup link for sharing and the QR code, built from SITE_URL."""
+    return f"{current_app.config['SITE_URL']}/join/{token}"
 
 
 def approved_counts(meetup_ids):
@@ -94,6 +99,7 @@ def serialize_meetup(meetup):
     # The join link is for organizers only and only while it is valid.
     if is_organizer(meetup.club_id) and meetup.status != MeetupStatus.FINISHED:
         result["join_token"] = meetup.join_token
+        result["join_url"] = join_url(meetup.join_token)
     return result
 
 
@@ -327,7 +333,7 @@ def reissue_token(meetup_id):
     require_not_finished(meetup)
     meetup.join_token = new_join_token()
     db.session.commit()
-    return {"join_token": meetup.join_token}
+    return {"join_token": meetup.join_token, "join_url": join_url(meetup.join_token)}
 
 
 # Joining by link

@@ -6,11 +6,13 @@ import { downloadBlob, formatDate, qrPng } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, ConfirmDialog, QrCode } from '@/shared/ui'
 import { printQr } from '../lib/printQr'
 
-// QR code and meetup link for the organizer. The token exists until the meetup is finished.
-const { meetup } = defineProps<{ meetup: Meetup & { join_token: string } }>()
-const emit = defineEmits<{ reissued: [token: string] }>()
+type JoinLink = { join_token: string; join_url: string }
 
-const link = computed(() => `${window.location.origin}/join/${meetup.join_token}`)
+// QR code and meetup link for the organizer. The token exists until the meetup is finished.
+const { meetup } = defineProps<{ meetup: Meetup & { join_url: string } }>()
+const emit = defineEmits<{ reissued: [link: JoinLink] }>()
+
+const link = computed(() => meetup.join_url)
 const title = computed(() => `Встреча клуба, ${formatDate(meetup.date)}`)
 
 const copied = ref(false)
@@ -40,11 +42,9 @@ async function reissue() {
   reissuing.value = true
   error.value = ''
   try {
-    const { join_token } = await http.post<{ join_token: string }>(
-      `/api/meetups/${meetup.id}/token`,
-    )
+    const reissued = await http.post<JoinLink>(`/api/meetups/${meetup.id}/token`)
     confirmOpen.value = false
-    emit('reissued', join_token)
+    emit('reissued', reissued)
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Не удалось перевыпустить ссылку'
   } finally {

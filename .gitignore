@@ -3,8 +3,9 @@
 .env.*
 !.env.example
 
-# Local-only files: agent instructions, design references, mockups
+# Local-only files: agent instructions, deploy notes, design references, mockups
 CLAUDE.md
+DEPLOY.md
 .claude/
 DESIGN.md
 makets/
