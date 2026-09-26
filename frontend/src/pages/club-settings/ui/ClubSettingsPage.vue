@@ -21,7 +21,7 @@ onMounted(async () => {
 
 function onSaved(club: Club) {
   data.value!.club = club
-  // Название клуба в навигации.
+  // Club name in the navigation.
   clubStore.load(true)
 }
 </script>
@@ -30,7 +30,7 @@ function onSaved(club: Club) {
   <main class="page page--narrow">
     <PageHeader title="Настройки клуба" :back-to="{ name: 'club', params: { clubId } }" />
     <AppCard v-if="error">{{ error }}</AppCard>
-    <!-- Права проверяет сервер; здесь только не показываем форму, которую нельзя сохранить. -->
+    <!-- The server checks permissions; here we just do not show a form that cannot be saved. -->
     <AppCard v-else-if="data && data.my_role !== 'organizer'">
       Настройки клуба может менять только организатор
     </AppCard>

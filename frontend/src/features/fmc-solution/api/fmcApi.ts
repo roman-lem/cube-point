@@ -2,13 +2,13 @@ import { fetchMySeries, type MySeries } from '@/entities/series'
 import { ApiError, http } from '@/shared/api'
 import type { FmcCheck } from '@/shared/lib'
 
-// Попытка FMC на сервере: старт, черновик, заморозка и сдача.
-// Правила — раздел «FMC» в CLAUDE.md, адреса — backend/app/fmc.py.
+// FMC attempt on the server: start, draft, freeze and submission.
+// Rules: "FMC" in docs/ARCHITECTURE.md, routes: backend/app/fmc.py.
 
 const fmcPath = (series: MySeries, action: string) => `/api/series/${series.id}/fmc/${action}`
 const attemptNumber = (series: MySeries) => series.next_attempt?.number
 
-/** Старт попытки: сервер фиксирует время старта и отдаёт скрамбл. */
+/** Attempt start: the server records the start time and returns the scramble. */
 export async function startFmcAttempt(series: MySeries): Promise<MySeries> {
   const response = await http.post<{ series: MySeries }>(fmcPath(series, 'start'), {
     attempt_number: attemptNumber(series),
@@ -21,8 +21,8 @@ export async function saveFmcDraft(series: MySeries, solution: string): Promise<
 }
 
 /**
- * Первый шаг сдачи: замораживает решение и время сдачи. Если время уже
- * вышло, сервер сразу сохраняет попытку как DNF с этим решением.
+ * First submission step: freezes the solution and the submission time. If time has already
+ * run out, the server saves the attempt as DNF with this solution right away.
  */
 export async function freezeFmcSolution(series: MySeries, solution: string): Promise<MySeries> {
   const response = await http.post<{ series: MySeries }>(fmcPath(series, 'freeze'), {
@@ -32,7 +32,7 @@ export async function freezeFmcSolution(series: MySeries, solution: string): Pro
   return response.series
 }
 
-/** «Вернуться к решению»: снимает заморозку. */
+/** "Back to solution": removes the freeze. */
 export async function unfreezeFmcSolution(series: MySeries): Promise<MySeries> {
   const response = await http.delete<{ series: MySeries }>(fmcPath(series, 'freeze'), {
     attempt_number: attemptNumber(series),
@@ -41,10 +41,10 @@ export async function unfreezeFmcSolution(series: MySeries): Promise<MySeries> {
 }
 
 /**
- * Второй шаг сдачи: результат проверки решения solution.
+ * Second submission step: the result of checking the solution.
  *
- * Если серия или решение успели измениться, перечитывает серию и возвращает
- * её с conflict: true — решение нужно проверить заново.
+ * If the series or the solution has changed, reloads the series and returns
+ * it with conflict: true; the solution has to be checked again.
  */
 export async function submitFmcResult(
   series: MySeries,

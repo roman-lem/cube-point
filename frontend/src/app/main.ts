@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-// Шрифты — из сборки, без сторонних доменов. Браузер скачивает только
-// подмножества (латиница, кириллица), которые встречаются на странице.
+// Fonts come from the build, no third-party domains. The browser downloads only
+// the subsets (Latin, Cyrillic) used on the page.
 import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/manrope'
 import { SITE_NAME } from '@/shared/config'
@@ -14,7 +14,7 @@ import './styles/page.css'
 document.title = SITE_NAME
 
 const app = createApp(App)
-// Pinia подключается до роутера: первая навигация уже читает store пользователя.
+// Pinia is installed before the router: the first navigation already reads the user store.
 app.use(createPinia())
 setupAuthHandlers(router)
 app.use(router)

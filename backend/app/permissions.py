@@ -1,4 +1,4 @@
-"""Роли в клубе и проверки прав. Все проверки прав — только на сервере."""
+"""Club roles and permission checks. All permission checks are server-side only."""
 
 from flask_login import current_user
 
@@ -15,7 +15,7 @@ def get_or_404(model, object_id, message="Не найдено"):
 
 
 def get_membership(club_id, user=None):
-    """Членство пользователя (по умолчанию текущего) в клубе или None."""
+    """Club membership of the user (current by default), or None."""
     user = user or current_user
     if not user.is_authenticated:
         return None
@@ -23,7 +23,7 @@ def get_membership(club_id, user=None):
 
 
 def my_role(club_id):
-    """Роль текущего пользователя в клубе: "organizer", "member" или None."""
+    """Role of the current user in the club: "organizer", "member" or None."""
     membership = get_membership(club_id)
     return membership.role.value if membership else None
 
@@ -46,7 +46,7 @@ def require_organizer(club_id):
 
 
 def require_club_manager(club_id):
-    """Управление участниками клуба: организатор клуба или администратор."""
+    """Managing club members: a club organizer or the administrator."""
     if not current_user.is_authenticated:
         raise ApiError(401, "unauthorized", "Нужно войти")
     if not (current_user.is_admin or is_organizer(club_id)):
@@ -54,7 +54,7 @@ def require_club_manager(club_id):
 
 
 def require_not_banned(club_id):
-    """Заблокированный сразу перестаёт сдавать попытки, в том числе на идущей встрече."""
+    """A banned user stops submitting attempts immediately, including at a live meetup."""
     if is_banned(club_id):
         raise ApiError(403, "banned", "Вы заблокированы в этом клубе")
 

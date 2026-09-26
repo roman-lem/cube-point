@@ -3,12 +3,12 @@ import { ref } from 'vue'
 import { AppIcon } from '@/shared/ui'
 import { addMove, FACES, removeLast, ROTATIONS, setModifier, type Modifier } from '../model/editing'
 
-// Клавиатура решения FMC (эталон — макет fmc_solving). Срезов M, E, S нет.
+// FMC solution keyboard. There are no M, E, S slices.
 const moves = defineModel<string[]>({ required: true })
 
 const { disabled = false } = defineProps<{ disabled?: boolean }>()
 
-// Переключатель широких поворотов: действует, пока его не выключат.
+// Wide turn toggle: stays on until switched off.
 const wide = ref(false)
 
 const MODIFIERS: Modifier[] = ["'", '2']

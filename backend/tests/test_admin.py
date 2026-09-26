@@ -1,4 +1,4 @@
-"""Администрирование: клубы, организаторы, имена удалённых аккаунтов и flask make-admin."""
+"""Administration: clubs, organizers, names of deleted accounts and flask make-admin."""
 
 import pytest
 from werkzeug.security import check_password_hash
@@ -175,7 +175,7 @@ def test_search_users_by_login(app, admin):
     assert [u["login"] for u in response.get_json()["users"]] == ["admin", "member"]
 
 
-# Имена удалённых аккаунтов
+# Names of deleted accounts
 
 def delete_account(app, login, name, keep_name):
     uid = user_id(app, login)
@@ -201,7 +201,7 @@ def test_search_deleted_users_with_kept_name(app, admin):
     delete_account(app, "boris", "Борис", keep_name=False)
 
     assert deleted_users(admin) == [(anna, "Анна Смирнова")]
-    # Без учёта регистра, в том числе кириллица.
+    # Case-insensitive, Cyrillic included.
     assert deleted_users(admin, "СМИР") == [(anna, "Анна Смирнова")]
     assert deleted_users(admin, "Борис") == []
 
@@ -218,7 +218,7 @@ def test_anonymize_deleted_user(app, admin):
             db.select(UserConsent).where(UserConsent.user_id == anna)
         ).all() == []
     assert deleted_users(admin) == []
-    # Обезличенный аккаунт — как обычный удалённый, профиль снова открыт.
+    # An anonymized account is like a regular deleted one: the profile is open again.
     assert app.test_client().get(f"/api/users/{anna}").status_code == 200
 
 

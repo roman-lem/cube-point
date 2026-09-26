@@ -14,9 +14,9 @@ import { plural } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
 import MemberList from './MemberList.vue'
 
-// Участники клуба. Всем — список (без заблокированных). Организатору и администратору —
-// управление (макеты org_club_competitors, org_competitor_edit): на телефоне либо
-// список, либо карточка участника; на широком экране — две панели (org_competitor_desk).
+// Club members. Everyone sees the list (without banned members). Organizers and the administrator get
+// management: on a phone either
+// the list or the member card; on a wide screen, two panels.
 const { clubId, userId } = defineProps<{ clubId: number; userId?: number }>()
 
 const router = useRouter()
@@ -76,7 +76,7 @@ watch(
   { immediate: true },
 )
 watch(() => userId, (id, previous) => {
-  // При переходе к другому участнику старая карточка не должна мелькать.
+  // When switching to another member, the old card must not flash.
   if (id !== previous) {
     member.value = null
   }
@@ -87,7 +87,7 @@ watchDebounced(query, loadList, { debounce: 300 })
 
 function onChanged(changed: ClubMemberCard) {
   const me = userStore.user
-  // Организатор снял права с себя: управлять клубом он больше не может.
+  // The organizer removed their own rights: they can no longer manage the club.
   if (me && changed.user.id === me.id && changed.role === 'member' && !me.is_admin) {
     router.push({ name: 'club', params: { clubId } })
     return

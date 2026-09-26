@@ -1,8 +1,8 @@
-"""Участники клуба: публичный список и управление участниками. Адреса /api/clubs/<id>/members…
+"""Club members: public list and member management. Routes /api/clubs/<id>/members…
 
-Список виден всем (без заблокированных). Карточка участника и действия —
-организатору клуба и администратору. Правила — разделы «Роли»,
-«Дисквалификация и блокировка» и «Авторизация» CLAUDE.md.
+The list is visible to everyone (without banned members). The member card and actions
+are for club organizers and the administrator. Rules: "Roles",
+"Disqualification and bans" and "Authentication" in docs/ARCHITECTURE.md.
 """
 
 from flask import Blueprint, request
@@ -40,9 +40,9 @@ def can_manage(club_id):
 
 
 def meetups_counts(club_id):
-    """Число встреч клуба, где у человека есть хотя бы одна серия: {user_id: n}.
+    """Number of club meetups where the user has at least one series: {user_id: n}.
 
-    Серии бывают только на начатых встречах, так что это и есть посещённые встречи.
+    Series exist only at started meetups, so these are exactly the attended meetups.
     """
     return dict(db.session.execute(
         db.select(Series.user_id, func.count(func.distinct(MeetupEvent.meetup_id)))
@@ -54,7 +54,7 @@ def meetups_counts(club_id):
 
 
 def records_counts(club_id):
-    """Число текущих рекордов клуба (LR) у каждого: {user_id: n}."""
+    """Number of current club records (LR) per user: {user_id: n}."""
     return dict(db.session.execute(
         db.select(ClubRecord.user_id, func.count())
         .where(ClubRecord.club_id == club_id)
@@ -75,15 +75,15 @@ def serialize_ban(membership):
     }
 
 
-# Список
+# List
 
 @members.get("/clubs/<int:club_id>/members")
 def list_members(club_id):
-    """Участники клуба с поиском по имени (организатору — и по логину).
+    """Club members with search by name (and by login for organizers).
 
-    Организатор и администратор видят и заблокированных, логины, фильтры и число
-    людей в каждом фильтре. Остальным логин не отдаётся. Поиск — в Python: LOWER
-    в SQLite не понимает кириллицу.
+    Organizers and the administrator also see banned members, logins, filters and
+    the number of people in each filter. Nobody else gets logins. Search is in Python:
+    LOWER in SQLite does not handle Cyrillic.
     """
     get_or_404(Club, club_id, "Клуб не найден")
     manager = can_manage(club_id)
@@ -143,7 +143,7 @@ def list_members(club_id):
 
 @members.post("/clubs/<int:club_id>/members")
 def create_member(club_id):
-    """Новый аккаунт с временным паролем сразу в клубе (для новичка без телефона)."""
+    """New account with a temporary password, added to the club right away (for a newcomer without a phone)."""
     club = get_or_404(Club, club_id, "Клуб не найден")
     require_club_manager(club.id)
     user, password = create_account(json_body())
@@ -155,13 +155,13 @@ def create_member(club_id):
     }, 201
 
 
-# Карточка участника
+# Member card
 
 def restrictions(membership):
-    """Почему действие недоступно: {действие: причина или None, если можно}.
+    """Why an action is unavailable: {action: reason, or None if allowed}.
 
-    Эти же проверки выполняют эндпоинты действий, а фронт показывает причину
-    у неактивной кнопки.
+    The action endpoints run the same checks, and the frontend shows the reason
+    next to the disabled button.
     """
     return {
         "reset_password": reset_password_restriction(membership.user),
@@ -177,8 +177,8 @@ def reset_password_restriction(user):
         return None
     if user.is_admin:
         return "Пароль администратора сбрасывает администратор"
-    # Организатор любого клуба, а не только этого: иначе организатор одного клуба
-    # мог бы войти под организатором другого.
+    # An organizer of any club, not just this one: otherwise an organizer of one club
+    # could log in as an organizer of another.
     if db.session.scalar(db.select(ClubMember.user_id).where(
         ClubMember.user_id == user.id, ClubMember.role == ClubRole.ORGANIZER,
     ).limit(1)):
@@ -198,7 +198,7 @@ def organizer_restriction(membership):
 
 def ban_restriction(membership):
     if membership.banned_at is not None:
-        return None  # разблокировать можно всегда
+        return None  # unbanning is always allowed
     if membership.user_id == current_user.id:
         return "Нельзя заблокировать самого себя"
     if membership.role == ClubRole.ORGANIZER:
@@ -212,7 +212,7 @@ def require_allowed(reason):
 
 
 def member_meetups(membership):
-    """Встречи клуба с сериями участника, от новых к старым, с его результатами."""
+    """Club meetups with the member's series, newest first, with their results."""
     rows = db.session.scalars(
         db.select(Series)
         .join(MeetupEvent)
@@ -240,7 +240,7 @@ def member_meetups(membership):
                 },
                 "events": [],
             }
-        # Место и отметки рекордов — из таблицы дисциплины. У дисквалифицированного их нет.
+        # Place and record marks come from the event table. A disqualified user has none.
         row = next((r for r in event_table(meetup_event) if r["series"].id == series.id), None)
         meetups[meetup.id]["events"].append({
             "event_id": meetup_event.event_id,
@@ -255,7 +255,7 @@ def member_meetups(membership):
 
 
 def live_meetup(membership):
-    """Идущая встреча клуба, где участник подтверждён: блокировка прервёт его серии."""
+    """The club's live meetup where the member is approved: a ban interrupts their series."""
     meetup = db.session.scalar(
         db.select(Meetup).join(MeetupParticipant).where(
             Meetup.club_id == membership.club_id,
@@ -293,15 +293,15 @@ def get_member_card(club_id, user_id):
     return {"member": member_card(get_managed_member(club_id, user_id))}
 
 
-# Действия
+# Actions
 
 @members.post("/clubs/<int:club_id>/members/<int:user_id>/password-reset")
 def reset_member_password(club_id, user_id):
-    """Временный пароль, показывается один раз. Все сессии участника завершаются."""
+    """Temporary password, shown once. All of the member's sessions end."""
     membership = get_managed_member(club_id, user_id)
     require_allowed(reset_password_restriction(membership.user))
     password = reset_password(membership.user)
-    # Если участника заблокировало ограничение попыток входа, новый пароль сразу работает.
+    # If the member was locked out by login throttling, the new password works right away.
     throttle.clear_failures(membership.user.login)
     db.session.commit()
     return {"temporary_password": password}
@@ -319,7 +319,7 @@ def make_organizer(club_id, user_id):
 
 @members.delete("/clubs/<int:club_id>/members/<int:user_id>/organizer")
 def remove_organizer(club_id, user_id):
-    """Снимает права организатора; из клуба человек не удаляется. Снять можно и себя."""
+    """Removes organizer rights; the user stays in the club. One can remove them from oneself."""
     membership = get_managed_member(club_id, user_id)
     if membership.role == ClubRole.ORGANIZER:
         require_allowed(organizer_restriction(membership))
@@ -330,9 +330,9 @@ def remove_organizer(club_id, user_id):
 
 @members.put("/clubs/<int:club_id>/members/<int:user_id>/ban")
 def ban_member(club_id, user_id):
-    """Блокировка: нельзя подавать заявки и сдавать попытки, в том числе на идущей встрече.
+    """Ban: no joining requests and no attempt submissions, including at a live meetup.
 
-    Уже сданные попытки, таблицы и рекорды не меняются. Повторный запрос меняет причину.
+    Already submitted attempts, tables and records do not change. A repeated request changes the reason.
     """
     membership = get_managed_member(club_id, user_id)
     require_allowed(ban_restriction(membership))

@@ -1,9 +1,9 @@
-"""Администрирование: клубы и их организаторы, имена удалённых аккаунтов.
+"""Administration: clubs and their organizers, names of deleted accounts.
 
-Адреса /api/admin/…
+Routes /api/admin/…
 
-Только для администратора (users.is_admin). Правила — раздел «Роли» CLAUDE.md.
-Первый администратор появляется командой `flask make-admin LOGIN`.
+Administrators only (users.is_admin). Rules: "Roles" in docs/ARCHITECTURE.md.
+The first administrator is created with `flask make-admin LOGIN`.
 """
 
 from zoneinfo import available_timezones
@@ -29,13 +29,13 @@ from .permissions import is_last_organizer
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 
-DEFAULT_TIMEZONE = "Asia/Yekaterinburg"  # время Тюмени
+DEFAULT_TIMEZONE = "Asia/Yekaterinburg"  # Tyumen time
 USER_SEARCH_LIMIT = 10
 
 
 @admin.before_request
 def require_admin():
-    # Проверка на весь blueprint: новый эндпоинт не останется без защиты.
+    # Check for the whole blueprint: a new endpoint cannot be left unprotected.
     if not current_user.is_authenticated:
         raise ApiError(401, "unauthorized", "Нужно войти")
     if not current_user.is_admin:
@@ -47,7 +47,7 @@ def serialize_user(user):
 
 
 def count_by_club(*conditions):
-    """{club_id: число участников клуба} с дополнительными условиями."""
+    """{club_id: number of club members} with extra conditions."""
     return dict(db.session.execute(
         db.select(ClubMember.club_id, func.count())
         .where(ClubMember.banned_at.is_(None), *conditions)
@@ -55,7 +55,7 @@ def count_by_club(*conditions):
     ).all())
 
 
-# Встречи, которые уже прошли или идут: запланированная не бывает «последней».
+# Meetups that are over or in progress: a planned one is never the "latest".
 HELD = Meetup.status.in_([MeetupStatus.LIVE, MeetupStatus.FINISHED])
 
 
@@ -149,7 +149,7 @@ def create_club():
 
 @admin.post("/clubs/<int:club_id>/organizers")
 def add_organizer(club_id):
-    """Назначает организатором: новая запись в клубе или повышение участника."""
+    """Makes the user an organizer: a new club membership or a promotion of a member."""
     club = get_club(club_id)
     login = get_str(json_body(), "login")
     user = find_user(login)
@@ -171,7 +171,7 @@ def add_organizer(club_id):
 
 @admin.delete("/clubs/<int:club_id>/organizers/<int:user_id>")
 def remove_organizer(club_id, user_id):
-    """Понижает организатора до участника, из клуба он не удаляется."""
+    """Demotes an organizer to a member; they are not removed from the club."""
     club = get_club(club_id)
     membership = db.session.get(ClubMember, (club.id, user_id))
     if membership is None or membership.role != ClubRole.ORGANIZER:
@@ -186,7 +186,7 @@ def remove_organizer(club_id, user_id):
 
 @admin.get("/users")
 def search_users():
-    """Поиск пользователей по части логина, для выбора организатора."""
+    """User search by part of the login, to pick an organizer."""
     query = normalize_login(request.args.get("q", ""))
     if not query:
         return {"users": []}
@@ -199,10 +199,10 @@ def search_users():
     return {"users": [serialize_user(user) for user in users]}
 
 
-# Удалённые аккаунты с сохранённым именем (accounts.delete_account)
+# Deleted accounts that kept their name (accounts.delete_account)
 
 def kept_names():
-    """Запрос (пользователь, согласие DELETED_NAME) удалённых аккаунтов с сохранённым именем."""
+    """Query of (user, DELETED_NAME consent) for deleted accounts that kept their name."""
     return (
         db.select(User, UserConsent)
         .join(UserConsent, UserConsent.user_id == User.id)
@@ -212,10 +212,10 @@ def kept_names():
 
 @admin.get("/deleted-users")
 def search_deleted_users():
-    """Удалённые аккаунты с сохранённым именем, ?q= — часть имени.
+    """Deleted accounts that kept their name, ?q= is part of the name.
 
-    Фильтр в Python: SQLite сравнивает без учёта регистра только латиницу,
-    а таких аккаунтов единицы.
+    Filtered in Python: SQLite compares case-insensitively only for Latin letters,
+    and there are only a few such accounts.
     """
     query = collapse_spaces(request.args.get("q", "")).casefold()
     rows = db.session.execute(kept_names().order_by(User.display_name, User.id)).all()
@@ -232,7 +232,7 @@ def search_deleted_users():
 
 @admin.post("/deleted-users/<int:user_id>/anonymize")
 def anonymize_user(user_id):
-    """Отзыв согласия на имя: имя заменяется на «Удалённый участник»."""
+    """Withdraws the name consent: the name is replaced with the deleted-user name."""
     row = db.session.execute(kept_names().where(User.id == user_id)).first()
     if row is None:
         raise ApiError(404, "not_found", "Удалённый участник с сохранённым именем не найден")
@@ -246,28 +246,28 @@ def anonymize_user(user_id):
 @click.argument("login")
 @with_appcontext
 def make_admin_command(login):
-    """Выдать права администратора пользователю LOGIN (или создать его)."""
+    """Grant administrator rights to user LOGIN (or create the user)."""
     user = find_user(login)
     if user is None:
         login = normalize_login(login)
         if error := login_error(login):
-            raise click.ClickException(f"Логин: {error}")
-        click.echo(f"Пользователя {login} нет, создаём нового.")
-        display_name = collapse_spaces(click.prompt("Имя или никнейм"))
+            raise click.ClickException(f"Login: {error}")
+        click.echo(f"User {login} does not exist, creating a new one.")
+        display_name = collapse_spaces(click.prompt("Name or nickname"))
         if error := name_error(display_name):
-            raise click.ClickException(f"Имя: {error}")
-        password = click.prompt("Пароль", hide_input=True, confirmation_prompt=True)
+            raise click.ClickException(f"Name: {error}")
+        password = click.prompt("Password", hide_input=True, confirmation_prompt=True)
         if error := password_error(password):
-            raise click.ClickException(f"Пароль: {error}")
+            raise click.ClickException(f"Password: {error}")
         user = User(
             login=login, display_name=display_name,
             password_hash=generate_password_hash(password),
         )
         db.session.add(user)
     elif user.is_admin:
-        click.echo(f"{user.login} уже администратор.")
+        click.echo(f"{user.login} is already an administrator.")
         return
 
     user.is_admin = True
     db.session.commit()
-    click.echo(f"{user.login} теперь администратор.")
+    click.echo(f"{user.login} is now an administrator.")

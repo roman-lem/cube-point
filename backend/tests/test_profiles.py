@@ -1,11 +1,11 @@
-"""Публичные страницы: рекорды клуба, список участников и профиль участника."""
+"""Public pages: club records, member list and member profile."""
 
 import pytest
 
 from app import profiles
 
 from .helpers import ORGANIZER, client_for, create_club, create_user
-from .test_series import (  # noqa: F401 — фикстуры
+from .test_series import (  # noqa: F401 — fixtures
     clients, create_live_meetup, meetup_id, org, solve, user_id_of, world,
 )
 
@@ -46,7 +46,7 @@ def disqualify(org, meetup_id, user_id):
 
 
 def other_club(world, clients):
-    """Второй клуб со своим организатором и идущей встречей, где anna и boris подтверждены."""
+    """A second club with its own organizer and a live meetup where anna and boris are approved."""
     app = world["app"]
     club_id = create_club(app)
     create_user(app, "org2", ORGANIZER, club_id)
@@ -54,7 +54,7 @@ def other_club(world, clients):
     return other, create_live_meetup(other, client_for(app, "org2"), clients)
 
 
-# Рекорды клуба
+# Club records
 
 def test_club_records_are_public(world, clients, meetup_id):
     anna = user_id_of(world, "anna")
@@ -98,7 +98,7 @@ def test_records_exclude_disqualified(world, org, clients, meetup_id):
     assert personal_records(org, anna)["333"]["single"]["value"] == 900
 
 
-# Профиль участника
+# Member profile
 
 def test_personal_records_count_all_clubs(world, clients, meetup_id):
     anna = user_id_of(world, "anna")
@@ -113,7 +113,7 @@ def test_personal_records_count_all_clubs(world, clients, meetup_id):
     pb = {r["event_id"]: r for r in data["personal_records"]}["333"]["single"]
     assert pb["value"] == 900
     assert pb["meetup"]["club"]["id"] == other["club_id"]
-    # Рекорд клуба — только по встречам клуба.
+    # A club record counts only the club's meetups.
     assert club_records(clients["anna"], world)["333"]["single"]["value"] == 1000
 
 
@@ -139,7 +139,7 @@ def test_history_has_attempts_and_current_marks(world, clients, meetup_id):
     assert event["format"] == "ao5"
     assert event["attempts"][0] == {"value": 1000, "penalty": "none"}
     assert event["average"] == 1200
-    # Рекорд клуба у boris, личный рекорд — у anna.
+    # The club record is boris's, the personal best is anna's.
     assert event["marks"] == {"single": ["PB"], "average": ["PB"]}
     boris_event = history(clients["boris"], user_id_of(world, "boris"))["meetups"][0]["events"][0]
     assert boris_event["marks"] == {"single": ["LR", "PB"], "average": ["LR", "PB"]}
@@ -157,7 +157,7 @@ def test_history_is_paged(world, org, clients, monkeypatch):
     first = history(clients["anna"], anna)
     second = history(clients["anna"], anna, offset=2)
 
-    # От новых к старым.
+    # Newest first.
     assert [m["id"] for m in first["meetups"]] == [ids[2], ids[1]]
     assert first["has_more"] is True
     assert [m["id"] for m in second["meetups"]] == [ids[0]]
@@ -168,7 +168,7 @@ def test_unknown_user(world):
     assert world["app"].test_client().get("/api/users/999").status_code == 404
 
 
-# Публичный список участников
+# Public member list
 
 def test_banned_member_hidden_but_record_stays(world, org, clients, meetup_id):
     anna = user_id_of(world, "anna")
@@ -181,7 +181,7 @@ def test_banned_member_hidden_but_record_stays(world, org, clients, meetup_id):
     guest = world["app"].test_client()
     assert anna not in [m["user"]["id"] for m in members(guest, world)]
     assert club_records(guest, world)["333"]["single"]["user"]["id"] == anna
-    # Профиль открыт, клуб из списка клубов пропал.
+    # The profile is open, the club is gone from the club list.
     assert profile(guest, anna)["clubs"] == []
     anna_row = next(m for m in members(org, world) if m["user"]["id"] == anna)
     assert anna_row["records_count"] == 1
@@ -198,7 +198,7 @@ def test_members_list_counts_meetups_and_records(world, clients, meetup_id):
     assert (boris["meetups_count"], boris["records_count"]) == (1, 0)
 
 
-# Логины
+# Logins
 
 def keys(data):
     if isinstance(data, dict):
@@ -223,7 +223,7 @@ def test_public_responses_have_no_logins(world, clients, meetup_id, who):
         f"/api/meetups/{meetup_id}/events/333/results",
     ):
         assert "login" not in keys(get_json(client, url)), url
-    # Поиск по логину — только у организатора.
+    # Search by login is for organizers only.
     assert members(client, world) and get_json(
         client, f"/api/clubs/{world['club_id']}/members?q=anna",
     )["members"] == []

@@ -6,17 +6,17 @@ import type { ProfileEventResult, ProfileMeetup } from '@/entities/user'
 import { EVENTS, eventName, formatDate, movesWord, plural } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
-// Встреча в истории профиля: результаты по дисциплинам с попытками (у bo1 попытка
-// и есть результат, ряд попыток показывается, только если её исправил организатор).
-// Исправленные организатором попытки отмечает AttemptSeries, отметки PB и LR —
-// только у актуальных рекордов.
+// A meetup in the profile history: results per event with attempts (in bo1 the attempt
+// is the result, so the attempt row is shown only if an organizer corrected it).
+// AttemptSeries marks attempts corrected by an organizer; PB and LR marks are
+// shown only for current records.
 const { meetup, showClub = false } = defineProps<{
   meetup: ProfileMeetup
-  /** Человек ходит в несколько клубов — подписываем, в каком была встреча. */
+  /** The person attends several clubs: show which club the meetup was in. */
   showClub?: boolean
 }>()
 
-/** Главный результат серии: среднее для ao5/mo3, иначе лучшая попытка. */
+/** The main result of a series: the average for ao5/mo3, otherwise the best attempt. */
 function main(result: ProfileEventResult) {
   const isAverage = result.format === 'ao5' || result.format === 'mo3'
   return {

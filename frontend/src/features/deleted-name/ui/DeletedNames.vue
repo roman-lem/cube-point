@@ -7,8 +7,8 @@ import { formatDate } from '@/shared/lib'
 import { AppCard, AppInput, ConfirmDialog } from '@/shared/ui'
 import { anonymizeDeletedUser, searchDeletedUsers, type DeletedUser } from '../api/deletedNamesApi'
 
-// Удалённые аккаунты, оставившие имя в результатах и рекордах, и отзыв этого
-// согласия по просьбе человека: имя заменяется на «Удалённый участник».
+// Deleted accounts that kept their name in results and records, and withdrawing that
+// consent at the person's request: the name is replaced with the deleted-user name.
 const query = ref('')
 const users = ref<DeletedUser[] | null>(null)
 const loadError = ref('')

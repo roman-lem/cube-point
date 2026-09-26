@@ -5,7 +5,7 @@ const model = defineModel<T>({ required: true })
 
 defineProps<{
   options: { value: T; label: string }[]
-  /** Подпись над полем. Без неё нужен ariaLabel. */
+  /** Label above the field. Without it, ariaLabel is required. */
   label?: string
   ariaLabel?: string
   error?: string

@@ -10,7 +10,7 @@ export interface ParticipationRequest {
 
 const base = (meetupId: number) => `/api/meetups/${meetupId}/requests`
 
-/** Все заявки встречи, ожидающие — первыми. */
+/** All requests of the meetup, pending ones first. */
 export async function fetchRequests(meetupId: number) {
   return (await http.get<{ requests: ParticipationRequest[] }>(base(meetupId))).requests
 }
@@ -25,7 +25,7 @@ export async function rejectRequest(meetupId: number, userId: number) {
   return (await http.post<{ request: ParticipationRequest }>(url)).request
 }
 
-/** Подтверждает все ожидающие заявки, кроме заблокированных в клубе. */
+/** Approves all pending requests except those from users banned in the club. */
 export async function approveAll(meetupId: number) {
   return (await http.post<{ approved: number }>(`${base(meetupId)}/approve-all`)).approved
 }

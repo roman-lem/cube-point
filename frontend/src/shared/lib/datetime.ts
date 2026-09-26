@@ -1,20 +1,20 @@
-// Даты и время встреч. Сервер отдаёт метки времени в UTC (ISO с «Z»),
-// показываем их в часовом поясе клуба. Дата встречи ("2026-10-19")
-// уже в часовом поясе клуба и пересчёта не требует.
+// Meetup dates and times. The server returns timestamps in UTC (ISO with "Z"),
+// they are shown in the club's time zone. The meetup date ("2026-10-19")
+// is already in the club's time zone and needs no conversion.
 
 const MONTHS = [
   'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
   'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
 ]
 
-/** "2026-10-19" → «19 октября»; год добавляется, если он не текущий. */
+/** "2026-10-19" → «19 октября»; the year is added if it is not the current one. */
 export function formatDate(isoDate: string): string {
   const [year, month, day] = isoDate.split('-').map(Number)
   const text = `${day} ${MONTHS[month - 1]}`
   return year === new Date().getFullYear() ? text : `${text} ${year}`
 }
 
-/** Время "HH:MM" по часам клуба. */
+/** Time "HH:MM" by the club's clock. */
 export function formatTime(isoMoment: string, timeZone: string): string {
   return new Intl.DateTimeFormat('ru-RU', {
     hour: '2-digit',
@@ -23,7 +23,7 @@ export function formatTime(isoMoment: string, timeZone: string): string {
   }).format(new Date(isoMoment))
 }
 
-/** «19 октября, 18:05» по часам клуба. */
+/** «19 октября, 18:05» by the club's clock. */
 export function formatDateTime(isoMoment: string, timeZone: string): string {
   return new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
@@ -34,24 +34,24 @@ export function formatDateTime(isoMoment: string, timeZone: string): string {
   }).format(new Date(isoMoment))
 }
 
-/** «18:00–21:00» или «18:00», если время окончания не указано. */
+/** "18:00–21:00", or "18:00" if the end time is not set. */
 export function formatTimeRange(startsAt: string, endsAt: string | null, timeZone: string): string {
   const start = formatTime(startsAt, timeZone)
   return endsAt ? `${start}–${formatTime(endsAt, timeZone)}` : start
 }
 
-/** Сегодняшняя дата по часам клуба: "2026-10-19". */
+/** Today's date by the club's clock: "2026-10-19". */
 export function todayIn(timeZone: string): string {
-  // Шведская локаль даёт как раз формат YYYY-MM-DD.
+  // The Swedish locale gives exactly the YYYY-MM-DD format.
   return new Intl.DateTimeFormat('sv-SE', { timeZone }).format(new Date())
 }
 
-/** Часовой пояс нового клуба по умолчанию — время Тюмени. */
+/** Default time zone of a new club: Tyumen time. */
 export const DEFAULT_TIME_ZONE = 'Asia/Yekaterinburg'
 
 /**
- * Часовые пояса IANA для выбора: «Asia/Yekaterinburg (GMT+5)».
- * Список — из браузера, сервер проверяет пояс по своей базе tzdata.
+ * IANA time zones to choose from: "Asia/Yekaterinburg (GMT+5)".
+ * The list comes from the browser; the server validates the zone against its tzdata.
  */
 export function timeZoneOptions(): { value: string; label: string }[] {
   const zones = Intl.supportedValuesOf('timeZone')

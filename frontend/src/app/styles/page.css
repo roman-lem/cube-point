@@ -1,5 +1,5 @@
-/* Общая раскладка страниц: колонка по центру (DESIGN.md, Layout).
-   Узкие формы добавляют .page--narrow. */
+/* Common page layout: a centered column.
+   Narrow forms add .page--narrow. */
 .page {
   display: flex;
   flex-direction: column;
@@ -14,7 +14,7 @@
   max-width: 560px;
 }
 
-/* Панель организатора: таблица ввода результатов на широком экране. */
+/* Organizer desk: the result entry table on a wide screen. */
 .page--wide {
   max-width: 1280px;
 }

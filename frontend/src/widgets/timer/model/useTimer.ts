@@ -10,24 +10,24 @@ import {
 } from './machine'
 
 export interface StoppedSolve {
-  /** Время сборки в сотых долях секунды. */
+  /** Solve time in hundredths of a second. */
   value: number
-  /** Штраф за инспекцию, участник может его сменить. */
+  /** Inspection penalty, the participant can change it. */
   penalty: SuggestedPenalty
 }
 
 const ACTIVE_PHASES = ['inspection', 'holding', 'ready', 'running'] as const
 
 /**
- * Таймер: связывает машину состояний с касаниями, пробелом и часами.
+ * Timer: connects the state machine with touches, the space bar and the clock.
  *
- * Время берётся из performance.now() в момент события. Касание начинается
- * на зоне таймера (onZonePointerDown), а во время сборки остановить таймер
- * можно касанием или любой клавишей где угодно.
+ * Time is taken from performance.now() at the event. A touch starts
+ * on the timer zone (onZonePointerDown), and during a solve the timer can be stopped
+ * by a touch or any key anywhere.
  */
 export function useTimer(options: {
   inspection: Ref<boolean>
-  /** Можно ли сейчас начать сборку (нет ручного ввода, скрамбл готов и т. п.). */
+  /** Whether a solve can start now (no manual entry, scramble ready, etc.). */
   enabled: Ref<boolean>
   onStop: (solve: StoppedSolve) => void
 }) {
@@ -45,8 +45,8 @@ export function useTimer(options: {
       options.onStop({ value: state.value.result, penalty: state.value.inspectionPenalty })
     }
     if (before !== 'holding' && state.value.phase === 'holding') {
-      // Переход holding → ready — по таймауту, а не по кадрам: они не приходят,
-      // пока вкладка не видна или браузер занят.
+      // The holding → ready transition is by timeout, not by frames: they do not come
+      // while the tab is hidden or the browser is busy.
       setTimeout(() => dispatch('tick'), HOLD_MS)
     }
     if (isActive.value) {
@@ -58,7 +58,7 @@ export function useTimer(options: {
     (ACTIVE_PHASES as readonly string[]).includes(state.value.phase),
   )
 
-  // Часы для отображения.
+  // Clock for display.
   const clock = useRafFn(
     () => {
       now.value = performance.now()
@@ -69,7 +69,7 @@ export function useTimer(options: {
     { immediate: false },
   )
 
-  /** Во время сборки остановка работает всегда; начать можно только когда разрешено. */
+  /** During a solve stopping always works; starting only when allowed. */
   function canPress() {
     return state.value.phase === 'running' || (options.enabled.value && !isDialogOpen())
   }
@@ -83,8 +83,8 @@ export function useTimer(options: {
   }
 
   useEventListener(window, 'pointerdown', (event: PointerEvent) => {
-    // Остановка касанием в любом месте экрана. Касание зоны таймера уже
-    // обработано в onZonePointerDown: там фаза стала stopped.
+    // Stopping with a touch anywhere on the screen. A touch on the timer zone has already
+    // been handled in onZonePointerDown: the phase became stopped there.
     if (state.value.phase === 'running') {
       event.preventDefault()
       dispatch('press')
@@ -94,7 +94,7 @@ export function useTimer(options: {
 
   useEventListener(window, 'keydown', (event: KeyboardEvent) => {
     if (state.value.phase === 'running') {
-      // Любая клавиша останавливает сборку.
+      // Any key stops the solve.
       event.preventDefault()
       dispatch('press')
       return
@@ -102,7 +102,7 @@ export function useTimer(options: {
     if (event.code !== 'Space' || isTyping(event) || !canPress()) {
       return
     }
-    // Пробел не должен нажимать кнопку в фокусе или прокручивать страницу.
+    // Space must not press the focused button or scroll the page.
     event.preventDefault()
     if (!event.repeat) {
       dispatch('press')
@@ -114,12 +114,12 @@ export function useTimer(options: {
     }
   })
 
-  /** Секунды инспекции для показа: 15 … 1, затем +2 и DNF. */
+  /** Inspection seconds for display: 15 … 1, then +2 and DNF. */
   const inspectionElapsed = computed(() =>
     state.value.inspectionStart === null ? null : now.value - state.value.inspectionStart,
   )
 
-  /** Текущее время сборки в сотых. */
+  /** Current solve time in hundredths. */
   const elapsed = computed(() =>
     state.value.phase === 'running' ? Math.floor((now.value - state.value.solveStart) / 10) : 0,
   )

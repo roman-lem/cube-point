@@ -3,13 +3,13 @@ import { useUserStore } from '@/entities/user'
 import { onConsentsRequired, onPasswordChangeRequired, onUnauthorized } from '@/shared/api'
 
 /**
- * Реакция на ошибки авторизации из любого запроса.
- * Живёт в app: shared/api не может знать про store пользователя и роутер.
+ * Reaction to authorization errors from any request.
+ * Lives in app: shared/api cannot know about the user store and the router.
  */
 export function setupAuthHandlers(router: Router) {
   const userStore = useUserStore()
 
-  // Сессия закончилась или отозвана (сменили пароль на другом устройстве).
+  // The session ended or was revoked (password changed on another device).
   onUnauthorized(() => {
     userStore.clear()
     const route = router.currentRoute.value

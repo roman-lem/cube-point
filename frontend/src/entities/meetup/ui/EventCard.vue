@@ -15,11 +15,11 @@ import {
 import { AppIcon } from '@/shared/ui'
 import type { MeetupEvent } from '../model/types'
 
-// Карточка дисциплины на странице встречи: статус и результат текущего
-// пользователя, лидер таблицы. Действие («Собрать», «Продолжить») — в слоте.
+// Event card on the meetup page: status and result of the current
+// user, the table leader. The action ("Solve", "Continue") goes in the slot.
 const { event, resultsTo } = defineProps<{
   event: MeetupEvent
-  /** Страница таблицы дисциплины. */
+  /** Event table page. */
   resultsTo: RouteLocationRaw
 }>()
 
@@ -33,7 +33,7 @@ function show(value: number | null, isAverage: boolean): string {
   return resultType.value === 'moves' && value !== null && value !== DNF ? `${text} ходов` : text
 }
 
-// Итог завершённой серии: среднее для ao5 и mo3, иначе лучшая попытка.
+// Result of a finished series: the average for ao5 and mo3, otherwise the best attempt.
 const myResult = computed(() => {
   const series = event.my_series
   if (series?.status !== 'completed') {

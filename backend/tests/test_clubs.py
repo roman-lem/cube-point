@@ -1,4 +1,4 @@
-"""Страница клуба и настройки организатора."""
+"""Club page and organizer settings."""
 
 import pytest
 
@@ -49,7 +49,7 @@ def test_organizer_updates_club(app, club_id):
         {"type": "vk", "url": "https://vk.com/tyumen_speedcubing"},
         {"type": "site", "url": "https://speedcubing-tmn.ru"},
     ]
-    # Ссылки заменяются целиком.
+    # Links are replaced as a whole.
     response = org.patch(f"/api/clubs/{club_id}", json=settings(links=[]))
     assert response.get_json()["club"]["links"] == []
 

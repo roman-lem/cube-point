@@ -6,8 +6,8 @@ import { joinMeetup } from '@/features/meetup-join'
 import { ApiError } from '@/shared/api'
 import { AppCard, PageHeader } from '@/shared/ui'
 
-// Переход по ссылке или QR-коду встречи. Гость сначала входит или регистрируется
-// (с баннером встречи), затем возвращается сюда, и заявка создаётся автоматически.
+// Following a meetup link or QR code. A guest first logs in or registers
+// (with the meetup banner), then comes back here and the request is created automatically.
 const { token } = defineProps<{ token: string }>()
 
 const router = useRouter()
@@ -16,7 +16,7 @@ const error = ref('')
 
 onMounted(async () => {
   if (!userStore.user) {
-    // Сначала вход; со страницы входа можно перейти на регистрацию (ссылка сохраняет join).
+    // Login first; the login page links to registration (the link keeps join).
     router.replace({
       name: 'login',
       query: { redirect: router.currentRoute.value.fullPath, join: token },

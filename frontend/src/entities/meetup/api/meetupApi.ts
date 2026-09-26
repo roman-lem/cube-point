@@ -15,17 +15,17 @@ export async function fetchJoinPreview(token: string) {
   return (await http.get<{ meetup: JoinPreview }>(path)).meetup
 }
 
-/** Идущие встречи, где текущий пользователь подтверждён, с его сериями. */
+/** Live meetups where the current user is approved, with their series. */
 export async function fetchActiveMeetups() {
   return (await http.get<{ meetups: ActiveMeetup[] }>('/api/me/active')).meetups
 }
 
-/** Панель встречи организатора: участники и таблицы ввода по дисциплинам. */
+/** Organizer's meetup desk: participants and entry tables per event. */
 export function fetchDesk(meetupId: number) {
   return http.get<MeetupDesk>(`/api/meetups/${meetupId}/desk`)
 }
 
-/** Скрамблы встречи для бланков. FMC сервер не отдаёт. */
+/** Meetup scrambles for score sheets. The server does not return FMC. */
 export async function fetchPrintScrambles(meetupId: number) {
   return (await http.get<{ events: PrintEvent[] }>(`/api/meetups/${meetupId}/scrambles`)).events
 }

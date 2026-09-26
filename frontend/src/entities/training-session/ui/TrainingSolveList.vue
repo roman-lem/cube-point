@@ -4,8 +4,8 @@ import { formatAttempt } from '@/shared/lib'
 import type { TrainingPenalty, TrainingSolve } from '../model/session'
 import TrainingSolveActions from './TrainingSolveActions.vue'
 
-// Сборки сессии, новые сверху, с правкой штрафа и удалением.
-// Сначала показываются последние VISIBLE, остальные — по кнопке.
+// Session solves, newest first, with penalty editing and deletion.
+// The last VISIBLE are shown first, the rest behind a button.
 const VISIBLE = 12
 
 const { solves } = defineProps<{ solves: TrainingSolve[] }>()

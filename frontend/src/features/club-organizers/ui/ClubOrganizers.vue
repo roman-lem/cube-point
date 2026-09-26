@@ -7,8 +7,8 @@ import { useFormErrors } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, AppInput, ConfirmDialog } from '@/shared/ui'
 import { addOrganizer, removeOrganizer } from '../api/organizersApi'
 
-// Организаторы клуба в администрировании: назначение по логину и снятие.
-// Снятый организатор остаётся в клубе участником, последнего снять нельзя.
+// Club organizers in administration: appointing by login and removing.
+// A removed organizer stays in the club as a member; the last one cannot be removed.
 const { club } = defineProps<{ club: AdminClub }>()
 const emit = defineEmits<{ changed: [club: AdminClub] }>()
 
@@ -192,7 +192,7 @@ async function remove() {
     flex: 1;
   }
 
-  /* Кнопка на одной линии с полем, а не с подписью над ним. */
+  /* The button is aligned with the field, not with the label above it. */
   .club-organizers__add > :last-child {
     margin-top: calc(var(--font-size-label) * 1.5 + var(--space-2));
   }

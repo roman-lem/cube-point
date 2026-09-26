@@ -1,8 +1,8 @@
 import { ATTEMPTS_COUNT, randomScramble, type SeriesFormat } from '@/shared/lib'
 
 /**
- * Скрамблы для дисциплин встречи: по одному на каждую попытку формата.
- * onProgress(готово, всего).
+ * Scrambles for the meetup events: one for each attempt of the format.
+ * onProgress(done, total).
  */
 export async function generateScrambles(
   events: { eventId: string; format: SeriesFormat }[],

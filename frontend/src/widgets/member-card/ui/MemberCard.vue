@@ -10,17 +10,17 @@ import { PasswordResetButton } from '@/features/password-reset'
 import { eventName, EVENTS, formatDate, plural } from '@/shared/lib'
 import { AppCard, AppIcon, AppSelect, SettingRow } from '@/shared/ui'
 
-// Карточка участника для организатора (макеты org_competitor_edit и правая панель
-// org_competitor_desk): встречи с результатами, «Доступ» и «Нарушения».
+// Member card for the organizer (on a wide screen, the right
+// panel): meetups with results, "Access" and "Violations".
 const { clubId, member, timeZone } = defineProps<{
   clubId: number
   member: ClubMemberCard
   timeZone: string
 }>()
 const emit = defineEmits<{
-  /** Сервер вернул обновлённую карточку. */
+  /** The server returned an updated card. */
   changed: [member: ClubMemberCard]
-  /** Изменилось то, чего нет в ответе (дисквалификация): карточку нужно перечитать. */
+  /** Something not in the response changed (disqualification): the card has to be reloaded. */
   reload: []
 }>()
 
@@ -43,7 +43,7 @@ const joined = computed(() =>
     .format(new Date(member.joined_at)),
 )
 
-// Дисквалификация на встрече: выбор встречи из тех, где участник собирал.
+// Disqualification at a meetup: choosing among the meetups where the member competed.
 const disqualifyMeetupId = ref('')
 watch(
   () => member.user.id,
@@ -60,7 +60,7 @@ const disqualifyMeetup = computed(
   () => member.meetups.find((m) => String(m.id) === disqualifyMeetupId.value) ?? null,
 )
 
-/** Главный результат серии: среднее для ao5/mo3, иначе лучшая попытка. */
+/** The main result of a series: the average for ao5/mo3, otherwise the best attempt. */
 function mainResult(result: MemberEventResult) {
   const isAverage = result.format === 'ao5' || result.format === 'mo3'
   return {

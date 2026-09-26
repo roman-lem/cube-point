@@ -10,8 +10,8 @@ import { AppButton, AppCard, AppIcon, PageHeader } from '@/shared/ui'
 import MeetupHistoryCard from './MeetupHistoryCard.vue'
 import PersonalRecordsTable from './PersonalRecordsTable.vue'
 
-// Публичный профиль участника (макет personal_records): PB по всем клубам и история
-// встреч с подгрузкой старых. Свой профиль — вкладка «Профиль», с кнопкой «Настройки».
+// A member's public profile: PB across all clubs and meetup history
+// with loading of older ones. One's own profile is the "Profile" tab, with a "Settings" button.
 const { userId } = defineProps<{ userId: number }>()
 
 const userStore = useUserStore()
@@ -48,7 +48,7 @@ async function loadMore() {
   moreError.value = ''
   try {
     const page = await fetchUserMeetups(userId, meetups.value.length)
-    // Если за это время прошла новая встреча, страницы сдвинулись: повторы отбрасываем.
+    // If a new meetup happened in the meantime, the pages shifted: drop duplicates.
     const known = new Set(meetups.value.map((m) => m.id))
     meetups.value.push(...page.meetups.filter((m) => !known.has(m.id)))
     hasMore.value = page.has_more

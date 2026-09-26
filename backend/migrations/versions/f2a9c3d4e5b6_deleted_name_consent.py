@@ -21,7 +21,7 @@ def consent_type(*values):
 
 
 def upgrade():
-    # Новое значение в CHECK-ограничении типа согласия: SQLite пересоздаёт таблицу.
+    # New value in the consent type CHECK constraint: SQLite recreates the table.
     with op.batch_alter_table('user_consents', schema=None) as batch_op:
         batch_op.alter_column(
             'type',
@@ -32,7 +32,7 @@ def upgrade():
 
 
 def downgrade():
-    # Без согласия имя удалённого аккаунта остаться не может.
+    # Without the consent, a deleted account cannot keep its name.
     op.execute(
         "UPDATE users SET display_name = 'Удалённый участник' WHERE id IN "
         "(SELECT user_id FROM user_consents WHERE type = 'deleted_name')"

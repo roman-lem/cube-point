@@ -20,7 +20,7 @@ export async function register(data: {
   return (await http.post<UserResponse>('/api/auth/register', body)).user
 }
 
-/** Открыта ли регистрация (закрывается переменной окружения REGISTRATION_OPEN). */
+/** Whether registration is open (closed by the REGISTRATION_OPEN environment variable). */
 export async function fetchRegistrationOpen() {
   return (await http.get<{ open: boolean }>('/api/auth/registration')).open
 }
@@ -34,7 +34,7 @@ export async function logout() {
   await http.post<void>('/api/auth/logout')
 }
 
-/** current_password не нужен, если пароль меняется принудительно (временный пароль). */
+/** current_password is not needed if the password change is forced (temporary password). */
 export async function changePassword(data: { current_password?: string; new_password: string }) {
   return (await http.post<UserResponse>('/api/auth/password', data)).user
 }

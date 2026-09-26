@@ -3,8 +3,8 @@ import { computed, ref, type Ref } from 'vue'
 import type { FmcAttemptState } from '@/entities/series'
 
 /**
- * Сколько миллисекунд осталось до дедлайна попытки по часам сервера.
- * Разницу часов считаем по server_now в момент получения состояния.
+ * Milliseconds left until the attempt deadline by the server clock.
+ * The clock difference is computed from server_now when the state is received.
  */
 export function useFmcClock(state: Ref<FmcAttemptState | null | undefined>) {
   const now = ref(Date.now())
@@ -21,7 +21,7 @@ export function useFmcClock(state: Ref<FmcAttemptState | null | undefined>) {
   return { remaining }
 }
 
-/** Оставшееся время: 47:12. */
+/** Remaining time: 47:12. */
 export function formatCountdown(ms: number): string {
   const seconds = Math.ceil(ms / 1000)
   const minutes = Math.floor(seconds / 60)

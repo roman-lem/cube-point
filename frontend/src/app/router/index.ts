@@ -31,29 +31,29 @@ import { installGuards } from './guards'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Только для вошедших: гостя отправляем на вход. */
+    /** Logged-in users only: a guest is sent to login. */
     requiresAuth?: boolean
-    /** Только для администратора: остальных отправляем на главную. */
+    /** Administrator only: others are sent to the home page. */
     requiresAdmin?: boolean
-    /** Только для гостей: вошедшего отправляем дальше (вход, регистрация). */
+    /** Guests only: a logged-in user is sent further (login, registration). */
     guestOnly?: boolean
-    /** Страница без навигации (печать). */
+    /** Page without navigation (printing). */
     bare?: boolean
-    /** Раскладка лендинга: своя шапка вместо вкладок приложения. */
+    /** Landing layout: its own header instead of the app tabs. */
     layout?: 'landing'
-    /** Какая вкладка навигации подсвечена. */
+    /** Which navigation tab is highlighted. */
     tab?: 'club' | 'timer' | 'records' | 'statistics' | 'profile' | 'members'
   }
 }
 
-/** Числовые параметры адреса как props страницы: /clubs/5 → { clubId: 5 }. */
+/** Numeric route params as page props: /clubs/5 → { clubId: 5 }. */
 const numberParams = (...names: string[]) => (route: RouteLocationNormalized) =>
   Object.fromEntries(names.map((name) => [name, Number(route.params[name])]))
 
-// Страницы без requiresAuth открыты всем, в том числе гостям.
+// Pages without requiresAuth are open to everyone, including guests.
 export const router = createRouter({
   history: createWebHistory(),
-  // Ссылки на разделы страницы (/privacy#processing) прокручивают к ним.
+  // Links to page sections (/privacy#processing) scroll to them.
   scrollBehavior(to, _from, savedPosition) {
     if (to.hash) {
       return { el: to.hash }
@@ -61,8 +61,8 @@ export const router = createRouter({
     return savedPosition ?? false
   },
   routes: [
-    // Корень сайта: вошедшего с клубом — в клуб его последней встречи,
-    // гостя и вошедшего без клуба — на лендинг.
+    // Site root: a logged-in user with a club goes to the club of their latest meetup,
+    // guests and users without a club get the landing.
     {
       path: '/',
       name: 'home',
@@ -102,7 +102,7 @@ export const router = createRouter({
       meta: { requiresAuth: true, tab: 'profile' },
     },
 
-    // Клуб
+    // Club
     {
       path: '/clubs/:clubId(\\d+)',
       name: 'club',
@@ -146,7 +146,7 @@ export const router = createRouter({
       meta: { requiresAuth: true, tab: 'members' },
     },
 
-    // Встречи
+    // Meetups
     {
       path: '/meetups/:meetupId(\\d+)',
       name: 'meetup',
@@ -184,7 +184,7 @@ export const router = createRouter({
     },
     { path: '/join/:token', name: 'join', component: JoinPage, props: true, meta: { tab: 'club' } },
 
-    // Публичный профиль участника. Свой подсвечивает вкладку «Профиль» (см. AppNavigation).
+    // Public member profile. One's own highlights the "Profile" tab (see AppNavigation).
     {
       path: '/users/:userId(\\d+)',
       name: 'user-profile',
@@ -193,7 +193,7 @@ export const router = createRouter({
       meta: { tab: 'members' },
     },
 
-    // Вкладки вошедшего пользователя
+    // Tabs of a logged-in user
     {
       path: '/timer',
       name: 'timer',
@@ -213,7 +213,7 @@ export const router = createRouter({
       component: StatisticsPage,
       meta: { requiresAuth: true, tab: 'statistics' },
     },
-    // Вкладка «Профиль» — свой публичный профиль (requiresAuth: пользователь уже загружен).
+    // The "Profile" tab is one's own public profile (requiresAuth: the user is already loaded).
     {
       path: '/profile',
       name: 'profile',
@@ -228,7 +228,7 @@ export const router = createRouter({
       meta: { requiresAuth: true, tab: 'profile' },
     },
 
-    // Администрирование (пункт во вкладке «Профиль»)
+    // Administration (an item in the "Profile" tab)
     {
       path: '/admin/clubs',
       name: 'admin-clubs',

@@ -4,8 +4,8 @@ import { useFormErrors } from '@/shared/lib'
 import { AppButton, AppInput } from '@/shared/ui'
 import type { AddedParticipant } from '../api/participantsApi'
 
-// Новый аккаунт с временным паролем: для встречи и для списка участников клуба.
-// Куда добавить человека, решает переданная функция create.
+// A new account with a temporary password: for a meetup and for the club member list.
+// Where to add the person is decided by the passed create function.
 const { create, submitLabel } = defineProps<{
   create: (displayName: string, login: string) => Promise<AddedParticipant>
   submitLabel: string

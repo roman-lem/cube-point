@@ -1,9 +1,9 @@
-"""Единый формат ошибок API.
+"""Uniform API error format.
 
     {"error": {"code": "validation_error", "message": "...", "fields": {"login": "..."}}}
 
-code — машинное имя для клиента, message — текст для показа,
-fields — ошибки под полями формы (только у validation_error).
+code is a machine-readable name for the client, message is the text to show,
+fields are errors under form fields (validation_error only).
 """
 
 from flask import jsonify
@@ -34,7 +34,7 @@ def error_response(error):
     return jsonify(error=body), error.status, error.headers
 
 
-# Ошибки HTTP, которые может вернуть сам Flask.
+# HTTP errors that Flask itself can return.
 HTTP_ERRORS = {
     400: ("bad_request", "Некорректный запрос"),
     401: ("unauthorized", "Нужно войти"),

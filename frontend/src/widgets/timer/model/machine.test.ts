@@ -14,8 +14,8 @@ function run(events: [TimerEvent['type'], number][], inspection = false): TimerS
   )
 }
 
-describe('таймер без инспекции', () => {
-  it('удержание, старт и остановка', () => {
+describe('timer without inspection', () => {
+  it('hold, start and stop', () => {
     const state = run([
       ['press', 0],
       ['tick', HOLD_MS],
@@ -27,15 +27,15 @@ describe('таймер без инспекции', () => {
     expect(state.inspectionPenalty).toBe('none')
   })
 
-  it('короткое нажатие не запускает таймер', () => {
+  it('a short press does not start the timer', () => {
     expect(run([['press', 0], ['tick', 100], ['release', 150]]).phase).toBe('idle')
   })
 
-  it('пока держат, таймер готов, но не идёт', () => {
+  it('while held, the timer is ready but not running', () => {
     expect(run([['press', 0], ['tick', HOLD_MS]]).phase).toBe('ready')
   })
 
-  it('после остановки нажатие начинает новую сборку', () => {
+  it('after stopping, a press starts a new solve', () => {
     const state = run([
       ['press', 0], ['tick', HOLD_MS], ['release', 400], ['press', 1400], ['release', 1500],
       ['press', 2000],
@@ -43,7 +43,7 @@ describe('таймер без инспекции', () => {
     expect(state.phase).toBe('holding')
   })
 
-  it('отпускание после остановки ничего не меняет', () => {
+  it('releasing after stopping changes nothing', () => {
     const state = run([
       ['press', 0], ['tick', HOLD_MS], ['release', 400], ['press', 1400], ['release', 1500],
     ])
@@ -52,7 +52,7 @@ describe('таймер без инспекции', () => {
   })
 })
 
-describe('инспекция', () => {
+describe('inspection', () => {
   const solveAfter = (inspectionMs: number) =>
     run(
       [
@@ -66,11 +66,11 @@ describe('инспекция', () => {
       true,
     )
 
-  it('первое нажатие начинает инспекцию, отпускание её не прерывает', () => {
+  it('the first press starts inspection, releasing does not interrupt it', () => {
     expect(run([['press', 0], ['release', 100]], true).phase).toBe('inspection')
   })
 
-  it('короткое нажатие во время инспекции возвращает в инспекцию', () => {
+  it('a short press during inspection returns to inspection', () => {
     const state = run([['press', 0], ['release', 100], ['press', 5000], ['release', 5100]], true)
     expect(state.phase).toBe('inspection')
     expect(state.inspectionStart).toBe(0)
@@ -82,7 +82,7 @@ describe('инспекция', () => {
     [15_001, 'plus2'],
     [17_000, 'plus2'],
     [17_001, 'dnf'],
-  ] as const)('старт через %i мс — штраф %s', (inspectionMs, penalty) => {
+  ] as const)('start after %i ms gives penalty %s', (inspectionMs, penalty) => {
     const state = solveAfter(inspectionMs)
     expect(state.phase).toBe('stopped')
     expect(state.result).toBe(100)

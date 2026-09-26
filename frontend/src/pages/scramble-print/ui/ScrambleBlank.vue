@@ -3,16 +3,16 @@ import { computed } from 'vue'
 import type { PrintEvent } from '@/entities/meetup'
 import { FORMAT_NAMES, eventName } from '@/shared/lib'
 
-// Бланк участника формата A5: все скрамблы встречи (кроме FMC) и поля под попытки.
-// Раскладка пока фиксированная. Если понадобится разметка бланка (логотип, свои блоки,
-// расположение скрамблов), её удобно передавать сюда отдельным объектом-макетом.
+// An A5 participant score sheet: all meetup scrambles (except FMC) and fields for attempts.
+// The layout is fixed for now. If a sheet layout is needed (logo, custom blocks,
+// scramble placement), it is convenient to pass it here as a separate layout object.
 const { title, subtitle, events } = defineProps<{
   title: string
   subtitle: string
   events: PrintEvent[]
 }>()
 
-// Чем больше строк, тем они ниже, чтобы все дисциплины влезли на A5.
+// The more rows, the lower they are, so that all events fit on A5.
 const rowHeight = computed(() => {
   const rows = events.reduce((sum, e) => sum + e.scrambles.length, 0)
   return rows <= 15 ? '8mm' : rows <= 20 ? '6.8mm' : '5.6mm'
@@ -46,7 +46,7 @@ const rowHeight = computed(() => {
 </template>
 
 <style scoped>
-/* Бланк печатается чёрным по белому: берём самый тёмный и самый светлый токены. */
+/* The sheet is printed black on white: take the darkest and the lightest tokens. */
 .scramble-blank {
   display: flex;
   flex-direction: column;

@@ -19,7 +19,7 @@ import { AppCard, LiveIndicator, PageHeader } from '@/shared/ui'
 
 const { meetupId, eventId } = defineProps<{ meetupId: number; eventId: string }>()
 
-// Пока встреча идёт, таблица обновляется сама.
+// While the meetup is live, the table refreshes itself.
 const REFRESH_MS = 5_000
 
 const clubStore = useCurrentClubStore()
@@ -34,7 +34,7 @@ async function load() {
     error.value = ''
     clubStore.setClubId(data.value.meetup.club.id)
   } catch (e) {
-    // При опросе ошибка связи не прячет уже показанную таблицу.
+    // A connection error during polling does not hide the table already shown.
     if (!data.value) {
       error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить результаты'
     }

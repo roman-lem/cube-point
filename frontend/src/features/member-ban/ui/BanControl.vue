@@ -6,9 +6,9 @@ import { formatDate, formatDateTime } from '@/shared/lib'
 import { AppButton, AppIcon, AppTextarea, ConfirmDialog, SettingRow } from '@/shared/ui'
 import { banMember, unbanMember } from '../api/banApi'
 
-// Блокировка в клубе с обязательной причиной и разблокировка. Блокировка действует
-// на будущее: прошлые результаты и рекорды остаются. На идущей встрече участник
-// сразу перестаёт сдавать попытки, уже сданные остаются.
+// Club ban with a required reason, and unbanning. A ban applies
+// to the future: past results and records stay. At a live meetup the participant
+// stops submitting attempts immediately; already submitted ones stay.
 const { clubId, member, timeZone } = defineProps<{
   clubId: number
   member: ClubMemberCard

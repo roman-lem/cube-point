@@ -12,7 +12,7 @@ const { fieldErrors, formError, clearErrors, showError } = useFormErrors()
 const form = ref({ current_password: '', new_password: '', new_password_repeat: '' })
 const loading = ref(false)
 
-// Вход по временному паролю: текущий пароль не спрашиваем.
+// Logged in with a temporary password: the current password is not asked.
 const forced = computed(() => userStore.user?.must_change_password ?? false)
 
 async function submit() {

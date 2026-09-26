@@ -5,8 +5,8 @@ import { UserRow } from '@/entities/user'
 import { plural } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
-// Список участников клуба (макет org_club_competitors): поиск, у организатора —
-// фильтры и переход к карточке участника, у остальных — к публичному профилю.
+// Club member list: search; organizers get
+// filters and go to the member card, others go to the public profile.
 const query = defineModel<string>('query', { required: true })
 const filter = defineModel<MemberFilter>('filter', { required: true })
 
@@ -15,7 +15,7 @@ const { clubId, members, canManage, filterCounts, selectedId } = defineProps<{
   members: ClubMemberSummary[]
   canManage: boolean
   filterCounts?: Record<MemberFilter, number>
-  /** Открытый участник — подсвечивается на широком экране. */
+  /** The open member is highlighted on a wide screen. */
   selectedId?: number
 }>()
 

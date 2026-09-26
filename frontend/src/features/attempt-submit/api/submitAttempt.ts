@@ -3,17 +3,17 @@ import { ApiError, http } from '@/shared/api'
 import type { Penalty } from '@/shared/lib'
 
 export interface AttemptResult {
-  /** Время без штрафа в сотых долях секунды; у DNF может не быть. */
+  /** Time without the penalty in hundredths of a second; DNF may have none. */
   value: number | null
   penalty: Exclude<Penalty, 'dns'>
 }
 
 /**
- * Сохраняет следующую попытку серии.
+ * Saves the next attempt of the series.
  *
- * Если серию успели изменить (другая вкладка, организатор) или попытка уже
- * сохранена, перечитывает серию и возвращает её с conflict: true —
- * тогда попытку можно сохранить заново поверх свежих данных.
+ * If the series has been changed (another tab, the organizer) or the attempt is already
+ * saved, reloads the series and returns it with conflict: true,
+ * so the attempt can be saved again on top of the fresh data.
  */
 export async function submitAttempt(
   series: MySeries,

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { DNF, formatResult } from '@/shared/lib'
 import type { SessionStats } from '../model/session'
 
-// Плитки статистики сессии: ao5, ao12, лучшая, число сборок (макет statistics).
+// Session statistics tiles: ao5, ao12, best, number of solves.
 const { stats } = defineProps<{ stats: SessionStats }>()
 
 const tiles = computed(() => [

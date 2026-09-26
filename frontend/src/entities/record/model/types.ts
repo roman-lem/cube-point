@@ -1,25 +1,25 @@
-/** Отметка рекорда у результата: личный рекорд или рекорд клуба. */
+/** Record mark on a result: personal best or club record. */
 export type RecordMark = 'PB' | 'LR'
 
 export type RecordType = 'single' | 'average'
 
-/** Встреча, на которой поставлен результат. Дата — уже в часовом поясе клуба. */
+/** The meetup where the result was set. The date is already in the club's time zone. */
 export interface RecordMeetup {
   id: number
   date: string
   club: { id: number; name: string }
 }
 
-/** Рекорд клуба (GET /api/clubs/<id>/records). */
+/** Club record (GET /api/clubs/<id>/records). */
 export interface ClubRecord {
   value: number
-  /** has_profile — false у удалённого аккаунта с сохранённым именем: имя без ссылки. */
+  /** has_profile is false for a deleted account that kept its name: the name has no link. */
   user: { id: number; display_name: string; has_profile: boolean }
   meetup: RecordMeetup
   achieved_at: string
 }
 
-/** Рекорды клуба в дисциплине; null — рекорда нет (у bo-форматов нет среднего). */
+/** Club records in an event; null means no record (bo formats have no average). */
 export interface ClubEventRecords {
   event_id: string
   single: ClubRecord | null

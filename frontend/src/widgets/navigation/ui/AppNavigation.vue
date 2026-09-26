@@ -7,8 +7,8 @@ import { useUserStore } from '@/entities/user'
 import { SITE_NAME } from '@/shared/config'
 import { AppIcon, LiveIndicator, type IconName } from '@/shared/ui'
 
-// Навигация строго по разделу «Навигация» в CLAUDE.md:
-// на мобильном — нижняя панель, на десктопе — верхняя.
+// Navigation as described in "Navigation" in docs/ARCHITECTURE.md:
+// a bottom bar on mobile, a top bar on desktop.
 const route = useRoute()
 const userStore = useUserStore()
 const clubStore = useCurrentClubStore()
@@ -25,7 +25,7 @@ interface NavItem {
 
 const items = computed<NavItem[]>(() => {
   const clubId = clubStore.clubId
-  // Пока клуб неизвестен, клубные вкладки ведут на главную: она сама выберет клуб.
+  // While the club is unknown, the club tabs lead home: it picks the club itself.
   const clubRoute = (name: string): RouteLocationRaw =>
     clubId ? { name, params: { clubId } } : { name: 'home' }
 
@@ -50,14 +50,14 @@ const items = computed<NavItem[]>(() => {
   ]
 })
 
-// Свой публичный профиль, открытый по ссылке из таблиц, — это тоже вкладка «Профиль».
+// One's own public profile opened via a link from tables is also the "Profile" tab.
 const activeTab = computed(() =>
   route.name === 'user-profile' && Number(route.params.userId) === userStore.user?.id
     ? 'profile'
     : route.meta.tab,
 )
 
-// «Войти» не нужна на самих страницах входа и регистрации.
+// "Log in" is not needed on the login and registration pages themselves.
 const showLogin = computed(
   () => !userStore.user && route.name !== 'login' && route.name !== 'register',
 )
@@ -94,7 +94,7 @@ const loginRoute = computed(() => ({ name: 'login', query: { redirect: route.ful
         Войти
       </RouterLink>
     </header>
-    <!-- Место под фиксированную панель, чтобы она не закрывала конец страницы. -->
+    <!-- Space for the fixed bar so it does not cover the end of the page. -->
     <div class="bottom-nav__spacer" aria-hidden="true" />
     <nav class="bottom-nav" aria-label="Основная навигация">
       <RouterLink

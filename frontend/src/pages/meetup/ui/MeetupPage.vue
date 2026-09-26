@@ -9,8 +9,8 @@ import { AppCard, AppIcon } from '@/shared/ui'
 
 const { meetupId } = defineProps<{ meetupId: number }>()
 
-// Пока заявка ждёт подтверждения или идёт встреча, страница сама обновляется:
-// статус заявки, результаты и лидеры в карточках.
+// While a request is pending or the meetup is live, the page refreshes itself:
+// request status, results and leaders in the cards.
 const REFRESH_MS = 15_000
 
 const clubStore = useCurrentClubStore()
@@ -37,8 +37,8 @@ useIntervalFn(() => {
   }
 }, REFRESH_MS)
 
-// Серию можно начать только подтверждённому участнику и только во время встречи
-// (сервер проверяет это же). Ожидающие видят кнопку, но она неактивна.
+// Only an approved participant can start a series, and only during the meetup
+// (the server checks the same). Pending users see the button, but it is disabled.
 const canSolve = computed(
   () => requestStatus.value === 'approved' && data.value?.meetup.status === 'live',
 )
@@ -46,8 +46,8 @@ const showSolveButton = computed(
   () => requestStatus.value === 'approved' || requestStatus.value === 'pending',
 )
 
-// «Собрать» открывает тренировку с кнопкой «Начать серию»,
-// «Продолжить» — сразу соревновательный режим. FMC — отдельный экран.
+// "Solve" opens training with a "Start series" button,
+// "Continue" goes straight to competition mode. FMC is a separate screen.
 function timerRoute(eventId: string, continueSeries: boolean) {
   if (EVENTS[eventId as EventId]?.resultType === 'moves') {
     return { name: 'fmc', params: { meetupId } }

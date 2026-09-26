@@ -14,25 +14,25 @@ import { AppCard, AppIcon } from '@/shared/ui'
 import { EditableResultsTable } from '@/widgets/results-table'
 import ParticipantList from './ParticipantList.vue'
 
-// Панель встречи организатора (макеты org_meetup и org_meetup_desk): статус,
-// запуск и завершение, QR-код и бланки, заявки, участники и ручной ввод.
-// На телефоне — список участников со ссылкой на ввод, на широком экране —
-// вкладки дисциплин с таблицей как в электронной таблице.
+// Organizer's meetup panel: status,
+// start and finish, QR code and score sheets, requests, participants and manual entry.
+// On a phone, a participant list with links to entry; on a wide screen,
+// event tabs with a spreadsheet-like table.
 const { meetup } = defineProps<{ meetup: Meetup }>()
 const emit = defineEmits<{
-  /** Встреча изменилась (запуск, завершение, новая ссылка) — новые данные. */
+  /** The meetup changed (start, finish, new link): new data. */
   update: [meetup: Meetup]
-  /** Изменились участники: нужно перечитать встречу (число участников). */
+  /** Participants changed: the meetup has to be reloaded (participant count). */
   refresh: []
 }>()
 
-// Участники сдают попытки прямо сейчас — таблица сама обновляется.
+// Participants are submitting attempts right now, so the table refreshes itself.
 const REFRESH_MS = 15_000
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 const desk = ref<MeetupDesk | null>(null)
 const error = ref('')
-/** Вкладка на широком экране: идентификатор дисциплины или список участников. */
+/** Tab on a wide screen: an event ID or the participant list. */
 const tab = ref<string>('participants')
 
 const startTime = computed(() => formatTime(meetup.starts_at, meetup.club.timezone))

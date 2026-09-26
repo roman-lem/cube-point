@@ -1,8 +1,8 @@
-"""Серии и попытки участника, таблица результатов дисциплины.
+"""A participant's series and attempts, the event result table.
 
-Адреса: /api/meetups/<id>/events/<event_id>/…, /api/series/<id>/attempts,
-/api/me/active, /api/me/series. Правила — в разделах «Встречи», «Дисциплины и форматы»
-и «Одновременная запись» CLAUDE.md.
+Routes: /api/meetups/<id>/events/<event_id>/…, /api/series/<id>/attempts,
+/api/me/active, /api/me/series. Rules: "Meetups", "Events and formats"
+and "Concurrent edits" in docs/ARCHITECTURE.md.
 """
 
 from flask import Blueprint
@@ -26,9 +26,9 @@ from .scoring import VersionConflict, event_table, save_attempt, serialize_attem
 
 series_bp = Blueprint("series", __name__)
 
-# Меньше часа в сотых долях секунды.
+# Less than an hour in hundredths of a second.
 MAX_VALUE = 360_000
-# DNS участник не ставит: его ставит завершение встречи или организатор.
+# A participant does not set DNS: it comes from meetup finish or the organizer.
 PARTICIPANT_PENALTIES = {p.value for p in (Penalty.NONE, Penalty.PLUS2, Penalty.DNF)}
 
 
@@ -61,7 +61,7 @@ def fmc_deadline(fmc_attempt):
 
 
 def serialize_fmc(fmc_attempt):
-    """Состояние начатой попытки FMC. server_now — чтобы клиент поправил свои часы."""
+    """State of a started FMC attempt. server_now lets the client correct its clock."""
     return {
         "started_at": iso_utc(fmc_attempt.started_at),
         "deadline": iso_utc(fmc_deadline(fmc_attempt)),
@@ -77,10 +77,10 @@ def find_fmc_attempt(series, number):
 
 
 def serialize_my_series(series):
-    """Серия для её владельца: скрамбл только у следующей попытки.
+    """Series for its owner: only the next attempt has a scramble.
 
-    В FMC скрамбл есть только после старта попытки, а next_attempt.fmc —
-    состояние начатой попытки (None, пока она не начата).
+    In FMC the scramble exists only after the attempt starts, and next_attempt.fmc
+    is the state of the started attempt (None until it is started).
     """
     meetup_event = series.meetup_event
     next_attempt = None
@@ -115,7 +115,7 @@ def find_series(meetup_event, user_id):
     ))
 
 
-# Серия участника
+# Participant's series
 
 @series_bp.post("/meetups/<int:meetup_id>/events/<event_id>/series")
 @login_required
@@ -141,7 +141,7 @@ def start_series(meetup_id, event_id):
     try:
         db.session.commit()
     except IntegrityError:
-        # Серию успел создать параллельный запрос (двойное нажатие).
+        # A concurrent request has already created the series (double tap).
         db.session.rollback()
         raise ApiError(409, "series_exists", "Серия в этой дисциплине уже начата")
     return {"series": serialize_my_series(series)}, 201
@@ -172,7 +172,7 @@ def submit_attempt(series_id):
 
     data = json_body()
     number, value, penalty, version = parse_attempt(data)
-    # Попытки строго по порядку. Сохранённую попытку участник не меняет.
+    # Attempts strictly in order. A participant does not change a saved attempt.
     if number != len(series.attempts) + 1:
         raise ApiError(
             409, "wrong_attempt_number", "Эта попытка уже сохранена или ещё не началась",
@@ -192,7 +192,7 @@ def submit_attempt(series_id):
 
 
 def parse_attempt(data):
-    """Номер, время, штраф и версия из запроса участника. Ошибка — 422 без полей формы."""
+    """Number, time, penalty and version from the participant's request. Error: 422 without form fields."""
     number = data.get("attempt_number")
     version = data.get("version")
     if not is_int(number) or not is_int(version):
@@ -202,9 +202,9 @@ def parse_attempt(data):
 
 
 def parse_value(data, penalties, max_value=MAX_VALUE):
-    """Значение и штраф попытки из запроса: время (или ходы) меньше max_value.
+    """Value and penalty of an attempt from the request: time (or moves) below max_value.
 
-    При DNF и DNS значение необязательно: время сохранится, если штраф снимут.
+    For DNF and DNS the value is optional: the time is kept in case the penalty is removed.
     """
     value = data.get("value")
     penalty = get_str(data, "penalty")
@@ -218,11 +218,11 @@ def parse_value(data, penalties, max_value=MAX_VALUE):
     return value, penalty
 
 
-# Таблица дисциплины
+# Event table
 
 @series_bp.get("/meetups/<int:meetup_id>/events/<event_id>/results")
 def event_results(meetup_id, event_id):
-    """Таблица результатов дисциплины. Открыта всем, в том числе гостям."""
+    """Event result table. Open to everyone, including guests."""
     meetup = get_meetup(meetup_id)
     meetup_event = get_meetup_event(meetup, event_id)
     count = ATTEMPTS_COUNT[meetup_event.format.value]
@@ -256,14 +256,14 @@ def event_results(meetup_id, event_id):
     }
 
 
-# Активные встречи текущего пользователя
+# Current user's active meetups
 
 @series_bp.get("/me/active")
 @login_required
 def my_active_meetups():
-    """Идущие встречи, где пользователь подтверждён, и его серии в дисциплинах.
+    """Live meetups where the user is approved, and their series in each event.
 
-    Нужны таймеру, чтобы предложить «Начать серию» или «Продолжить».
+    Used by the timer to offer "Start series" or "Continue".
     """
     meetups = db.session.scalars(
         db.select(Meetup)
@@ -314,9 +314,9 @@ def my_active_meetups():
 @series_bp.get("/me/series")
 @login_required
 def my_live_series():
-    """Серии пользователя на идущих встречах, сгруппированные по встречам.
+    """The user's series at live meetups, grouped by meetup.
 
-    Нужны вкладке «Статистика»: серии в процессе и завершённые.
+    Used by the "Statistics" tab: series in progress and finished ones.
     """
     rows = db.session.scalars(
         db.select(Series)

@@ -1,4 +1,4 @@
-"""Разбор JSON-запросов и сбор ошибок полей (формат — в errors.py)."""
+"""Parsing JSON requests and collecting field errors (format in errors.py)."""
 
 from flask import request
 
@@ -11,13 +11,13 @@ def json_body():
 
 
 def get_str(data, key):
-    """Строковое поле из JSON; всё остальное считается пустой строкой."""
+    """String field from JSON; anything else counts as an empty string."""
     value = data.get(key)
     return value if isinstance(value, str) else ""
 
 
 def is_int(value):
-    # bool — подкласс int в Python, его отсекаем явно.
+    # bool is a subclass of int in Python, so it is excluded explicitly.
     return isinstance(value, int) and not isinstance(value, bool)
 
 
@@ -27,7 +27,7 @@ def get_list(data, key):
 
 
 def collapse_spaces(text):
-    """Убирает пробелы по краям и повторные пробелы между словами."""
+    """Strips spaces at the edges and repeated spaces between words."""
     return " ".join(text.split())
 
 

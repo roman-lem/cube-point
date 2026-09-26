@@ -10,8 +10,8 @@ import { ApiError } from '@/shared/api'
 import { ATTEMPTS_COUNT, EVENTS, FORMAT_NAMES, eventName, type EventId } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
 
-// Ручной ввод и правка результатов участника организатором (макет org_series_edit).
-// Кнопок «Сохранить» нет: каждое поле сохраняется само.
+// Manual entry and editing of a participant's results by the organizer.
+// There are no "Save" buttons: each field saves itself.
 const { meetupId, userId } = defineProps<{ meetupId: number; userId: number }>()
 
 const page = ref<MeetupPageData | null>(null)
@@ -67,7 +67,7 @@ const saving = useAttemptSaving({
   onEvent: replaceEvent,
 })
 
-/** Номер попытки, история которой открыта. */
+/** Number of the attempt whose history is open. */
 const historyNumber = ref<number | null>(null)
 const historyOpen = ref(false)
 

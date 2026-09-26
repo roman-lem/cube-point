@@ -6,14 +6,14 @@ import { saveFmcDraft } from '../api/fmcApi'
 
 export type DraftStatus = 'saved' | 'saving' | 'unsaved'
 
-// Черновик уходит на сервер через секунду после изменения, при сворачивании
-// вкладки — сразу. При ошибке сети повторяем, пока решение не сохранится.
+// The draft goes to the server a second after a change, and immediately when
+// the tab is hidden. On a network error it retries until the solution is saved.
 const DEBOUNCE_MS = 1000
 const RETRY_MS = 3000
 
 /**
- * Автосохранение черновика решения FMC, пока enabled (попытка идёт и не заморожена).
- * saved — текст, который уже есть на сервере.
+ * Autosave of the FMC solution draft while enabled (the attempt is running and not frozen).
+ * saved is the text already on the server.
  */
 export function useDraftAutosave(
   series: Ref<MySeries | null>,
@@ -33,7 +33,7 @@ export function useDraftAutosave(
   async function save() {
     clearTimeout(timer)
     if (inFlight) {
-      // Дождёмся текущего запроса и отправим свежий текст следом.
+      // Wait for the current request and send the fresh text right after it.
       await inFlight
     }
     const text = solution.value
@@ -53,7 +53,7 @@ export function useDraftAutosave(
       })
       .catch((e) => {
         status.value = 'unsaved'
-        // time_over, frozen и прочие отказы сервера повторять бессмысленно.
+        // time_over, frozen and other server rejections are pointless to retry.
         if (e instanceof ApiError && e.code === 'network_error') schedule(RETRY_MS)
       })
       .finally(() => {
@@ -69,7 +69,7 @@ export function useDraftAutosave(
     }
   })
 
-  /** Когда сервер прислал новое состояние попытки (старт, возврат к решению). */
+  /** When the server sent a new attempt state (start, back to solution). */
   function reset(text: string) {
     clearTimeout(timer)
     saved.value = text
@@ -79,7 +79,7 @@ export function useDraftAutosave(
   useEventListener(document, 'visibilitychange', () => {
     if (document.visibilityState === 'hidden') save()
   })
-  // Уходя с экрана, не теряем последние ходы.
+  // Do not lose the last moves when leaving the screen.
   onBeforeUnmount(save)
 
   return { status, flush: save, reset }

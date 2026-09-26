@@ -5,14 +5,14 @@ import AppIcon from './AppIcon.vue'
 const { backTo } = defineProps<{
   title: string
   subtitle?: string
-  /** Куда ведёт стрелка «назад», если в истории нет предыдущей страницы. Без него стрелки нет. */
+  /** Where the "back" arrow leads if there is no previous page in the history. Without it there is no arrow. */
   backTo?: RouteLocationRaw
 }>()
 
 const router = useRouter()
 
 function goBack() {
-  // Внутри приложения — обычный шаг назад, иначе (открыли по ссылке) — на backTo.
+  // Inside the app it is a regular step back, otherwise (opened by a link) it goes to backTo.
   if (window.history.state?.back) {
     router.back()
   } else if (backTo) {

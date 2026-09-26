@@ -1,8 +1,8 @@
-"""Ограничение попыток входа: не больше MAX_FAILURES неудач на логин за WINDOW.
+"""Login throttling: at most MAX_FAILURES failures per login within WINDOW.
 
-Считаем только по логину: так проще, а для клубного сервиса этого достаточно.
-Неудачи по несуществующим логинам тоже записываются, чтобы ответ
-не выдавал, есть ли такой логин.
+Counted by login only: simpler, and enough for a club service.
+Failures for non-existent logins are recorded too, so the response
+does not reveal whether the login exists.
 """
 
 import math
@@ -16,7 +16,7 @@ MAX_FAILURES = 5
 
 
 def seconds_until_unblocked(login):
-    """Сколько секунд ждать до следующей попытки, None — вход не заблокирован."""
+    """Seconds to wait until the next attempt, None if login is not blocked."""
     now = utcnow()
     failures = db.session.scalars(
         db.select(LoginFailure.created_at)
@@ -25,7 +25,7 @@ def seconds_until_unblocked(login):
     ).all()
     if len(failures) < MAX_FAILURES:
         return None
-    # Вход откроется, когда из окна выйдет столько неудач, что их станет меньше лимита.
+    # Login opens once enough failures leave the window to get below the limit.
     unblocked_at = failures[-MAX_FAILURES] + WINDOW
     return max(1, math.ceil((unblocked_at - now).total_seconds()))
 
@@ -33,7 +33,7 @@ def seconds_until_unblocked(login):
 def record_failure(login):
     now = utcnow()
     db.session.add(LoginFailure(login=login, created_at=now))
-    # Заодно убираем записи, которые уже не влияют на блокировку.
+    # Also remove records that no longer affect the block.
     db.session.execute(db.delete(LoginFailure).where(LoginFailure.created_at <= now - WINDOW))
     db.session.commit()
 

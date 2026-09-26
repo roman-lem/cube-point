@@ -1,6 +1,6 @@
 type Forms = [one: string, few: string, many: string]
 
-/** Форма слова для числа: pluralForm(14, ['участник', 'участника', 'участников']) → «участников». */
+/** Word form for a number: pluralForm(14, ['участник', 'участника', 'участников']) → «участников». */
 export function pluralForm(count: number, forms: Forms): string {
   const mod10 = count % 10
   const mod100 = count % 100
@@ -14,7 +14,7 @@ export function pluralForm(count: number, forms: Forms): string {
 }
 
 /**
- * Число со словом в нужной форме: plural(14, ['участник', 'участника', 'участников'])
+ * Number with the word in the right form: plural(14, ['участник', 'участника', 'участников'])
  * → «14 участников».
  */
 export function plural(count: number, forms: Forms): string {

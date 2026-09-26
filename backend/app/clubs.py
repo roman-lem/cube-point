@@ -1,4 +1,4 @@
-"""Клубы: публичная страница и настройки организатора. Адреса /api/clubs/…"""
+"""Clubs: public page and organizer settings. Routes /api/clubs/…"""
 
 from urllib.parse import urlsplit
 
@@ -30,17 +30,17 @@ def serialize_club(club):
 
 @clubs.get("")
 def list_clubs():
-    """Все клубы, сначала с самыми недавними встречами (лендинг и страница клубов)."""
+    """All clubs, those with the most recent meetups first (landing and clubs page)."""
     live = dict(db.session.execute(
         db.select(Meetup.club_id, Meetup.id).where(Meetup.status == MeetupStatus.LIVE)
     ).all())
-    # Участники — без заблокированных, как в публичном списке участников клуба.
+    # Members exclude banned ones, as in the public club member list.
     member_counts = dict(db.session.execute(
         db.select(ClubMember.club_id, db.func.count())
         .where(ClubMember.banned_at.is_(None))
         .group_by(ClubMember.club_id)
     ).all())
-    # Встречи — только начатые и завершённые, запланированные не считаются.
+    # Only started and finished meetups count, planned ones do not.
     meetup_stats = {
         club_id: (count, last_date)
         for club_id, count, last_date in db.session.execute(
@@ -62,11 +62,11 @@ def list_clubs():
             "live_meetup_id": live.get(club.id),
             "member_count": member_counts.get(club.id, 0),
             "meetup_count": meetup_count,
-            # Дата встречи уже в часовом поясе клуба.
+            # The meetup date is already in the club's time zone.
             "last_meetup_date": last_date.isoformat() if last_date else None,
         })
-    # Сначала свежие встречи, клубы без встреч — в конце; при равенстве — по названию
-    # (сортировка устойчивая, а исходный список уже по названию).
+    # Recent meetups first, clubs without meetups last; ties by name
+    # (the sort is stable and the source list is already sorted by name).
     result.sort(key=lambda c: c["last_meetup_date"] or "", reverse=True)
     return {"clubs": result}
 
@@ -102,7 +102,7 @@ def update_club(club_id):
     club.city = city
     club.description = description or None
     club.logo_color = logo_color
-    # Ссылки заменяются целиком, порядок — как в запросе.
+    # Links are replaced as a whole, in the order of the request.
     club.links = [
         ClubLink(type=link_type, url=url, position=position)
         for position, (link_type, url) in enumerate(links)
@@ -120,7 +120,7 @@ def text_error(value, max_length, empty_message):
 
 
 def parse_links(items):
-    """Список (тип, url) и ошибки полей вида links.2.url."""
+    """List of (type, url) and field errors like links.2.url."""
     links, errors = [], {}
     if len(items) > MAX_LINKS:
         errors["links"] = f"Не больше {MAX_LINKS} ссылок"
@@ -139,7 +139,7 @@ def parse_links(items):
 
 
 def normalize_url(url):
-    """Ссылка с https:// (если схема не указана) или None, если это не ссылка на сайт."""
+    """URL with https:// (if no scheme is given), or None if it is not a website link."""
     url = url.strip()
     if "://" not in url:
         url = "https://" + url

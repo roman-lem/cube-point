@@ -10,7 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-// Вошли по временному паролю: пока его не сменить, в приложение не пускаем.
+// Logged in with a temporary password: the app is closed until it is changed.
 const forced = computed(() => userStore.user?.must_change_password ?? false)
 
 function onSuccess() {

@@ -1,4 +1,4 @@
-"""Панель организатора: ручной ввод и правка, участники, дисквалификация, завершение."""
+"""Organizer desk: manual entry and edits, participants, disqualification, finishing."""
 
 from datetime import timedelta
 
@@ -9,7 +9,7 @@ from app.extensions import db
 from app.models import Attempt, FmcAttempt, MeetupParticipant, RecordType, User
 
 from .helpers import MEMBER, create_user, error
-from .test_series import (  # noqa: F401 — фикстуры
+from .test_series import (  # noqa: F401 — fixtures
     clients, meetup_id, org, records, results, solve, start, submit, user_id_of, world,
 )
 
@@ -27,7 +27,7 @@ def put(client, meetup_id, user_id, number, value, penalty="none", version=None,
 
 def desk_row(response, user_id):
     body = response.get_json()
-    # При ошибке свежие данные дисциплины — внутри "error".
+    # On error, fresh event data is inside "error".
     rows = (body.get("event") or body["error"]["event"])["rows"]
     return next(row for row in rows if row["user"]["id"] == user_id)
 
@@ -41,7 +41,7 @@ def saved_attempt(world, series_id, number):
         return attempt
 
 
-# Правка и ручной ввод
+# Edits and manual entry
 
 def test_edit_keeps_submitted_at(world, org, clients, meetup_id):
     series = solve(clients["anna"], meetup_id, [1000, 1100])
@@ -93,7 +93,7 @@ def test_organizer_starts_series_for_participant(world, org, meetup_id):
     assert response.status_code == 200, response.get_json()
     series = desk_row(response, boris)["series"]
     assert series["attempts"][0] == {"value": 1234, "penalty": "none"}
-    # Следующая попытка — уже с версией серии.
+    # The next attempt already comes with the series version.
     response = put(org, meetup_id, boris, 2, None, "dns", series["version"])
     assert response.status_code == 200
     assert desk_row(response, boris)["series"]["attempts"][1]["penalty"] == "dns"
@@ -151,7 +151,7 @@ def remove(client, meetup_id, user_id, number, version, event_id="333"):
 
 
 def enter(org, meetup_id, user_id, values):
-    """Серия, целиком введённая организатором. Возвращает серию из таблицы ввода."""
+    """A series entered entirely by the organizer. Returns the series from the entry table."""
     series = None
     for number, value in enumerate(values, 1):
         response = put(org, meetup_id, user_id, number, value, version=series and series["version"])
@@ -172,7 +172,7 @@ def test_remove_last_attempt(world, org, clients, meetup_id):
     assert row["attempts"][4] is None
     assert row["average"] is None
     assert saved_attempt(world, series["id"], 1).submitted_at == first.submitted_at
-    # Стёртую попытку можно ввести заново.
+    # An erased attempt can be entered again.
     assert put(org, meetup_id, boris, 5, 1200, version=row["version"]).status_code == 200
 
 
@@ -182,7 +182,7 @@ def test_participant_attempt_cannot_be_removed(world, org, clients, meetup_id):
 
     response = remove(org, meetup_id, anna, 2, series["version"])
     assert error(response)["code"] == "participant_attempt"
-    # Исправленную организатором попытку участника тоже нельзя стереть.
+    # A participant's attempt corrected by the organizer cannot be erased either.
     series = desk_row(put(org, meetup_id, anna, 2, 1200, version=series["version"]), anna)["series"]
     response = remove(org, meetup_id, anna, 2, series["version"])
     assert error(response)["code"] == "participant_attempt"
@@ -206,7 +206,7 @@ def test_remove_single_attempt_deletes_series(world, org, clients, meetup_id):
     assert desk_row(response, boris)["series"] is None
     assert results(org, meetup_id) == []
     assert records(world) == {}
-    # При завершении встречи такой человек не получит DNS.
+    # On meetup finish this person will not get DNS.
     assert summary(org, meetup_id)["dns_count"] == 0
 
 
@@ -217,7 +217,7 @@ def test_remove_with_stale_version(world, org, clients, meetup_id):
     assert error(response)["code"] == "version_conflict"
 
 
-# Завершение встречи
+# Finishing a meetup
 
 def finish(org, meetup_id):
     return org.post(f"/api/meetups/{meetup_id}/finish")
@@ -249,9 +249,9 @@ def test_finish_turns_missing_attempts_into_dns(world, org, clients, meetup_id):
     assert anna["status"] == "completed"
     assert [a["penalty"] for a in anna["attempts"]] == ["none", "none", "dns", "dns", "dns"]
     assert anna["average"] == -1
-    # Не начатые серии не создаются.
+    # Series that were not started are not created.
     assert results(org, meetup_id, "222") == []
-    # Ссылка на встречу больше не работает.
+    # The meetup link no longer works.
     assert clients["pending"].get(f"/api/join/{join_token}").status_code == 404
 
 
@@ -355,7 +355,7 @@ def test_running_fmc_can_only_be_dnf(world, org, clients, meetup_id):
     assert summary(org, meetup_id)["fmc"] == []
 
 
-# Дисквалификация
+# Disqualification
 
 def disqualify(org, meetup_id, user_id, reason="Сборка не по скрамблу"):
     return org.put(
@@ -390,7 +390,7 @@ def test_disqualification_needs_reason(world, org, meetup_id):
     assert error(response)["fields"] == {"reason": "Укажите причину"}
 
 
-# Участники
+# Participants
 
 def test_add_club_member(world, org, meetup_id):
     create_user(world["app"], "vera", MEMBER, world["club_id"])
@@ -444,7 +444,7 @@ def test_banned_member_cannot_be_added(world, org, meetup_id):
     assert error(response)["code"] == "banned"
 
 
-# Скрамблы для печати
+# Scrambles for printing
 
 def test_print_scrambles_skip_fmc(org, meetup_id):
     events = org.get(f"/api/meetups/{meetup_id}/scrambles").get_json()["events"]
@@ -452,7 +452,7 @@ def test_print_scrambles_skip_fmc(org, meetup_id):
     assert len(events[0]["scrambles"]) == 5
 
 
-# Права
+# Permissions
 
 def organizer_requests(meetup_id, user_id):
     base = f"/api/meetups/{meetup_id}"
@@ -479,6 +479,6 @@ def test_only_organizer_has_access(world, clients, meetup_id):
         assert getattr(guest, method)(url, **kwargs).status_code == 401, url
         assert getattr(clients["anna"], method)(url, **kwargs).status_code == 403, url
 
-    # Ничего не изменилось.
+    # Nothing has changed.
     assert results(clients["anna"], meetup_id) == []
 

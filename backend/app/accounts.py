@@ -1,7 +1,7 @@
-"""Аккаунты: создание и сброс пароля организатором, удаление аккаунта.
+"""Accounts: creation and password reset by an organizer, account deletion.
 
-Временный пароль показывается один раз и больше нигде не хранится,
-при входе с ним нужно сменить пароль (must_change_password).
+A temporary password is shown once and is not stored anywhere else;
+after logging in with it the user must change it (must_change_password).
 """
 
 import secrets
@@ -18,12 +18,12 @@ from .models import (
     User, UserConsent, utcnow,
 )
 
-# Причина дисквалификации удалённого участника: текст организатора мог
-# содержать что-то личное, а сама дисквалификация должна остаться.
+# Disqualification reason for a deleted user: the organizer's text might
+# contain something personal, while the disqualification itself must stay.
 DELETED_REASON = "Причина удалена вместе с аккаунтом"
 from .permissions import is_last_organizer
 
-# Без похожих символов (0/O, 1/l/I), чтобы пароль легко было продиктовать.
+# No look-alike characters (0/O, 1/l/I), so the password is easy to dictate.
 PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 PASSWORD_LENGTH = 10
 
@@ -33,7 +33,7 @@ def temporary_password():
 
 
 def create_account(data):
-    """Новый аккаунт из {"display_name", "login"}: (пользователь, временный пароль)."""
+    """New account from {"display_name", "login"}: (user, temporary password)."""
     display_name = collapse_spaces(get_str(data, "display_name"))
     login = normalize_login(get_str(data, "login"))
     raise_if_errors({"display_name": name_error(display_name), "login": login_error(login)})
@@ -54,7 +54,7 @@ def create_account(data):
 
 
 def reset_password(user):
-    """Временный пароль вместо текущего. Все сессии пользователя перестают действовать."""
+    """Replaces the password with a temporary one. All of the user's sessions stop working."""
     password = temporary_password()
     user.password_hash = generate_password_hash(password)
     user.must_change_password = True
@@ -63,7 +63,7 @@ def reset_password(user):
 
 
 def delete_restriction(user):
-    """Почему нельзя удалить аккаунт, или None: последний организатор клуба."""
+    """Why the account cannot be deleted, or None: the last organizer of a club."""
     clubs = db.session.scalars(
         db.select(Club).join(ClubMember)
         .where(ClubMember.user_id == user.id, ClubMember.role == ClubRole.ORGANIZER)
@@ -76,7 +76,7 @@ def delete_restriction(user):
 
 
 def publication_version(user):
-    """Версия последнего согласия на распространение или None, если его не давали."""
+    """Version of the latest publication consent, or None if it was never given."""
     return db.session.scalar(
         db.select(UserConsent.version)
         .where(UserConsent.user_id == user.id, UserConsent.type == ConsentType.PUBLICATION)
@@ -86,18 +86,18 @@ def publication_version(user):
 
 
 def delete_account(user, keep_name=False):
-    """Удаление аккаунта: персональные данные уничтожаются, результаты остаются.
+    """Account deletion: personal data is destroyed, results stay.
 
-    Строка users остаётся, на неё ссылаются серии и рекорды: логин, почта,
-    хеш пароля и согласия удаляются, имя заменяется на DELETED_USER_NAME.
-    С keep_name имя остаётся в результатах и рекордах: вместо согласий
-    остаётся одна запись DELETED_NAME с версией последнего согласия на
-    распространение (данное согласие не отзывается), проверка — в
-    auth.delete_own_account. Публичного профиля у такого аккаунта нет (User.has_profile).
-    Человек выходит из всех клубов (вместе с членством удаляется причина
-    блокировки), причины дисквалификаций стираются, а сами дисквалификации
-    остаются, чтобы аннулированные результаты не вернулись в таблицы.
-    Все сессии перестают действовать.
+    The users row stays because series and records reference it: login, email,
+    password hash and consents are deleted, the name becomes DELETED_USER_NAME.
+    With keep_name the name stays in results and records: instead of the consents
+    a single DELETED_NAME entry remains with the version of the latest
+    publication consent (that consent is not withdrawn); the check is in
+    auth.delete_own_account. Such an account has no public profile (User.has_profile).
+    The user leaves all clubs (the ban reason goes away together with
+    the membership), disqualification reasons are erased, but the disqualifications
+    themselves stay so the annulled results do not come back to the tables.
+    All sessions stop working.
     """
     version = publication_version(user) if keep_name else None
     if keep_name and version is None:

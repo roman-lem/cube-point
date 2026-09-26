@@ -5,12 +5,12 @@ import { DisqualificationControl } from '@/features/disqualification'
 import { ATTEMPTS_COUNT, eventName } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
-// Участники встречи с компактным статусом по дисциплинам (макет org_meetup):
-// «3x3 ✓ · 2x2 3/5 · OH —». Нажатие — ручной ввод результатов участника.
+// Meetup participants with a compact status per event:
+// "3x3 ✓ · 2x2 3/5 · OH —". Tapping opens manual entry of the participant's results.
 const { meetupId, desk, editable } = defineProps<{
   meetupId: number
   desk: MeetupDesk
-  /** Можно вводить результаты (встреча запущена). */
+  /** Results can be entered (the meetup has started). */
   editable: boolean
 }>()
 const emit = defineEmits<{ changed: [] }>()

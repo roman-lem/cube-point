@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 
-// Логин и временный пароль, который показывается один раз, с кнопкой копирования.
+// Login and a temporary password shown once, with a copy button.
 const { login, password } = defineProps<{ login: string; password: string }>()
 
 const copied = ref(false)
@@ -13,7 +13,7 @@ async function copy() {
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
   } catch {
-    // Пароль виден на экране, его можно переписать вручную.
+    // The password is visible on screen and can be copied by hand.
   }
 }
 </script>

@@ -4,8 +4,8 @@ import type { FmcAttemptState } from '@/entities/series'
 import { ConfirmDialog } from '@/shared/ui'
 import { formatCountdown } from '../model/clock'
 
-// Второй шаг сдачи (макет fmc_submit): замороженное решение и время сдачи.
-// «Вернуться к решению» снимает заморозку, после дедлайна его нет.
+// Second submission step: the frozen solution and the submission time.
+// "Back to solution" removes the freeze; after the deadline it is not shown.
 const open = defineModel<boolean>('open', { required: true })
 
 const { state, timeOver = false, loading = false } = defineProps<{
@@ -17,7 +17,7 @@ const { state, timeOver = false, loading = false } = defineProps<{
 
 const emit = defineEmits<{ confirm: []; back: [] }>()
 
-// Время от старта до заморозки.
+// Time from the start to the freeze.
 const submittedAfter = computed(() =>
   state.frozen_at
     ? formatCountdown(Date.parse(state.frozen_at) - Date.parse(state.started_at))

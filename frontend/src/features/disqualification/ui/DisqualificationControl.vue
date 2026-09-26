@@ -3,13 +3,13 @@ import { ref } from 'vue'
 import { ApiError, http } from '@/shared/api'
 import { AppButton, AppIcon, AppTextarea, ConfirmDialog } from '@/shared/ui'
 
-// Дисквалификация участника на встрече: с обязательной причиной и возможностью отмены.
-// Результаты участника уходят из таблиц и рекордов, серии остаются.
+// Disqualifying a participant at a meetup: with a required reason and the option to undo.
+// The participant's results leave the tables and records, the series stay.
 const { meetupId, user, disqualification, compact = false } = defineProps<{
   meetupId: number
   user: { id: number; display_name: string }
   disqualification: { reason: string } | null
-  /** Только иконка вместо кнопки с текстом (строка списка участников). */
+  /** Icon only instead of a text button (a row of the participant list). */
   compact?: boolean
 }>()
 const emit = defineEmits<{ changed: [] }>()

@@ -15,9 +15,9 @@ function readStoredId(): number | null {
 }
 
 /**
- * Клуб, в котором сейчас человек: на него ведут вкладки «Клуб», «Рекорды»
- * и «Участники». Это последний открытый клуб (запоминается в браузере),
- * а если его нет — первый из списка.
+ * The club the person is currently in: the "Club", "Records" and "Members"
+ * tabs lead to it. It is the last opened club (remembered in the browser),
+ * or the first one in the list if there is none.
  */
 export const useCurrentClubStore = defineStore('currentClub', () => {
   const clubs = ref<ClubSummary[]>([])
@@ -30,7 +30,7 @@ export const useCurrentClubStore = defineStore('currentClub', () => {
   const clubId = computed(() => club.value?.id ?? storedId.value)
   const isLive = computed(() => club.value?.live_meetup_id != null)
 
-  /** Загружает список клубов; повторно — только с reload (например, после запуска встречи). */
+  /** Loads the club list; again only with reload (e.g. after a meetup starts). */
   function load(reload = false): Promise<void> {
     if (clubs.value.length > 0 && !reload) {
       return Promise.resolve()
@@ -40,7 +40,7 @@ export const useCurrentClubStore = defineStore('currentClub', () => {
         clubs.value = items
       })
       .catch(() => {
-        // Без списка навигация просто ведёт на последний клуб.
+        // Without the list, navigation simply leads to the last club.
       })
       .finally(() => {
         loading = null
@@ -53,7 +53,7 @@ export const useCurrentClubStore = defineStore('currentClub', () => {
     try {
       localStorage.setItem(STORAGE_KEY, String(id))
     } catch {
-      // Хранилище недоступно (приватный режим) — просто не запоминаем.
+      // Storage is unavailable (private mode): just do not remember.
     }
   }
 

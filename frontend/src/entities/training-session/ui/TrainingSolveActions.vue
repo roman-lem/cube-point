@@ -2,8 +2,8 @@
 import { AppIcon } from '@/shared/ui'
 import type { TrainingPenalty } from '../model/session'
 
-// Кнопки +2, DNF и удаления у сборки. +2 и DNF — переключатели:
-// повторное нажатие снимает штраф. Удаление подтверждает страница.
+// +2, DNF and delete buttons of a solve. +2 and DNF are toggles:
+// pressing again removes the penalty. Deletion is confirmed by the page.
 const { penalty } = defineProps<{ penalty: TrainingPenalty }>()
 
 const emit = defineEmits<{

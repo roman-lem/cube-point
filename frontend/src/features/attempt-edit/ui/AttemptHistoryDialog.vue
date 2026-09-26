@@ -7,15 +7,15 @@ import { fetchAttemptHistory, type AttemptHistoryEntry } from '../api/saveAttemp
 import { sameAttempt } from '../model/attemptText'
 import type { AttemptSaving } from '../model/useAttemptSaving'
 
-// История исправленной попытки для организатора: значения по порядку, кто и когда
-// их установил. «Вернуть исходный результат» — обычная правка через очередь серии.
+// History of a corrected attempt for the organizer: values in order, who set them
+// and when. "Restore the original result" is a regular edit through the series queue.
 const open = defineModel<boolean>('open', { required: true })
 const { saving, eventId, user, number, attempt, resultType, timeZone } = defineProps<{
   saving: AttemptSaving
   eventId: string
   user: { id: number; display_name: string }
   number: number
-  /** Текущее значение попытки. */
+  /** Current value of the attempt. */
   attempt: Attempt | null
   resultType: ResultType
   timeZone: string

@@ -1,7 +1,7 @@
 import { http } from '@/shared/api'
 import type { AdminClub, AdminClubSummary } from '../model/types'
 
-// Только для администратора, см. backend/app/admin.py.
+// Administrator only, see backend/app/admin.py.
 
 export async function fetchAdminClubs() {
   return (await http.get<{ clubs: AdminClubSummary[] }>('/api/admin/clubs')).clubs

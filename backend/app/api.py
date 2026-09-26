@@ -24,7 +24,7 @@ api.register_blueprint(fmc_bp)
 api.register_blueprint(desk)
 api.register_blueprint(admin)
 
-# Что доступно, пока пользователь не сменил временный пароль.
+# What is available while the user has not changed the temporary password.
 ALLOWED_BEFORE_PASSWORD_CHANGE = {
     "api.health",
     "api.auth.csrf_token",
@@ -34,8 +34,8 @@ ALLOWED_BEFORE_PASSWORD_CHANGE = {
 }
 
 
-# Что доступно, пока пользователь не дал согласия текущей версии:
-# отказаться от них можно, только удалив аккаунт.
+# What is available while the user has not given the current consents:
+# the only way to refuse them is to delete the account.
 ALLOWED_BEFORE_CONSENTS = ALLOWED_BEFORE_PASSWORD_CHANGE | {
     "api.auth.accept_consents",
     "api.auth.delete_own_account",

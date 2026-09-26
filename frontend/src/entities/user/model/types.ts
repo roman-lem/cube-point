@@ -1,6 +1,6 @@
 import type { Attempt, EventId, SeriesFormat } from '@/shared/lib'
 
-/** Вошедший пользователь, как его отдаёт /api/auth/me. */
+/** The logged-in user as returned by /api/auth/me. */
 export interface User {
   id: number
   login: string
@@ -8,33 +8,33 @@ export interface User {
   email: string | null
   is_admin: boolean
   must_change_password: boolean
-  /** Нет согласий текущей версии: пока их не дать, API недоступен. */
+  /** No current-version consents: the API is unavailable until they are given. */
   consents_required: boolean
-  /** Почему нельзя удалить аккаунт (последний организатор клуба) или null. */
+  /** Why the account cannot be deleted (last organizer of a club), or null. */
   delete_restriction: string | null
 }
 
-/** Встреча, на которой поставлен личный рекорд. Дата — уже в часовом поясе клуба. */
+/** The meetup where a personal best was set. The date is already in the club's time zone. */
 export interface ProfileMeetupRef {
   id: number
   date: string
   club: { id: number; name: string }
 }
 
-/** Личный рекорд: null — удачных результатов нет (у bo-форматов нет среднего). */
+/** Personal best: null means no successful results (bo formats have no average). */
 export interface PersonalBest {
   value: number
   meetup: ProfileMeetupRef
 }
 
-/** Публичный профиль участника (GET /api/users/<id>). Логина в нём нет. */
+/** A member's public profile (GET /api/users/<id>). It has no login. */
 export interface UserProfile {
   user: { id: number; display_name: string }
-  /** Клубы, где человек состоит (без клубов, где он заблокирован). */
+  /** Clubs the person is a member of (without clubs where they are banned). */
   clubs: { id: number; name: string }[]
-  /** Встречи с результатами, кроме тех, где его дисквалифицировали. */
+  /** Meetups with results, except those where they were disqualified. */
   meetups_count: number
-  /** По дисциплинам, где у человека есть серии. */
+  /** Per event where the person has series. */
   personal_records: {
     event_id: EventId
     single: PersonalBest | null
@@ -42,18 +42,18 @@ export interface UserProfile {
   }[]
 }
 
-/** Попытка в истории; у исправленной организатором — отметка и исходное значение. */
+/** An attempt in the history; one corrected by an organizer has a mark and the original value. */
 export interface ProfileAttempt extends Attempt {
   edited?: boolean
   original?: Attempt
 }
 
-/** Результат в дисциплине встречи. Отметки — только актуальные рекорды. */
+/** A result in a meetup event. Marks are current records only. */
 export interface ProfileEventResult {
   event_id: EventId
   format: SeriesFormat
   status: 'in_progress' | 'completed'
-  /** По ячейке на каждую попытку формата, несобранные — null. */
+  /** A cell for each attempt of the format, null for attempts not yet done. */
   attempts: (ProfileAttempt | null)[]
   best: number | null
   average: number | null
@@ -65,7 +65,7 @@ export interface ProfileMeetup extends ProfileMeetupRef {
   events: ProfileEventResult[]
 }
 
-/** Страница истории встреч (GET /api/users/<id>/meetups). */
+/** A page of meetup history (GET /api/users/<id>/meetups). */
 export interface UserMeetupsPage {
   meetups: ProfileMeetup[]
   has_more: boolean

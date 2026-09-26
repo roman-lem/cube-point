@@ -1,4 +1,4 @@
-// Редактирование решения FMC с клавиатуры: список ходов вида R, Rw', x2.
+// Editing an FMC solution from the keyboard: a list of moves like R, Rw', x2.
 
 export const FACES = ['R', 'L', 'U', 'D', 'F', 'B'] as const
 export const ROTATIONS = ['x', 'y', 'z'] as const
@@ -6,15 +6,15 @@ export type Modifier = "'" | '2'
 
 type Base = (typeof FACES)[number] | (typeof ROTATIONS)[number]
 
-/** Добавляет ход. wide — широкий поворот, к перехватам не применяется. */
+/** Adds a move. wide means a wide turn, it does not apply to rotations. */
 export function addMove(moves: string[], base: Base, wide: boolean): string[] {
   const isFace = (FACES as readonly string[]).includes(base)
   return [...moves, isFace && wide ? `${base}w` : base]
 }
 
 /**
- * Модификатор последнего хода: ставит его вместо прежнего,
- * а повторное нажатие того же модификатора снимает.
+ * Modifier of the last move: replaces the previous one,
+ * and pressing the same modifier again removes it.
  */
 export function setModifier(moves: string[], modifier: Modifier): string[] {
   if (moves.length === 0) {
@@ -26,7 +26,7 @@ export function setModifier(moves: string[], modifier: Modifier): string[] {
   return [...moves.slice(0, -1), next]
 }
 
-/** Удаляет последний ход. */
+/** Removes the last move. */
 export function removeLast(moves: string[]): string[] {
   return moves.slice(0, -1)
 }

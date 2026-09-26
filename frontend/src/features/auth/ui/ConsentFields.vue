@@ -2,10 +2,10 @@
 import type { FieldErrors } from '@/shared/api'
 import type { ConsentChoice } from '../model/consents'
 
-// Два отдельных согласия: на обработку и на распространение (ст. 10.1 ФЗ-152
-// требует оформлять его отдельно). Полные тексты — на странице политики
-// и на странице согласия на распространение. Ссылки открываются в новой
-// вкладке, чтобы не потерять заполненную форму.
+// Two separate consents: to processing and to publication (Art. 10.1 of Russian
+// Federal Law 152-FZ requires the latter to be separate). The full texts are on the policy page
+// and the publication consent page. Links open in a new
+// tab so the filled-in form is not lost.
 const choice = defineModel<ConsentChoice>({ required: true })
 defineProps<{ errors: FieldErrors }>()
 </script>

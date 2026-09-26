@@ -1,4 +1,4 @@
-"""Публичный список клубов и клуб, куда корень сайта ведёт вошедшего."""
+"""Public club list and the club the site root leads a logged-in user to."""
 
 from datetime import date, datetime, timedelta
 
@@ -14,7 +14,7 @@ from .helpers import MEMBER, ORGANIZER, client_for, create_user
 
 @pytest.fixture
 def clubs(app, client):
-    """Три клуба: Тюмень и Омск со встречами, Екатеринбург без встреч."""
+    """Three clubs: Tyumen and Omsk with meetups, Yekaterinburg without."""
     with app.app_context():
         ids = []
         for name, city in [
@@ -71,7 +71,7 @@ def test_list_counts_and_order(app, clubs):
     add_meetup(app, clubs["omsk"], date(2026, 9, 5))
     add_meetup(app, clubs["tyumen"], date(2026, 9, 1))
     add_meetup(app, clubs["tyumen"], date(2026, 9, 12), MeetupStatus.LIVE)
-    # Запланированная встреча не считается и не двигает клуб вверх.
+    # A planned meetup does not count and does not move the club up.
     add_meetup(app, clubs["omsk"], date(2026, 12, 1), MeetupStatus.PLANNED)
 
     body = app.test_client().get("/api/clubs").get_json()
@@ -102,7 +102,7 @@ def test_home_club_is_club_of_last_meetup(app, clubs):
     join(app, clubs["omsk"], user_id)
     approve(app, add_meetup(app, clubs["tyumen"], date(2026, 9, 1)), user_id)
     approve(app, add_meetup(app, clubs["omsk"], date(2026, 9, 5)), user_id)
-    # Заявка не подтверждена — это не его встреча.
+    # The request is not approved, so it is not their meetup.
     with app.app_context():
         db.session.add(MeetupParticipant(
             meetup_id=add_meetup(app, clubs["tyumen"], date(2026, 9, 12)), user_id=user_id,

@@ -4,13 +4,13 @@ import { AppButton, AppIcon, TemporaryPassword } from '@/shared/ui'
 import { createClubMember, type AddedParticipant } from '../api/participantsApi'
 import NewcomerForm from './NewcomerForm.vue'
 
-// Аккаунт для новичка из списка участников клуба: сразу в клубе, с временным паролем.
+// An account for a newcomer from the club member list: in the club right away, with a temporary password.
 const { clubId } = defineProps<{ clubId: number }>()
 const emit = defineEmits<{ created: [userId: number] }>()
 
 const dialog = ref<HTMLDialogElement>()
 const created = ref<AddedParticipant | null>(null)
-// Новая форма при каждом открытии, чтобы не остались поля и ошибки прошлого раза.
+// A new form on every open, so no fields and errors are left over from last time.
 const formKey = ref(0)
 
 function open() {

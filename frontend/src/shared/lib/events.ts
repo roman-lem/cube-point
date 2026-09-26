@@ -1,13 +1,13 @@
-// Дисциплины и форматы. Зеркало backend/app/events.py: идентификаторы
-// и форматы по умолчанию должны совпадать, названия — только для интерфейса.
+// Events and formats. Mirror of backend/app/events.py: the IDs
+// and default formats must match, the names are for the UI only.
 import type { ResultType, SeriesFormat } from './results'
 
 export type EventId = '333' | '222' | '333oh' | 'pyram' | '333fm' | '333bf'
 
 export interface EventInfo {
-  /** Короткое название для карточек и списков: 3x3, OH, FMC. */
+  /** Short name for cards and lists: 3x3, OH, FMC. */
   name: string
-  /** Название с пояснением для выбора дисциплины при создании встречи. */
+  /** Name with an explanation for choosing the event when creating a meetup. */
   fullName: string
   resultType: ResultType
   defaultFormat: SeriesFormat
@@ -23,12 +23,12 @@ export const EVENTS: Record<EventId, EventInfo> = {
 }
 
 /**
- * Порядок показа. Отдельным списком: ключи-числа ('222', '333') объект
- * всегда перебирает первыми по возрастанию, порядок ключей EVENTS не сохранится.
+ * Display order. A separate list: an object always iterates numeric keys ('222', '333')
+ * first in ascending order, so the key order of EVENTS would not be kept.
  */
 export const EVENT_IDS: EventId[] = ['333', '222', '333oh', 'pyram', '333fm', '333bf']
 
-/** Дисциплины таймера и тренировочных сессий: только на время, FMC — отдельный экран. */
+/** Events for the timer and training sessions: timed only, FMC has a separate screen. */
 export const TIMER_EVENT_IDS = EVENT_IDS.filter((id) => EVENTS[id].resultType === 'time')
 
 export const FORMAT_NAMES: Record<SeriesFormat, string> = {
@@ -41,12 +41,12 @@ export const FORMAT_NAMES: Record<SeriesFormat, string> = {
 
 export const FORMATS = Object.keys(FORMAT_NAMES) as SeriesFormat[]
 
-/** Название дисциплины; неизвестный идентификатор показывается как есть. */
+/** Event name; an unknown ID is shown as is. */
 export function eventName(eventId: string): string {
   return EVENTS[eventId as EventId]?.name ?? eventId
 }
 
-/** «Среднее из 5 (ao5)» */
+/** Format label, e.g. «Среднее из 5 (ao5)». */
 export function formatName(format: SeriesFormat): string {
   return `${FORMAT_NAMES[format]} (${format})`
 }

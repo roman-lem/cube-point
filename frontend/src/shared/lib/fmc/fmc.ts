@@ -1,12 +1,12 @@
-// Проверка решения FMC: разбор записи, подсчёт ходов и сборка на виртуальном
-// кубе через cubing.js. Правила — раздел «FMC» в CLAUDE.md.
+// FMC solution check: parsing the notation, counting moves and solving a virtual
+// cube with cubing.js. Rules: "FMC" in docs/ARCHITECTURE.md.
 
 import { isScrambleDerived } from './scrambleDerived'
 
-/** Решение длиннее — DNF (регламент WCA). */
+/** A longer solution is DNF (WCA regulations). */
 export const MAX_FMC_MOVES = 80
 
-/** Почему решение не засчитано. */
+/** Why the solution does not count. */
 export type FmcDnfReason =
   | 'empty'
   | 'invalid'
@@ -15,7 +15,7 @@ export type FmcDnfReason =
   | 'scramble_derived'
   | 'not_solved'
 
-/** Причина DNF для участника. */
+/** DNF reason for the participant. */
 export const FMC_DNF_REASONS: Record<FmcDnfReason, string> = {
   empty: 'Решение пустое',
   invalid: 'В решении есть недопустимые ходы',
@@ -25,26 +25,26 @@ export const FMC_DNF_REASONS: Record<FmcDnfReason, string> = {
   not_solved: 'Решение не собирает куб',
 }
 
-/** Итог проверки: число ходов или DNF с причиной. */
+/** Check outcome: a move count, or DNF with a reason. */
 export type FmcCheck = { moves: number } | { dnf: FmcDnfReason }
 
-// Грань (с w — широкий поворот), перехват или срез, затем модификатор.
+// A face (with w, a wide turn), a rotation or a slice, then a modifier.
 const MOVE_RE = /^(?:([RLUDFB]w?)|([xyz])|([MES]))(['2])?$/
 
-/** Ходы решения из записи через пробелы. */
+/** Solution moves from space-separated notation. */
 export function parseSolution(text: string): string[] {
   return text.split(/\s+/).filter(Boolean)
 }
 
-/** Число ходов: грани и широкие повороты по 1, включая двойные, перехваты — 0. */
+/** Move count: faces and wide turns count 1 each, doubles included; rotations count 0. */
 export function countMoves(moves: string[]): number {
   return moves.filter((move) => MOVE_RE.exec(move)?.[1]).length
 }
 
 /**
- * Проверяет решение: без срезов, не длиннее лимита, не получено из скрамбла
- * и собирает куб из состояния после скрамбла (собранным считается куб
- * в любой ориентации).
+ * Checks the solution: no slices, not longer than the limit, not derived from the scramble,
+ * and it solves the cube from the scrambled state (a cube counts as solved
+ * in any orientation).
  */
 export async function checkSolution(scramble: string, solution: string): Promise<FmcCheck> {
   const moves = parseSolution(solution)
@@ -75,8 +75,8 @@ export async function checkSolution(scramble: string, solution: string): Promise
   return solved ? { moves: count } : { dnf: 'not_solved' }
 }
 
-// cubing.js большой, поэтому подгружается при первой проверке или заранее
-// через preloadSolutionCheck (во время попытки, чтобы сдача не ждала сеть).
+// cubing.js is large, so it is loaded on the first check or in advance
+// via preloadSolutionCheck (during the attempt, so submission does not wait for the network).
 let cube: ReturnType<typeof importCube> | null = null
 
 async function importCube() {
@@ -86,13 +86,13 @@ async function importCube() {
 
 function loadCube() {
   cube ??= importCube().catch((e) => {
-    cube = null // при ошибке сети попробуем снова при сдаче
+    cube = null // on a network error, try again at submission
     throw e
   })
   return cube
 }
 
-/** Заранее загружает cubing.js для проверки решения. */
+/** Loads cubing.js for the solution check in advance. */
 export function preloadSolutionCheck(): void {
   loadCube().catch(() => {})
 }

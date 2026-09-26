@@ -22,7 +22,7 @@ const form = reactive({
   address: '',
 })
 
-// Все дисциплины списком; выбранные попадут во встречу в этом же порядке.
+// All events as a list; the selected ones go into the meetup in the same order.
 const events = reactive(
   EVENT_IDS.map((eventId) => ({
     eventId,
@@ -38,7 +38,7 @@ const selectedCount = computed(() => events.filter((e) => e.selected).length)
 const loading = ref(false)
 const progress = ref('')
 
-/** Ошибки полей events.N.* относятся к N-й выбранной дисциплине. */
+/** Errors of events.N.* fields refer to the N-th selected event. */
 const eventErrors = computed(() => {
   const selected = events.filter((e) => e.selected)
   const result: Partial<Record<EventId, string>> = {}

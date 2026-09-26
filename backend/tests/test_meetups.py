@@ -1,4 +1,4 @@
-"""Встречи, вход по ссылке и заявки на участие: права доступа и правила из CLAUDE.md."""
+"""Meetups, joining by link and participation requests: access rights and domain rules."""
 
 from datetime import date, timedelta
 
@@ -30,7 +30,7 @@ def meetup_data(**overrides):
 
 @pytest.fixture
 def world(app, client):
-    """Клуб, его организатор, участник, заблокированный и посторонний."""
+    """A club, its organizer, a member, a banned user and an outsider."""
     club_id = create_club(app)
     create_user(app, "org", ORGANIZER, club_id)
     member_id = create_user(app, "member", MEMBER, club_id)
@@ -55,7 +55,7 @@ def join(client, token):
     return client.post(f"/api/join/{token}")
 
 
-# Создание встречи
+# Creating a meetup
 
 def test_organizer_creates_meetup(world, org):
     response = org.post(f"/api/clubs/{world['club_id']}/meetups", json=meetup_data())
@@ -64,7 +64,7 @@ def test_organizer_creates_meetup(world, org):
     meetup = response.get_json()["meetup"]
     assert meetup["status"] == "planned"
     assert meetup["date"] == TOMORROW
-    # Тюмень — UTC+5: 18:00 по часам клуба — 13:00 UTC.
+    # Tyumen is UTC+5: 18:00 by the club's clock is 13:00 UTC.
     assert meetup["starts_at"] == f"{TOMORROW}T13:00:00Z"
     assert meetup["ends_at"] == f"{TOMORROW}T16:00:00Z"
     assert meetup["address"] is None
@@ -141,7 +141,7 @@ def test_organizer_of_other_club_cannot_create_meetup(world):
     assert response.status_code == 403
 
 
-# Страница встречи и список встреч
+# Meetup page and meetup list
 
 def test_meetup_page_is_public_but_token_is_for_organizer(world, meetup):
     app = world["app"]
@@ -165,7 +165,7 @@ def test_club_meetups_list(world, meetup):
     assert item["participants_count"] == 0
 
 
-# Запуск
+# Starting
 
 def test_organizer_starts_meetup(org, meetup):
     response = org.post(f"/api/meetups/{meetup['id']}/start")
@@ -181,7 +181,7 @@ def test_member_cannot_start_meetup(world, meetup):
     assert client.post(f"/api/meetups/{meetup['id']}/start").status_code == 403
 
 
-# Вход по ссылке
+# Joining by link
 
 def test_join_creates_pending_request(world, meetup):
     client = client_for(world["app"], "stranger")
@@ -192,7 +192,7 @@ def test_join_creates_pending_request(world, meetup):
     assert response.get_json() == {"meetup_id": meetup["id"], "status": "pending"}
     page = client.get(f"/api/meetups/{meetup['id']}").get_json()
     assert page["my_request"] == {"status": "pending"}
-    # Повторный переход по ссылке не создаёт вторую заявку.
+    # Following the link again does not create a second request.
     assert join(client, meetup["join_token"]).status_code == 200
 
 
@@ -244,7 +244,7 @@ def test_old_token_stops_working_after_reissue(world, org, meetup):
     assert join(member, meetup["join_token"]).status_code == 404
     assert world["app"].test_client().get(f"/api/join/{meetup['join_token']}").status_code == 404
     assert join(member, new_token).status_code == 201
-    # Подтверждённый участник остаётся подтверждённым.
+    # An approved participant stays approved.
     page = stranger.get(f"/api/meetups/{meetup['id']}").get_json()
     assert page["my_request"] == {"status": "approved"}
 
@@ -266,7 +266,7 @@ def test_token_does_not_work_after_meetup_finished(world, meetup):
     assert response.status_code == 404
 
 
-# Заявки
+# Requests
 
 def test_first_approval_adds_to_club(world, org, meetup):
     app = world["app"]
@@ -301,9 +301,9 @@ def test_reject_request(world, org, meetup):
 
     assert org.post(f"{url}/reject").get_json()["request"]["status"] == "rejected"
     assert org.post(f"{url}/reject").status_code == 409
-    # По ссылке заявка не возвращается в pending.
+    # Following the link does not bring the request back to pending.
     assert join(stranger, meetup["join_token"]).get_json()["status"] == "rejected"
-    # Ошибку организатор может исправить.
+    # The organizer can correct a mistake.
     assert org.post(f"{url}/approve").get_json()["request"]["status"] == "approved"
 
 
@@ -311,7 +311,7 @@ def test_approve_all_skips_banned(world, org, meetup):
     app = world["app"]
     join(client_for(app, "stranger"), meetup["join_token"])
     join(client_for(app, "member"), meetup["join_token"])
-    # Заблокировали уже после заявки.
+    # Banned after the request was made.
     with app.app_context():
         membership = db.session.get(ClubMember, (world["club_id"], world["member_id"]))
         membership.banned_at = membership.joined_at
@@ -321,7 +321,7 @@ def test_approve_all_skips_banned(world, org, meetup):
 
     assert response.get_json() == {"approved": 1}
     requests = org.get(f"/api/meetups/{meetup['id']}/requests").get_json()["requests"]
-    # Ожидающие — первыми.
+    # Pending ones first.
     assert [(r["user"]["login"], r["status"]) for r in requests] == [
         ("member", "pending"), ("stranger", "approved"),
     ]

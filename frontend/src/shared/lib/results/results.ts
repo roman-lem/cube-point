@@ -1,11 +1,11 @@
-// Подсчёт результатов серии, средних тренировки и форматирование для отображения.
+// Series results, training averages and formatting for display.
 //
-// Повторяет backend/app/results.py (источник правды) для живого пересчёта
-// при вводе. Обе реализации проверяются общими тестами из
+// Repeats backend/app/results.py (the source of truth) for live recalculation
+// while typing. Both implementations are checked by the shared cases in
 // testdata/results_cases.json.
 //
-// Время — целое число в сотых долях секунды, FMC — число ходов.
-// Среднее FMC — в сотых долях хода.
+// Time is an integer in hundredths of a second, FMC is a number of moves.
+// The FMC mean is in hundredths of a move.
 
 export type Penalty = 'none' | 'plus2' | 'dnf' | 'dns'
 export type ResultType = 'time' | 'moves'
@@ -17,15 +17,15 @@ export interface Attempt {
 }
 
 export interface SeriesResult {
-  /** Лучшая из введённых попыток, DNF или null, если попыток нет. */
+  /** Best of the entered attempts, DNF, or null if there are no attempts. */
   best: number | null
-  /** Среднее для ao5 и mo3, DNF или null, пока серия не закончена. Для bo-форматов всегда null. */
+  /** Average for ao5 and mo3, DNF, or null while the series is unfinished. Always null for bo formats. */
   average: number | null
-  /** По флагу на каждую попытку формата: false у отброшенных в ao5. Пока серия не закончена, все true. */
+  /** A flag for each attempt of the format: false for the ones dropped in ao5. All true while the series is unfinished. */
   counting: boolean[]
 }
 
-/** Результат DNF (попытки или серии). DNS в подсчёте тоже даёт DNF. */
+/** DNF result (of an attempt or a series). DNS also gives DNF in calculations. */
 export const DNF = -1
 
 export const ATTEMPTS_COUNT: Record<SeriesFormat, number> = {
@@ -39,9 +39,9 @@ export const ATTEMPTS_COUNT: Record<SeriesFormat, number> = {
 const PENALTIES: Penalty[] = ['none', 'plus2', 'dnf', 'dns']
 const RESULT_TYPES: ResultType[] = ['time', 'moves']
 
-const PLUS_TWO = 200 // +2 секунды в сотых долях
+const PLUS_TWO = 200 // +2 seconds in hundredths
 
-/** Итоговое значение попытки: со штрафом +2 или DNF. */
+/** Final value of an attempt: with the +2 penalty, or DNF. */
 export function attemptValue(attempt: Attempt, resultType: ResultType): number {
   checkAttempt(attempt, resultType)
   if (attempt.penalty === 'dnf' || attempt.penalty === 'dns') {
@@ -54,9 +54,9 @@ export function attemptValue(attempt: Attempt, resultType: ResultType): number {
 }
 
 /**
- * Лучший результат, среднее и учитываемые попытки серии.
- * attempts — попытки по порядку, не больше числа попыток формата.
- * Несобранная попытка — null или отсутствует в конце списка.
+ * Best result, average and counting attempts of a series.
+ * attempts are in order, no more than the format's number of attempts.
+ * An attempt not yet done is null or missing at the end of the list.
  */
 export function calcSeries(
   attempts: (Attempt | null)[],
@@ -82,14 +82,14 @@ export function calcSeries(
   let counting: boolean[] = new Array(count).fill(true)
 
   if (seriesFormat === 'ao5') {
-    // Два DNF — среднее DNF сразу, даже если серия не закончена.
-    // Остальные попытки при этом всё равно можно дособрать.
+    // Two DNFs make the average DNF right away, even if the series is unfinished.
+    // The remaining attempts can still be done.
     if (dnfCount >= 2) {
       average = DNF
     }
     if (isComplete) {
-      // Стабильная сортировка: при равенстве отбрасывается
-      // первая из лучших и последняя из худших.
+      // Stable sort: on ties the first of the best
+      // and the last of the worst are dropped.
       const order = [...values.keys()].sort((a, b) => compareValues(values[a]!, values[b]!))
       const dropped = [order[0], order[order.length - 1]]
       counting = values.map((_, i) => !dropped.includes(i))
@@ -107,9 +107,9 @@ export function calcSeries(
 }
 
 /**
- * Среднее последних n попыток (ao5, ao12 тренировки) или null, если их меньше n.
- * Отбрасываются одна лучшая и одна худшая попытка, остальные усредняются.
- * Один DNF отбрасывается как худшая, два и более — среднее DNF.
+ * Average of the last n attempts (training ao5, ao12), or null if there are fewer than n.
+ * One best and one worst attempt are dropped, the rest are averaged.
+ * One DNF is dropped as the worst; two or more make the average DNF.
  */
 export function averageOf(attempts: Attempt[], n: number, resultType: ResultType): number | null {
   checkWindow(n)
@@ -121,8 +121,8 @@ export function averageOf(attempts: Attempt[], n: number, resultType: ResultType
 }
 
 /**
- * Скользящие средние: для каждой попытки — среднее n попыток, которыми
- * она заканчивается (как averageOf). У первых n - 1 попыток — null.
+ * Rolling averages: for each attempt, the average of the n attempts
+ * ending with it (as averageOf). The first n - 1 attempts get null.
  */
 export function rollingAverages(
   attempts: Attempt[],
@@ -137,7 +137,7 @@ export function rollingAverages(
   )
 }
 
-/** Результат для отображения: 9.87, 1:02.45, 28, 28.33, DNF, —. */
+/** Result for display: 9.87, 1:02.45, 28, 28.33, DNF, —. */
 export function formatResult(
   value: number | null,
   resultType: ResultType,
@@ -159,7 +159,7 @@ export function formatResult(
   return formatTime(value)
 }
 
-/** Попытка для отображения: 9.87, 11.87 (+2), DNF, DNS, —. */
+/** Attempt for display: 9.87, 11.87 (+2), DNF, DNS, —. */
 export function formatAttempt(attempt: Attempt | null, resultType: ResultType): string {
   if (attempt === null) {
     return '—'
@@ -200,14 +200,14 @@ function checkAttempt(attempt: Attempt, resultType: ResultType): void {
   }
 }
 
-// Меньше трёх попыток: после отбрасывания лучшей и худшей нечего усреднять.
+// Fewer than three attempts: nothing left to average after dropping the best and worst.
 function checkWindow(n: number): void {
   if (!Number.isInteger(n) || n < 3) {
     throw new Error(`Число попыток для среднего должно быть не меньше 3: ${n}`)
   }
 }
 
-/** Среднее без одной лучшей и одной худшей попытки; два DNF и более — DNF. */
+/** Average without one best and one worst attempt; two or more DNFs give DNF. */
 function trimmedMean(values: number[], resultType: ResultType): number {
   if (values.filter((v) => v === DNF).length >= 2) {
     return DNF
@@ -216,7 +216,7 @@ function trimmedMean(values: number[], resultType: ResultType): number {
   return mean(kept, resultType)
 }
 
-// DNF хуже любого времени.
+// DNF is worse than any time.
 function compareValues(a: number, b: number): number {
   if (a === b) return 0
   if (a === DNF) return 1
@@ -236,10 +236,10 @@ function best(values: number[]): number | null {
 }
 
 function mean(values: number[], resultType: ResultType): number {
-  // Округление вниз до сотых: тысячные просто отбрасываются.
+  // Round down to hundredths: thousandths are simply dropped.
   let total = values.reduce((sum, v) => sum + v, 0)
   if (resultType === 'moves') {
-    total *= 100 // среднее FMC — в сотых долях хода
+    total *= 100 // the FMC mean is in hundredths of a move
   }
   return Math.floor(total / values.length)
 }

@@ -26,15 +26,15 @@ import {
 import { AppButton, AppCard, AppIcon, ConfirmDialog, PageHeader } from '@/shared/ui'
 import { FmcKeyboard } from '@/widgets/fmc-keyboard'
 
-// Серия FMC на встрече (макеты fmc_start, fmc_solving, fmc_submit).
-// Состояния экрана: до старта попытки → решение → заморозка (диалог сдачи)
-// → проверка и результат. Если время вышло без сдачи, последний сохранённый
-// черновик проверяется и отправляется сам. Правила — «FMC» в CLAUDE.md.
+// An FMC series at a meetup.
+// Screen states: before the attempt starts → solving → frozen (submit dialog)
+// → check and result. If time ran out without submission, the last saved
+// draft is checked and sent automatically. Rules: "FMC" in docs/ARCHITECTURE.md.
 
 const EVENT_ID = '333fm'
-// Последние 5 минут отсчёт красный.
+// The countdown turns red for the last 5 minutes.
 const WARNING_MS = 5 * 60 * 1000
-// Перед дедлайном несохранённый черновик отправляется сразу, без задержки.
+// Before the deadline an unsaved draft is sent immediately, without a delay.
 const LAST_SAVE_MS = 1500
 
 const { meetupId } = defineProps<{ meetupId: number }>()
@@ -68,7 +68,7 @@ async function load() {
   }
 }
 
-// Решение набирается локально; черновик с сервера — при загрузке и новом состоянии.
+// The solution is typed locally; the draft from the server comes on load and on a new state.
 const moves = ref<string[]>([])
 const solution = computed(() => moves.value.join(' '))
 
@@ -94,7 +94,7 @@ const stage = computed<Stage>(() => {
   return 'start'
 })
 
-// cubing.js для проверки грузим заранее, пока идёт попытка, чтобы сдача не ждала сеть.
+// cubing.js for the check is loaded in advance, during the attempt, so submission does not wait for the network.
 watch(stage, (value) => {
   if (value === 'solving') preloadSolutionCheck()
 }, { immediate: true })
@@ -106,7 +106,7 @@ const canSolve = computed(
     meetupEvent.value !== null,
 )
 
-// Черновик
+// Draft
 
 const autosaveEnabled = computed(
   () => stage.value === 'solving' && !isFrozen.value && !timeOver.value,
@@ -130,7 +130,7 @@ const draftNote = computed(() => {
   }
 })
 
-// Старт попытки
+// Attempt start
 
 const startOpen = ref(false)
 const starting = ref(false)
@@ -150,15 +150,15 @@ async function start() {
   }
 }
 
-// Сдача: заморозка → подтверждение → проверка и сохранение результата
+// Submission: freeze → confirmation → check and saving the result
 
 const submitOpen = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
-// Сообщение на экране результата (например, заморозка после дедлайна).
+// Message on the result screen (e.g. freezing after the deadline).
 const resultNote = ref('')
 
-// Заморожено (в том числе в другой вкладке) — диалог сдачи поверх экрана решения.
+// Frozen (including in another tab): the submit dialog over the solving screen.
 watch(isFrozen, (frozen) => {
   submitOpen.value = frozen
 }, { immediate: true })
@@ -171,7 +171,7 @@ async function freeze() {
   try {
     const updated = await freezeFmcSolution(series.value, solution.value)
     if (updated.attempts.length > attemptsBefore) {
-      // Время вышло, пока шёл запрос: сервер сохранил решение как DNF.
+      // Time ran out while the request was in flight: the server saved the solution as DNF.
       resultNote.value =
         'Время вышло до сдачи — решение сохранено как DNF. Если оно верное, обратитесь к организатору.'
       finishAttempt(updated)
@@ -201,7 +201,7 @@ async function backToSolving() {
   }
 }
 
-/** Проверяет решение, которое хранит сервер, и отправляет результат. */
+/** Checks the solution stored on the server and sends the result. */
 async function checkAndSubmit(text: string) {
   const current = series.value
   if (!current?.next_attempt?.scramble) return
@@ -230,7 +230,7 @@ function confirmSubmit() {
   checkAndSubmit(fmcState.value?.frozen_solution ?? '')
 }
 
-// Время вышло без сдачи: результат — последний черновик на сервере.
+// Time ran out without submission: the result is the last draft on the server.
 let autoSubmitted = false
 
 async function reloadSeries() {
@@ -258,7 +258,7 @@ watch(
   },
 )
 
-// Результат
+// Result
 
 function finishAttempt(updated: MySeries) {
   series.value = updated
@@ -266,7 +266,7 @@ function finishAttempt(updated: MySeries) {
   justSubmitted.value = true
   moves.value = []
   autosave.reset('')
-  // Место в таблице — из страницы встречи.
+  // The place in the table comes from the meetup page.
   fetchMeetup(meetupId).then((page) => (meetupData.value = page)).catch(() => {})
 }
 
@@ -303,7 +303,7 @@ const attemptTitle = computed(() =>
     <AppCard v-if="stage === 'loading'" class="page__muted">Загружаем серию…</AppCard>
     <AppCard v-else-if="stage === 'error'">{{ error }}</AppCard>
 
-    <!-- До старта попытки -->
+    <!-- Before the attempt starts -->
     <template v-else-if="stage === 'start'">
       <div class="fmc-page__locked">
         <AppIcon name="lock" :size="20" />
@@ -346,7 +346,7 @@ const attemptTitle = computed(() =>
       </ConfirmDialog>
     </template>
 
-    <!-- Решение -->
+    <!-- Solving -->
     <template v-else-if="stage === 'solving' && fmcState && attempt">
       <AppCard class="fmc-page__clock">
         <span class="fmc-page__label">Осталось времени</span>
@@ -394,7 +394,7 @@ const attemptTitle = computed(() =>
       />
     </template>
 
-    <!-- Результат -->
+    <!-- Result -->
     <template v-else-if="stage === 'result' && series">
       <AppCard class="fmc-page__result">
         <span class="fmc-page__label">

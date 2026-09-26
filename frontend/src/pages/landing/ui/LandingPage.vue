@@ -5,8 +5,8 @@ import { useUserStore } from '@/entities/user'
 import { DEVELOPER_CONTACTS, SITE_NAME } from '@/shared/config'
 import { AppButton, AppIcon, StepList, type IconName, type Step } from '@/shared/ui'
 
-// Лендинг в корне сайта (макеты landing_mob, landing_desk). Его видят гости
-// и вошедшие без клуба; вошедших с клубом роутер уводит на страницу клуба.
+// Landing at the site root. It is seen by guests
+// and logged-in users without a club; those with a club are redirected to the club page by the router.
 const userStore = useUserStore()
 
 const HOW_IT_WORKS: Step[] = [
@@ -34,7 +34,7 @@ const CONTACTS: { label: string; icon: IconName; href: string }[] = [
   { label: 'ВКонтакте', icon: 'forum', href: DEVELOPER_CONTACTS.vk },
 ]
 
-// Сервер отдаёт клубы с самыми недавними встречами первыми.
+// The server returns clubs with the most recent meetups first.
 const clubs = ref<ClubSummary[]>([])
 const recentClubs = computed(() => clubs.value.slice(0, 3))
 
@@ -42,7 +42,7 @@ onMounted(async () => {
   try {
     clubs.value = await fetchClubs()
   } catch {
-    // Без списка клубов лендинг всё равно полезен — раздел просто не показываем.
+    // The landing is useful even without the club list; the section is just hidden.
   }
 })
 </script>

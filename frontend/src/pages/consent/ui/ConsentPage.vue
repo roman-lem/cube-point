@@ -5,9 +5,9 @@ import { AcceptConsentsForm, LogoutButton } from '@/features/auth'
 import { safeRedirect } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
 
-// Согласия от того, у кого их нет: аккаунт создал организатор или текст
-// согласия обновился. Пока их не дать, приложение недоступно (guards.ts);
-// не согласен — можно выйти или удалить аккаунт.
+// Consents from someone who has none: the account was created by an organizer or the consent
+// text was updated. Until they are given the app is unavailable (guards.ts);
+// if one disagrees, they can log out or delete the account.
 const route = useRoute()
 const router = useRouter()
 </script>

@@ -5,8 +5,8 @@ import { ApiError } from '@/shared/api'
 import { AppButton, AppIcon, ConfirmDialog, SettingRow, TemporaryPassword } from '@/shared/ui'
 import { resetPassword } from '../api/resetPassword'
 
-// Сброс пароля участнику: временный пароль показывается один раз,
-// все сессии участника завершаются. Пароль организатора сбрасывает администратор.
+// Resetting a member's password: the temporary password is shown once,
+// all of the member's sessions end. An organizer's password is reset by the administrator.
 const { clubId, member } = defineProps<{ clubId: number; member: ClubMemberCard }>()
 
 const confirmOpen = ref(false)
@@ -36,7 +36,7 @@ async function reset() {
 
 function done() {
   resultOpen.value = false
-  // Пароль больше нигде не показывается.
+  // The password is not shown anywhere else.
   password.value = null
 }
 </script>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { safeRedirect } from './safeRedirect'
 
 describe('safeRedirect', () => {
-  it.each(['/', '/club/1', '/records?event=333#top'])('пропускает внутренний путь %s', (path) => {
+  it.each(['/', '/club/1', '/records?event=333#top'])('accepts the internal path %s', (path) => {
     expect(safeRedirect(path)).toBe(path)
   })
 
@@ -16,7 +16,7 @@ describe('safeRedirect', () => {
     '//evil.com',
     '/\\evil.com',
     'javascript:alert(1)',
-  ])('заменяет %s на адрес по умолчанию', (value) => {
+  ])('replaces %s with the default path', (value) => {
     expect(safeRedirect(value)).toBe('/')
     expect(safeRedirect(value, '/login')).toBe('/login')
   })

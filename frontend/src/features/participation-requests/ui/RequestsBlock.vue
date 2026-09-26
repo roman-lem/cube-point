@@ -7,11 +7,11 @@ import {
   approveAll, approveRequest, fetchRequests, rejectRequest, type ParticipationRequest,
 } from '../api/requestsApi'
 
-// Заявки на участие во встрече. Люди подают их прямо на встрече,
-// поэтому список сам обновляется раз в 10 секунд.
+// Participation requests for the meetup. People send them right at the meetup,
+// so the list refreshes itself every 10 seconds.
 const { meetupId, readonly = false } = defineProps<{
   meetupId: number
-  /** Встреча завершена: заявки только для просмотра. */
+  /** The meetup is finished: requests are read-only. */
   readonly?: boolean
 }>()
 const emit = defineEmits<{ changed: [] }>()

@@ -92,10 +92,10 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
-        # SQLite меняет таблицу пересозданием (batch). С включёнными внешними
-        # ключами удаление старой таблицы выполнило бы ON DELETE у ссылающихся
-        # на неё таблиц, поэтому на время миграций проверку выключаем
-        # (включает её extensions._enable_sqlite_foreign_keys).
+        # SQLite alters a table by recreating it (batch). With foreign keys
+        # enabled, dropping the old table would run ON DELETE on the tables
+        # referencing it, so the check is disabled during migrations
+        # (it is enabled by extensions._enable_sqlite_foreign_keys).
         if connection.dialect.name == "sqlite":
             connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
             connection.commit()

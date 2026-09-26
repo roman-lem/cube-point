@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { ApiError, type FieldErrors } from '@/shared/api'
 
-/** Ошибки формы: под полями (fieldErrors) и общая над кнопкой (formError). */
+/** Form errors: under the fields (fieldErrors) and a general one above the button (formError). */
 export function useFormErrors() {
   const fieldErrors = ref<FieldErrors>({})
   const formError = ref('')

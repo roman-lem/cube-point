@@ -10,9 +10,9 @@ import { AppButton, AppCard, AppIcon, PageHeader } from '@/shared/ui'
 import AdminClubDetails from './AdminClubDetails.vue'
 import AdminClubList from './AdminClubList.vue'
 
-// Администрирование клубов (макеты admin_clubs и admin_clubs_desk).
-// На телефоне — либо список, либо открытый клуб; на широком экране —
-// две панели: список слева, управление клубом справа.
+// Club administration.
+// On a phone either the list or the open club; on a wide screen
+// two panels: the list on the left, club management on the right.
 const { clubId } = defineProps<{ clubId?: number }>()
 
 const router = useRouter()
@@ -50,7 +50,7 @@ watch(() => clubId, loadClub, { immediate: true })
 
 function onChanged(changed: AdminClub) {
   club.value = changed
-  // Число организаторов в списке.
+  // Number of organizers in the list.
   loadList()
 }
 

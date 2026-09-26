@@ -7,7 +7,7 @@ export async function makeOrganizer(clubId: number, userId: number) {
   return (await http.put<{ member: ClubMemberCard }>(url(clubId, userId))).member
 }
 
-/** Снимает права организатора; человек остаётся в клубе. Последнего снять нельзя. */
+/** Removes organizer rights; the person stays in the club. The last one cannot be removed. */
 export async function removeOrganizer(clubId: number, userId: number) {
   return (await http.delete<{ member: ClubMemberCard }>(url(clubId, userId))).member
 }

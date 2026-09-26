@@ -1,19 +1,19 @@
-"""Журнал попыток: запись при создании и правке, история для организатора, возврат исходного."""
+"""Attempt history: entries on creation and edit, history for the organizer, restoring the original."""
 
 from app.extensions import db
 from app.models import Attempt, AttemptHistory, Penalty, RecordType
 
 from .helpers import error
-from .test_desk import (  # noqa: F401 — фикстуры
+from .test_desk import (  # noqa: F401 — fixtures
     attempt_url, desk_row, finish, put, resolve, start_fmc_attempt, summary,
 )
-from .test_series import (  # noqa: F401 — фикстуры
+from .test_series import (  # noqa: F401 — fixtures
     clients, meetup_id, org, records, results, solve, user_id_of, world,
 )
 
 
 def history_rows(world, series_id, number):
-    """Записи журнала попытки из БД: [(id, value, penalty, solution, changed_by, changed_at)]."""
+    """Attempt history entries from the DB: [(id, value, penalty, solution, changed_by, changed_at)]."""
     with world["app"].app_context():
         return db.session.execute(
             db.select(
@@ -36,7 +36,7 @@ def restore(client, meetup_id, user_id, number, version, event_id="333"):
     )
 
 
-# Запись в журнал
+# History entries
 
 def test_participant_attempt_writes_first_entry(world, clients, meetup_id):
     series = solve(clients["anna"], meetup_id, [1000])
@@ -98,7 +98,7 @@ def test_finish_dns_and_fmc_resolve_write_entries(world, org, clients, meetup_id
     assert (dns.penalty, dns.changed_by) == (Penalty.DNS, organizer)
 
 
-# Отметка и история
+# Mark and history
 
 def test_edited_attempt_shows_original_to_everyone(world, org, clients, meetup_id):
     series = solve(clients["anna"], meetup_id, [1000])
@@ -137,7 +137,7 @@ def test_history_only_for_organizer(world, org, clients, meetup_id):
     assert history(org, meetup_id, anna, 2).status_code == 404
 
 
-# Возврат исходного результата
+# Restoring the original result
 
 def test_restore_original(world, org, clients, meetup_id):
     series = solve(clients["anna"], meetup_id, [1000])
@@ -150,7 +150,7 @@ def test_restore_original(world, org, clients, meetup_id):
     assert response.status_code == 200, response.get_json()
     attempt = desk_row(response, anna)["series"]["attempts"][0]
     assert (attempt["value"], attempt["penalty"]) == (1000, "none")
-    # Возврат — тоже правка: он попадает в журнал, отметка остаётся.
+    # Restoring is an edit too: it goes to the history and the mark stays.
     assert attempt["edited"] is True
     rows = history_rows(world, series["id"], 1)
     assert [(r.value, r.penalty) for r in rows] == [

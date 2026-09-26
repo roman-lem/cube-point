@@ -3,7 +3,7 @@ import { formatDate } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 import type { JoinPreview } from '../model/types'
 
-// Баннер встречи на странице входа и регистрации, когда человек пришёл по QR-коду.
+// Meetup banner on the login and registration pages when the person came via the QR code.
 defineProps<{ meetup: JoinPreview }>()
 </script>
 

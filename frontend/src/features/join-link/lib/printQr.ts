@@ -5,8 +5,8 @@ function escapeHtml(text: string) {
 }
 
 /**
- * Печатает лист с QR-кодом встречи через скрытый iframe,
- * чтобы на листе не было интерфейса приложения.
+ * Prints a sheet with the meetup QR code through a hidden iframe,
+ * so the sheet has none of the app's interface.
  */
 export function printQr(link: string, title: string, subtitle: string) {
   const iframe = document.createElement('iframe')
@@ -17,7 +17,7 @@ export function printQr(link: string, title: string, subtitle: string) {
   document.body.append(iframe)
 
   const doc = iframe.contentDocument!
-  // Лист для печати — всегда чёрным по белому, токены темы здесь не нужны.
+  // The print sheet is always black on white, theme tokens are not needed here.
   doc.open()
   doc.write(`<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>

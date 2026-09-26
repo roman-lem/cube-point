@@ -1,4 +1,4 @@
-"""Общие заготовки для тестов API клубов и встреч."""
+"""Shared setup for club and meetup API tests."""
 
 from werkzeug.security import generate_password_hash
 
@@ -7,12 +7,12 @@ from app.extensions import db
 from app.models import Club, ClubMember, ClubRole, User, utcnow
 
 PASSWORD = "secret-pass"
-# Быстрый хеш: в тестах важна скорость, а не стойкость.
+# Fast hash: speed matters in tests, not strength.
 PASSWORD_HASH = generate_password_hash(PASSWORD, method="pbkdf2:sha256:1")
 
 
 def create_user(app, login, role=None, club_id=None, banned=False):
-    """Пользователь (с согласиями) и, если указана роль, его членство в клубе. Возвращает id."""
+    """A user (with consents) and, if a role is given, their club membership. Returns the id."""
     with app.app_context():
         user = User(login=login, display_name="Иван Петров", password_hash=PASSWORD_HASH)
         record_consents(user)
@@ -36,7 +36,7 @@ def create_club(app):
 
 
 def client_for(app, login):
-    """Отдельный клиент с вошедшим пользователем."""
+    """A separate client with a logged-in user."""
     client = app.test_client()
     response = client.post("/api/auth/login", json={"login": login, "password": PASSWORD})
     assert response.status_code == 200

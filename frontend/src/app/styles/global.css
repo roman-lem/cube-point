@@ -1,6 +1,6 @@
-/* Токены из DESIGN.md. Компоненты используют только эти переменные. */
+/* Design tokens. Components use only these variables. */
 :root {
-  /* Цвета */
+  /* Colors */
   --color-background: #f7f8fa;
   --color-surface: #ffffff;
   --color-text-primary: #1a1d23;
@@ -11,10 +11,10 @@
   --color-personal-best: #16a34a;
   --color-club-record: #7c3aed;
   --color-dnf: #dc2626;
-  /* Ошибки форм и опасные действия: тот же красный (AppInput, AppButton danger в DESIGN.md). */
+  /* Form errors and dangerous actions: the same red (AppInput, AppButton danger). */
   --color-danger: var(--color-dnf);
-  /* Фон логотипа клуба (кружок с буквой), см. CLUB_COLORS в backend/app/models.py.
-     Только для логотипов, не для оформления. */
+  /* Club logo background (a circle with a letter), see CLUB_COLORS in backend/app/models.py.
+     For logos only, not for decoration. */
   --color-logo-blue: #2563eb;
   --color-logo-sky: #0284c7;
   --color-logo-teal: #0f766e;
@@ -24,8 +24,8 @@
   --color-logo-slate: #475569;
   --color-logo-brown: #78503c;
 
-  /* Шрифты */
-  /* Подключаются в main.ts из @fontsource-variable (вариативные, все начертания). */
+  /* Fonts */
+  /* Loaded in main.ts from @fontsource-variable (variable fonts, all weights). */
   --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
@@ -40,12 +40,12 @@
   --font-size-time-small: 14px;
   --font-weight-time-small: 400;
 
-  /* Скругления */
+  /* Radii */
   --radius-card: 12px;
   --radius-button: 8px;
   --radius-badge: 6px;
 
-  /* Отступы */
+  /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -53,7 +53,7 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* Раскладка */
+  /* Layout */
   --page-padding: 16px;
   --content-max-width: 960px;
   --control-height: 44px;

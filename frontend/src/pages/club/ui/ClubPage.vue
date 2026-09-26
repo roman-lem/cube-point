@@ -29,10 +29,10 @@ watch(
 )
 
 const isOrganizer = computed(() => data.value?.my_role === 'organizer')
-// Сервер отдаёт встречи от новых к старым; ближайшие показываем по порядку дат.
+// The server returns meetups newest first; upcoming ones are shown in date order.
 const upcoming = computed(() => meetups.value.filter((m) => m.status !== 'finished').reverse())
 const past = computed(() => meetups.value.filter((m) => m.status === 'finished'))
-// Для организатора «Управление» ведёт на идущую или ближайшую встречу.
+// For an organizer, "Manage" leads to the live or the upcoming meetup.
 const currentMeetup = computed(
   () => upcoming.value.find((m) => m.status === 'live') ?? upcoming.value[0] ?? null,
 )
@@ -190,7 +190,7 @@ const meetupRoute = (meetup: MeetupSummary) => ({
   color: var(--color-on-primary);
 }
 
-/* Без кнопки «Управление» «Новая встреча» остаётся одна в ряду — на всю ширину. */
+/* Without the "Manage" button, "New meetup" is alone in the row, full width. */
 .club-page__action:nth-child(odd):last-child {
   grid-column: 1 / -1;
 }

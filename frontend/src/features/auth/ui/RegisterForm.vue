@@ -16,8 +16,8 @@ const form = ref({ display_name: '', login: '', password: '', password_repeat: '
 const consents = ref({ processing: false, publication: false })
 const loading = ref(false)
 
-// Регистрацию можно закрыть на сервере (REGISTRATION_OPEN=0). Если статус
-// не загрузился, форма остаётся: сервер всё равно проверит.
+// Registration can be closed on the server (REGISTRATION_OPEN=0). If the status
+// did not load, the form stays: the server checks anyway.
 const registrationOpen = ref(true)
 onMounted(async () => {
   registrationOpen.value = await fetchRegistrationOpen().catch(() => true)
@@ -25,7 +25,7 @@ onMounted(async () => {
 
 async function submit() {
   clearErrors()
-  // Повтор пароля проверяем только здесь, на сервер он не отправляется.
+  // Password confirmation is checked only here, it is not sent to the server.
   const errors = missingConsents(consents.value)
   if (form.value.password_repeat !== form.value.password) {
     errors.password_repeat = 'Пароли не совпадают'

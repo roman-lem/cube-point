@@ -7,12 +7,12 @@ const model = defineModel<string>({ required: true })
 const { type = 'text' } = defineProps<{
   label: string
   type?: 'text' | 'password' | 'email' | 'date' | 'time'
-  /** Ошибка под полем. Пока она есть, подсказка не показывается. */
+  /** Error under the field. While it is shown, the hint is hidden. */
   error?: string
   hint?: string
   placeholder?: string
   autocomplete?: string
-  /** Для type="date": минимальная дата YYYY-MM-DD. */
+  /** For type="date": the minimum date YYYY-MM-DD. */
   min?: string
 }>()
 
@@ -77,7 +77,7 @@ const inputType = computed(() => (type === 'password' && passwordVisible.value ?
   outline: none;
 }
 
-/* Место под кнопку «глаз». */
+/* Room for the "eye" button. */
 .app-input__control:has(.app-input__toggle) .app-input__field {
   padding-right: var(--control-height);
 }

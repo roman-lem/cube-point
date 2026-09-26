@@ -8,8 +8,8 @@ from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import MetaData, event
 from sqlalchemy.engine import Engine
 
-# Имена ограничений задаются явно: без них Alembic не сможет
-# менять таблицы SQLite в следующих миграциях.
+# Constraint names are set explicitly: without them Alembic cannot
+# alter SQLite tables in later migrations.
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_N_name)s",
@@ -19,19 +19,19 @@ NAMING_CONVENTION = {
 }
 
 db = SQLAlchemy(metadata=MetaData(naming_convention=NAMING_CONVENTION))
-# render_as_batch — изменение таблиц SQLite через пересоздание.
-# Папка миграций — backend/migrations, независимо от текущей директории.
+# render_as_batch alters SQLite tables by recreating them.
+# The migrations folder is backend/migrations regardless of the current directory.
 MIGRATIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "migrations")
 migrate = Migrate(directory=MIGRATIONS_DIR, render_as_batch=True)
 
 login_manager = LoginManager()
-# Проверяет заголовок X-CSRFToken у всех изменяющих запросов.
+# Checks the X-CSRFToken header on all modifying requests.
 csrf = CSRFProtect()
 
 
 @event.listens_for(Engine, "connect")
 def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
-    # SQLite по умолчанию не проверяет внешние ключи и не выполняет ON DELETE.
+    # By default SQLite neither checks foreign keys nor runs ON DELETE.
     if isinstance(dbapi_connection, sqlite3.Connection):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")

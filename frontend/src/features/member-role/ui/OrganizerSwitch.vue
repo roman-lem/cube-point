@@ -6,9 +6,9 @@ import { ApiError } from '@/shared/api'
 import { ConfirmDialog, SettingRow } from '@/shared/ui'
 import { makeOrganizer, removeOrganizer } from '../api/organizerApi'
 
-// Переключатель «Организатор клуба». Снятый организатор остаётся участником,
-// последнего снять нельзя. Снять права с самого себя — только с подтверждением:
-// после этого управлять клубом уже не получится.
+// The "Club organizer" switch. A removed organizer stays a member,
+// the last one cannot be removed. Removing one's own rights requires confirmation:
+// after that one can no longer manage the club.
 const { clubId, member } = defineProps<{ clubId: number; member: ClubMemberCard }>()
 const emit = defineEmits<{ changed: [member: ClubMemberCard] }>()
 

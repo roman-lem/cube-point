@@ -1,4 +1,4 @@
-"""Вход, регистрация и сессии. Эндпоинты — в routes.py, адреса /api/auth/…"""
+"""Login, registration and sessions. Endpoints are in routes.py, routes /api/auth/…"""
 
 from flask import Blueprint
 
@@ -11,8 +11,8 @@ auth = Blueprint("auth", __name__, url_prefix="/auth")
 
 @login_manager.user_loader
 def load_user(user_id):
-    # user_id — строка из User.get_id(): "id:session_version".
-    # Если версия устарела (сброс или смена пароля), сессия не действует.
+    # user_id is the string from User.get_id(): "id:session_version".
+    # If the version is outdated (password reset or change), the session is invalid.
     id_part, _, version = user_id.partition(":")
     if not (id_part.isdigit() and version.isdigit()):
         return None
@@ -27,4 +27,4 @@ def unauthorized():
     return error_response(ApiError(401, "unauthorized", "Нужно войти"))
 
 
-from . import routes  # noqa: E402, F401 — регистрирует эндпоинты в auth
+from . import routes  # noqa: E402, F401 — registers the endpoints in auth

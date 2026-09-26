@@ -2,7 +2,7 @@
 import { formatDate, plural } from '@/shared/lib'
 import type { ClubSummary } from '../model/types'
 
-// Карточка клуба в списках клубов (лендинг, страница всех клубов).
+// Club card in club lists (landing, all clubs page).
 defineProps<{ club: ClubSummary }>()
 </script>
 

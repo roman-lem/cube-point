@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
-// Адрес бэкенда для dev-сервера. В Docker запросы проксирует nginx.
+// Backend address for the dev server. In Docker, nginx proxies the requests.
 const backendUrl = process.env.VITE_BACKEND_URL ?? 'http://localhost:5000'
 
 export default defineConfig({

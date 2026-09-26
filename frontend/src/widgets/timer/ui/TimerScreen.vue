@@ -6,32 +6,32 @@ import { AppButton, AppIcon } from '@/shared/ui'
 import type { SuggestedPenalty } from '../model/machine'
 import { inspectionCountdown, useTimer, type StoppedSolve } from '../model/useTimer'
 
-/** Результат сборки: время без штрафа и штраф. У DNF время может быть. */
+/** Solve result: time without the penalty and the penalty. DNF may have a time. */
 export interface TimerResult {
   value: number | null
   penalty: SuggestedPenalty
 }
 
-// Экран таймера (макет timer_series): сверху скрамбл и управление,
-// всё остальное — зона касания.
+// Timer screen: the scramble and controls on top,
+// everything else is the touch area.
 //
-// training — сборка сразу уходит в solved, страница сохраняет её в сессию;
-// last — последняя сборка сессии, слот last — строка «Последняя» под таймером.
-// series — после сборки участник выбирает OK / +2 / DNF и нажимает
-// «Сохранить попытку» (save). Несохранённый результат — v-model:pending,
-// чтобы страница могла пережить с ним перезагрузку.
+// training: a solve goes straight to solved and the page saves it to the session;
+// last is the last solve of the session, the last slot is the "Last" line under the timer.
+// series: after a solve the participant picks OK / +2 / DNF and presses
+// "Save attempt" (save). The unsaved result is v-model:pending,
+// so the page can keep it across a reload.
 const pending = defineModel<TimerResult | null>('pending', { default: null })
 
 const { mode, scramble, saving = false, last = null } = defineProps<{
   mode: 'training' | 'series'
-  /** null — скрамбл ещё генерируется или загружается. */
+  /** null: the scramble is still being generated or loaded. */
   scramble: string | null
-  /** Заголовок блока скрамбла: «Тренировка», «Попытка 3 из 5». */
+  /** Scramble block title: «Тренировка», «Попытка 3 из 5». */
   scrambleTitle: string
-  /** Кнопка нового скрамбла (только в тренировке). */
+  /** New scramble button (training only). */
   canRefresh?: boolean
   saving?: boolean
-  /** Последняя сборка тренировки: показывается на табло сразу после сборки. */
+  /** The last training solve: shown on the display right after the solve. */
   last?: TimerResult | null
 }>()
 
@@ -41,7 +41,7 @@ const emit = defineEmits<{
   'refresh-scramble': []
 }>()
 
-// Настройки таймера — удобство этого устройства, хранятся в браузере.
+// Timer settings are a convenience of this device, stored in the browser.
 const inspection = useLocalStorage('timer-inspection', false)
 const manual = useLocalStorage('timer-manual', false)
 const isTouch = useMediaQuery('(pointer: coarse)')
@@ -115,7 +115,7 @@ const isWarning = computed(() => {
   return phase.value !== 'running' && elapsedMs !== null && elapsedMs >= 8_000
 })
 
-// Ручной ввод
+// Manual entry
 
 const manualText = ref('')
 const manualError = ref('')
@@ -131,7 +131,7 @@ function submitManual() {
   finish({ value, penalty: 'none' })
 }
 
-// Выбор штрафа и сохранение
+// Penalty choice and saving
 
 const PENALTIES: { value: SuggestedPenalty; label: string }[] = [
   { value: 'none', label: 'OK' },
@@ -303,7 +303,7 @@ defineExpose({ reset: timer.reset })
   gap: var(--space-3);
 }
 
-/* Во время сборки ничего не отвлекает, но раскладка не прыгает. */
+/* Nothing distracts during a solve, but the layout does not jump. */
 .timer--running .timer__top,
 .timer--running .timer__last {
   visibility: hidden;
@@ -506,7 +506,7 @@ defineExpose({ reset: timer.reset })
   color: var(--color-on-primary);
 }
 
-/* Выбранный DNF — красная рамка, а не красная заливка (DESIGN.md, AppButton). */
+/* A selected DNF gets a red border, not a red fill (as the danger AppButton). */
 .timer__penalty--dnf.timer__penalty--active {
   background: var(--color-surface);
   border: 2px solid var(--color-dnf);

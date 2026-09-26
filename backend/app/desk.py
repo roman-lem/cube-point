@@ -1,9 +1,9 @@
-"""Панель организатора: ручной ввод и правка результатов, участники,
-дисквалификация, завершение встречи и скрамблы для печати.
+"""Organizer desk: manual entry and editing of results, participants,
+disqualification, finishing a meetup and scrambles for printing.
 
-Адреса: /api/meetups/<id>/desk, …/attempts/<n>, …/participants, …/finish и т. д.
-Все действия — только организатору клуба встречи. Правила — разделы «Встречи»,
-«Панель организатора» и «Дисквалификация и блокировка» CLAUDE.md.
+Routes: /api/meetups/<id>/desk, …/attempts/<n>, …/participants, …/finish, etc.
+All actions are for organizers of the meetup's club only. Rules: "Meetups",
+"Organizer desk" and "Disqualification and bans" in docs/ARCHITECTURE.md.
 """
 
 from flask import Blueprint, request
@@ -30,7 +30,7 @@ from .series import fmc_deadline, get_meetup_event, parse_value
 
 desk = Blueprint("desk", __name__)
 
-# Организатор ставит любой штраф, в том числе DNS. В FMC штрафа +2 нет.
+# The organizer can set any penalty, including DNS. FMC has no +2.
 TIME_PENALTIES = {p.value for p in Penalty}
 FMC_PENALTIES = TIME_PENALTIES - {Penalty.PLUS2.value}
 MAX_REASON_LENGTH = 500
@@ -46,7 +46,7 @@ def serialize_user(user):
     return {"id": user.id, "display_name": user.display_name, "login": user.login}
 
 
-# Данные панели
+# Desk data
 
 def serialize_desk_attempts(series, count):
     attempts = [None] * count
@@ -59,17 +59,17 @@ def serialize_desk_attempts(series, count):
 
 
 def serialize_desk_event(meetup_event, participants, disqualified):
-    """Дисциплина для таблицы ввода: строка на каждого подтверждённого участника.
+    """Event for the entry table: a row for every approved participant.
 
-    Строки по имени, а не по месту: иначе при вводе они прыгали бы под курсором.
-    Место и отметки рекордов — у строк из таблицы дисциплины. Дисквалифицированные
-    тоже в списке, чтобы организатор мог поправить их попытки, но без места.
+    Rows are sorted by name, not by place: otherwise they would jump under the cursor.
+    Place and record marks come from the event table rows. Disqualified participants
+    are listed too, so the organizer can fix their attempts, but without a place.
     """
     count = ATTEMPTS_COUNT[meetup_event.format.value]
     ranked = {row["series"].user_id: row for row in event_table(meetup_event)}
     series_by_user = {s.user_id: s for s in meetup_event.series}
     users = {p.user_id: p.user for p in participants}
-    # Серия могла остаться у человека, чью заявку потом не подтвердили.
+    # A series may remain for someone whose request was later not approved.
     for series in meetup_event.series:
         users.setdefault(series.user_id, series.user)
 
@@ -110,7 +110,7 @@ def desk_event(meetup, meetup_event):
 
 @desk.get("/meetups/<int:meetup_id>/desk")
 def get_desk(meetup_id):
-    """Всё для панели встречи: участники с дисквалификациями и таблицы дисциплин."""
+    """Everything for the meetup desk: participants with disqualifications and event tables."""
     meetup = get_organizer_meetup(meetup_id)
     participants = approved_participants(meetup)
     disqualifications = {d.user_id: d for d in meetup.disqualifications}
@@ -129,7 +129,7 @@ def get_desk(meetup_id):
     }
 
 
-# Ввод и правка попыток
+# Entering and editing attempts
 
 def require_started(meetup):
     if meetup.status == MeetupStatus.PLANNED:
@@ -140,11 +140,11 @@ def require_started(meetup):
     "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>"
 )
 def put_attempt(meetup_id, event_id, user_id, number):
-    """Ввод или правка попытки участника организатором.
+    """An organizer enters or edits a participant's attempt.
 
-    Можно поправить любую сохранённую попытку или добавить следующую по порядку.
-    Нет серии — она создаётся с первой попыткой (version в запросе — null).
-    Работает и после завершения встречи: ручная обработка бумажных бланков.
+    Any saved attempt can be edited, or the next one in order added.
+    No series yet: it is created with the first attempt (version in the request is null).
+    Works after the meetup is finished too: manual processing of paper sheets.
     """
     meetup = get_organizer_meetup(meetup_id)
     require_started(meetup)
@@ -184,7 +184,7 @@ def put_attempt(meetup_id, event_id, user_id, number):
         save_attempt(series, number, value, penalty, version, current_user, solution=solution)
         db.session.commit()
     except (VersionConflict, StaleDataError, IntegrityError):
-        # IntegrityError — серию за участника параллельно создал другой запрос.
+        # IntegrityError: another request created the series for the participant concurrently.
         db.session.rollback()
         conflict = VersionConflict()
         conflict.extra = {"event": desk_event(meetup, meetup_event)}
@@ -196,9 +196,9 @@ def put_attempt(meetup_id, event_id, user_id, number):
     "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>"
 )
 def remove_attempt(meetup_id, event_id, user_id, number):
-    """Стирает ошибочно введённую попытку — только последнюю в серии.
+    """Erases a mistakenly entered attempt, only the last one in the series.
 
-    Серия без попыток удаляется. Тело запроса — {"version"} прочитанной серии.
+    A series without attempts is deleted. Request body: {"version"} of the series as read.
     """
     meetup = get_organizer_meetup(meetup_id)
     meetup_event = get_meetup_event(meetup, event_id)
@@ -241,7 +241,7 @@ def find_attempt(meetup_event, user_id, number):
     "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>/history"
 )
 def attempt_history(meetup_id, event_id, user_id, number):
-    """Журнал попытки: значения по порядку, кто и когда их установил. Первое — исходное."""
+    """Attempt history: values in order, who set them and when. The first one is the original."""
     meetup = get_organizer_meetup(meetup_id)
     _, attempt = find_attempt(get_meetup_event(meetup, event_id), user_id, number)
     return {"history": [
@@ -262,10 +262,10 @@ def attempt_history(meetup_id, event_id, user_id, number):
     "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>/restore"
 )
 def restore_attempt(meetup_id, event_id, user_id, number):
-    """Возвращает попытке исходный результат (первую запись журнала).
+    """Restores the attempt's original result (the first history entry).
 
-    Это обычная правка через save_attempt: она тоже попадает в журнал и
-    пересчитывает рекорды. Тело запроса — {"version"} прочитанной серии.
+    It is a regular edit through save_attempt: it also goes to the history and
+    recalculates records. Request body: {"version"} of the series as read.
     """
     meetup = get_organizer_meetup(meetup_id)
     meetup_event = get_meetup_event(meetup, event_id)
@@ -289,13 +289,13 @@ def restore_attempt(meetup_id, event_id, user_id, number):
     return {"event": desk_event(meetup, meetup_event)}
 
 
-# Участники
+# Participants
 
 @desk.get("/meetups/<int:meetup_id>/candidates")
 def list_candidates(meetup_id):
-    """Участники клуба для ручного добавления на встречу, с поиском по имени и логину.
+    """Club members for adding to the meetup manually, with search by name and login.
 
-    Поиск — в Python: LOWER в SQLite не понимает кириллицу, а участников клуба немного.
+    Search is in Python: LOWER in SQLite does not handle Cyrillic, and clubs are small.
     """
     meetup = get_organizer_meetup(meetup_id)
     query = request.args.get("q", "").strip().casefold()
@@ -317,10 +317,10 @@ def list_candidates(meetup_id):
 
 @desk.post("/meetups/<int:meetup_id>/participants")
 def add_participant(meetup_id):
-    """Добавляет участника сразу подтверждённым.
+    """Adds a participant as already approved.
 
-    {"user_id"} — участник клуба; {"display_name", "login"} — новый аккаунт
-    с временным паролем. Пароль возвращается один раз и больше нигде не хранится.
+    {"user_id"} is a club member; {"display_name", "login"} is a new account
+    with a temporary password. The password is returned once and not stored anywhere else.
     """
     meetup = get_organizer_meetup(meetup_id)
     data = json_body()
@@ -349,7 +349,7 @@ def add_participant(meetup_id):
     return {"user": serialize_user(user), "temporary_password": password}, 201
 
 
-# Дисквалификация
+# Disqualification
 
 def serialize_disqualification(disqualification):
     if disqualification is None:
@@ -358,7 +358,7 @@ def serialize_disqualification(disqualification):
 
 
 def parse_reason():
-    """Обязательная причина дисквалификации или блокировки из тела запроса."""
+    """The required reason for a disqualification or ban from the request body."""
     reason = collapse_spaces(get_str(json_body(), "reason"))
     raise_if_errors({
         "reason": "Укажите причину" if not reason else (
@@ -376,7 +376,7 @@ def recalc_meetup_records(meetup):
 
 @desk.put("/meetups/<int:meetup_id>/participants/<int:user_id>/disqualification")
 def disqualify(meetup_id, user_id):
-    """Дисквалификация на встрече: результаты участника уходят из таблиц и рекордов."""
+    """Disqualification at a meetup: the participant's results leave the tables and records."""
     meetup = get_organizer_meetup(meetup_id)
     if db.session.get(MeetupParticipant, (meetup.id, user_id)) is None:
         raise ApiError(404, "not_found", "Участника нет на встрече")
@@ -409,12 +409,12 @@ def find_disqualification(meetup, user_id):
     return next((d for d in meetup.disqualifications if d.user_id == user_id), None)
 
 
-# Завершение встречи
+# Finishing a meetup
 
 def unresolved_fmc(meetup):
-    """Начатые, но не сданные попытки FMC: [(серия, попытка FMC)].
+    """Started but not submitted FMC attempts: [(series, FMC attempt)].
 
-    Их нельзя просто сделать DNS — организатор разрешает их до завершения.
+    They cannot simply become DNS: the organizer resolves them before finishing.
     """
     result = []
     for meetup_event in meetup.events:
@@ -429,7 +429,7 @@ def unresolved_fmc(meetup):
 
 
 def fmc_state(fmc_attempt, now):
-    """frozen — сдача заморожена, expired — час вышел без сдачи, running — час идёт."""
+    """frozen: submission frozen, expired: the hour ran out without submission, running: the hour is on."""
     if fmc_attempt.frozen_at is not None:
         return "frozen", fmc_attempt.frozen_solution, fmc_attempt.frozen_at
     if now >= fmc_deadline(fmc_attempt):
@@ -445,7 +445,7 @@ def in_progress_series(meetup):
 
 @desk.get("/meetups/<int:meetup_id>/finish-summary")
 def finish_summary(meetup_id):
-    """Сводка для диалога завершения: незавершённые серии и неразрешённые попытки FMC."""
+    """Summary for the finish dialog: unfinished series and unresolved FMC attempts."""
     meetup = get_organizer_meetup(meetup_id)
     now = utcnow()
 
@@ -468,7 +468,7 @@ def finish_summary(meetup_id):
     for series, fmc_attempt in unresolved_fmc(meetup):
         state, solution, _ = fmc_state(fmc_attempt, now)
         scramble = series.meetup_event.scrambles[fmc_attempt.attempt_number - 1]
-        # Эти попытки не станут DNS: их разрешает организатор.
+        # These attempts will not become DNS: the organizer resolves them.
         dns_count -= 1
         fmc.append({
             "series_id": series.id,
@@ -490,10 +490,10 @@ def finish_summary(meetup_id):
 
 @desk.post("/meetups/<int:meetup_id>/fmc/<int:series_id>/<int:number>/resolve")
 def resolve_fmc(meetup_id, series_id, number):
-    """Результат неразрешённой попытки FMC, проверенной в браузере организатора.
+    """Result of an unresolved FMC attempt, checked in the organizer's browser.
 
-    Решение — замороженный текст или, если час вышел без сдачи, последний черновик.
-    Пока час идёт, можно поставить только DNF (текущий черновик сохраняется).
+    The solution is the frozen text or, if the hour ran out without submission, the last draft.
+    While the hour is running, only DNF can be set (the current draft is kept).
     """
     meetup = get_organizer_meetup(meetup_id)
     if meetup.status != MeetupStatus.LIVE:
@@ -533,9 +533,9 @@ def resolve_fmc(meetup_id, series_id, number):
 
 @desk.post("/meetups/<int:meetup_id>/finish")
 def finish_meetup(meetup_id):
-    """Завершение: несобранные попытки начатых серий становятся DNS, ссылка перестаёт работать.
+    """Finishing: missing attempts of started series become DNS, the join link stops working.
 
-    Неразрешённые попытки FMC должны быть разрешены до завершения.
+    Unresolved FMC attempts must be resolved before finishing.
     """
     meetup = get_organizer_meetup(meetup_id)
     if meetup.status != MeetupStatus.LIVE:
@@ -553,17 +553,17 @@ def finish_meetup(meetup_id):
         meetup.join_token = None
         db.session.commit()
     except (VersionConflict, StaleDataError):
-        # Участник успел сдать попытку, пока шло завершение.
+        # A participant submitted an attempt while finishing was in progress.
         db.session.rollback()
         raise ApiError(409, "version_conflict", "Кто-то успел сохранить попытку, попробуйте ещё раз")
     return {"meetup": serialize_meetup(meetup)}
 
 
-# Скрамблы для печати
+# Scrambles for printing
 
 @desk.get("/meetups/<int:meetup_id>/scrambles")
 def meetup_scrambles(meetup_id):
-    """Скрамблы встречи для бланков. FMC не печатается: его скрамбл выдаётся после старта."""
+    """Meetup scrambles for score sheets. FMC is not printed: its scramble is given after the start."""
     meetup = get_organizer_meetup(meetup_id)
     return {"events": [
         {

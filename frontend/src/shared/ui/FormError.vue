@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue'
 
-// Общая ошибка формы, не относящаяся к одному полю («Неверный логин или пароль»).
+// A general form error not tied to one field ("wrong login or password").
 defineProps<{ message: string }>()
 </script>
 

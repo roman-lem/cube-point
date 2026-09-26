@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Строка про бету — в подвале лендинга и страницы клубов.
+// The beta line in the footer of the landing and the clubs page.
 defineProps<{ betaNote?: boolean }>()
 </script>
 
@@ -19,7 +19,7 @@ defineProps<{ betaNote?: boolean }>()
 
 <style scoped>
 .app-footer {
-  /* Внизу страницы, но перед местом под нижнюю навигацию (order: 99). */
+  /* At the bottom of the page, but before the space for the bottom navigation (order: 99). */
   order: 98;
   display: flex;
   flex-direction: column;

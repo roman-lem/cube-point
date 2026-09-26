@@ -1,4 +1,4 @@
-"""Удаление аккаунта: персональные данные уничтожаются, результаты и рекорды остаются."""
+"""Account deletion: personal data is destroyed, results and records stay."""
 
 from app.accounts import DELETED_REASON
 from app.consents import CONSENT_VERSIONS
@@ -10,7 +10,7 @@ from app.models import (
 
 from .helpers import ORGANIZER, PASSWORD, client_for, create_user, error
 from .test_profiles import club_records, disqualify, members, personal_records, profile
-from .test_series import (  # noqa: F401 — фикстуры
+from .test_series import (  # noqa: F401 — fixtures
     clients, meetup_id, org, records, results, solve, user_id_of, world,
 )
 
@@ -79,7 +79,7 @@ def test_deletion_ends_all_sessions_and_frees_login(world, clients):
         "/api/auth/login", json={"login": "anna", "password": PASSWORD},
     )
     assert login.status_code == 401
-    # Логин освободился, его может занять новый человек.
+    # The login is free again and a new person can take it.
     create_user(world["app"], "anna")
 
 
@@ -97,7 +97,7 @@ def test_results_and_records_stay_with_deleted_name(world, clients, meetup_id):
     row = results(guest, meetup_id)[0]
     assert row["user"] == {"id": anna, "display_name": DELETED_USER_NAME, "has_profile": True}
     assert club_records(guest, world)["333"]["single"]["user"]["display_name"] == DELETED_USER_NAME
-    # Публичный профиль остаётся, но без клубов: человек вышел из них.
+    # The public profile stays, but without clubs: the person left them.
     assert profile(guest, anna)["user"]["display_name"] == DELETED_USER_NAME
     assert profile(guest, anna)["clubs"] == []
     assert personal_records(guest, anna)["333"]["single"]["value"] == 1000
@@ -118,7 +118,7 @@ def test_ban_and_disqualification_reasons_are_removed(world, org, clients, meetu
         )
         assert disqualification.reason == DELETED_REASON
         assert db.session.get(ClubMember, (world["club_id"], anna)) is None
-    # Дисквалификация осталась: результаты по-прежнему не в таблице.
+    # The disqualification stays: the results are still not in the table.
     assert results(world["app"].test_client(), meetup_id) == []
 
 
@@ -163,7 +163,7 @@ def test_account_without_consents_can_be_deleted(world):
     assert delete_account(client).status_code == 204
 
 
-# Удаление с сохранённым именем
+# Deletion with the name kept
 
 def consents_of(world, user_id):
     with world["app"].app_context():
@@ -199,8 +199,8 @@ def test_deletion_with_keep_name_keeps_only_name(world, clients):
     assert user.email is None
     assert user.password_hash is None
     assert user.deleted_at is not None
-    # Остальные согласия удалены, осталась одна запись: согласие на распространение
-    # не отозвано для имени, версия — та, что давал человек.
+    # Other consents are deleted, one entry is left: the publication consent
+    # is not withdrawn for the name, with the version the person gave.
     assert consents_of(world, anna) == [
         (ConsentType.DELETED_NAME, CONSENT_VERSIONS[ConsentType.PUBLICATION]),
     ]

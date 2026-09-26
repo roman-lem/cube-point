@@ -8,8 +8,8 @@ import {
 } from '../api/participantsApi'
 import NewcomerForm from './NewcomerForm.vue'
 
-// Ручное добавление участника на встречу (сразу подтверждённым): поиск среди
-// участников клуба или новый аккаунт с временным паролем для пришедших без телефона.
+// Adding a participant to a meetup manually (approved right away): search among
+// club members or a new account with a temporary password for those who came without a phone.
 const { meetupId } = defineProps<{ meetupId: number }>()
 const emit = defineEmits<{ added: [] }>()
 

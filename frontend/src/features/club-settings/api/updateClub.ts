@@ -6,7 +6,7 @@ export interface ClubSettings {
   city: string
   description: string
   logo_color: LogoColor
-  /** Заменяют все ссылки клуба, порядок сохраняется. */
+  /** Replace all club links, the order is kept. */
   links: ClubLink[]
 }
 

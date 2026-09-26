@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Строка настройки: заголовок и описание слева, действие справа (слот).
-// restriction — почему действие недоступно: показывается под описанием,
-// чтобы неактивная кнопка не была загадкой.
+// Setting row: title and description on the left, an action on the right (slot).
+// restriction is why the action is unavailable: it is shown under the description
+// so a disabled button is not a mystery.
 defineProps<{ title: string; description: string; restriction?: string | null }>()
 </script>
 

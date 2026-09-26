@@ -7,20 +7,20 @@ import {
 import { INVALID_INPUT_MESSAGE, type CellState } from '../model/useAttemptSaving'
 import SaveIndicator from './SaveIndicator.vue'
 
-// Поле попытки для ручного ввода на телефоне (макет org_series_edit).
-// Сохраняется само: при потере фокуса, по Enter и по кнопкам +2 / DNF.
-// Пустое поле стирает попытку (сервер разрешает стереть только последнюю и только
-// введённую организатором).
+// Attempt field for manual entry on a phone.
+// Saves itself: on blur, on Enter and on the +2 / DNF buttons.
+// An empty field erases the attempt (the server allows erasing only the last one and only
+// one entered by the organizer).
 const { attempt, resultType, disabled = false, state } = defineProps<{
   number: number
   attempt: Attempt | null
   resultType: ResultType
-  /** Предыдущие попытки ещё не введены. */
+  /** Previous attempts are not entered yet. */
   disabled?: boolean
   state?: CellState
-  /** Текст решения FMC, только для просмотра. */
+  /** FMC solution text, read-only. */
   solution?: string
-  /** Попытку исправляли: ссылка на историю правок. */
+  /** The attempt was corrected: a link to the edit history. */
   edited?: boolean
 }>()
 const emit = defineEmits<{ save: [attempt: Attempt | null]; history: [] }>()
@@ -29,7 +29,7 @@ const text = ref('')
 const focused = ref(false)
 const invalid = ref(false)
 
-// Пока поле в фокусе, свежие данные с сервера не перетирают ввод.
+// While the field is focused, fresh data from the server does not overwrite the input.
 watch(
   () => attempt,
   () => {

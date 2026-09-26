@@ -2,7 +2,7 @@
 import { AppIcon } from '@/shared/ui'
 import type { CellState } from '../model/useAttemptSaving'
 
-// Состояние сохранения ячейки или поля: сохраняется, сохранено, ошибка с повтором.
+// Save state of a cell or field: saving, saved, error with retry.
 defineProps<{ state?: CellState }>()
 </script>
 

@@ -5,7 +5,7 @@ export async function fetchClubs() {
   return (await http.get<{ clubs: ClubSummary[] }>('/api/clubs')).clubs
 }
 
-/** Клуб последней встречи вошедшего (куда ведёт корень сайта) или null. */
+/** Club of the logged-in user's latest meetup (where the site root leads), or null. */
 export async function fetchHomeClubId() {
   return (await http.get<{ club_id: number | null }>('/api/auth/home-club')).club_id
 }

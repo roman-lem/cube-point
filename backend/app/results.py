@@ -1,26 +1,26 @@
-"""Подсчёт результатов серии, средних тренировки и форматирование для отображения.
+"""Series results, training averages and formatting for display.
 
-Это источник правды. Фронтенд повторяет ту же логику в
-frontend/src/shared/lib/results/results.ts, обе реализации проверяются
-общими тестами из testdata/results_cases.json.
+This is the source of truth. The frontend repeats the same logic in
+frontend/src/shared/lib/results/results.ts; both implementations are checked
+by the shared cases in testdata/results_cases.json.
 
-Время — целое число в сотых долях секунды, FMC — число ходов.
-Среднее FMC — в сотых долях хода. Попытка — словарь
+Time is an integer in hundredths of a second, FMC is a number of moves.
+The FMC mean is in hundredths of a move. An attempt is a dict
 {"value": int | None, "penalty": "none" | "plus2" | "dnf" | "dns"}.
 """
 
-# Результат DNF (попытки или серии). DNS в подсчёте тоже даёт DNF.
+# DNF result (of an attempt or a series). DNS also gives DNF in calculations.
 DNF = -1
 
 PENALTIES = ("none", "plus2", "dnf", "dns")
 RESULT_TYPES = ("time", "moves")
 ATTEMPTS_COUNT = {"ao5": 5, "mo3": 3, "bo5": 5, "bo3": 3, "bo1": 1}
 
-PLUS_TWO = 200  # +2 секунды в сотых долях
+PLUS_TWO = 200  # +2 seconds in hundredths
 
 
 def attempt_value(attempt, result_type):
-    """Итоговое значение попытки: со штрафом +2 или DNF."""
+    """Final value of an attempt: with the +2 penalty, or DNF."""
     _check_attempt(attempt, result_type)
     if attempt["penalty"] in ("dnf", "dns"):
         return DNF
@@ -30,18 +30,18 @@ def attempt_value(attempt, result_type):
 
 
 def calc_series(attempts, series_format, result_type):
-    """Лучший результат, среднее и учитываемые попытки серии.
+    """Best result, average and counting attempts of a series.
 
-    attempts — попытки по порядку, не больше числа попыток формата.
-    Несобранная попытка — None или отсутствует в конце списка.
+    attempts are in order, no more than the format's number of attempts.
+    An attempt not yet done is None or missing at the end of the list.
 
-    Возвращает словарь:
-      best     — лучшая из введённых попыток, DNF или None, если попыток нет;
-      average  — среднее для ao5 и mo3, DNF или None, пока серия не закончена;
-                 для bo-форматов всегда None;
-      counting — по флагу на каждую попытку формата: False у отброшенных
-                 в ao5 (показываются в скобках). Пока серия не закончена,
-                 все True.
+    Returns a dict:
+      best     — best of the entered attempts, DNF, or None if there are no attempts;
+      average  — average for ao5 and mo3, DNF, or None while the series is unfinished;
+                 always None for bo formats;
+      counting — a flag for each attempt of the format: False for the ones dropped
+                 in ao5 (shown in parentheses). While the series is unfinished,
+                 all are True.
     """
     if series_format not in ATTEMPTS_COUNT:
         raise ValueError(f"Неизвестный формат: {series_format}")
@@ -59,13 +59,13 @@ def calc_series(attempts, series_format, result_type):
     counting = [True] * count
 
     if series_format == "ao5":
-        # Два DNF — среднее DNF сразу, даже если серия не закончена.
-        # Остальные попытки при этом всё равно можно дособрать.
+        # Two DNFs make the average DNF right away, even if the series is unfinished.
+        # The remaining attempts can still be done.
         if dnf_count >= 2:
             average = DNF
         if is_complete:
-            # Стабильная сортировка: при равенстве отбрасывается
-            # первая из лучших и последняя из худших.
+            # Stable sort: on ties the first of the best
+            # and the last of the worst are dropped.
             order = sorted(range(count), key=lambda i: _sort_key(values[i]))
             dropped = {order[0], order[-1]}
             counting = [i not in dropped for i in range(count)]
@@ -81,10 +81,10 @@ def calc_series(attempts, series_format, result_type):
 
 
 def average_of(attempts, n, result_type):
-    """Среднее последних n попыток (ao5, ao12 тренировки) или None, если их меньше n.
+    """Average of the last n attempts (training ao5, ao12), or None if there are fewer than n.
 
-    Отбрасываются одна лучшая и одна худшая попытка, остальные усредняются.
-    Один DNF отбрасывается как худшая, два и более — среднее DNF.
+    One best and one worst attempt are dropped, the rest are averaged.
+    One DNF is dropped as the worst; two or more make the average DNF.
     """
     _check_window(n)
     if result_type not in RESULT_TYPES:
@@ -96,8 +96,8 @@ def average_of(attempts, n, result_type):
 
 
 def rolling_averages(attempts, n, result_type):
-    """Скользящие средние: для каждой попытки — среднее n попыток, которыми
-    она заканчивается (как average_of). У первых n - 1 попыток — None.
+    """Rolling averages: for each attempt, the average of the n attempts
+    ending with it (as average_of). The first n - 1 attempts get None.
     """
     _check_window(n)
     if result_type not in RESULT_TYPES:
@@ -110,7 +110,7 @@ def rolling_averages(attempts, n, result_type):
 
 
 def format_result(value, result_type, is_average=False):
-    """Результат для отображения: 9.87, 1:02.45, 28, 28.33, DNF, —."""
+    """Result for display: 9.87, 1:02.45, 28, 28.33, DNF, —."""
     if result_type not in RESULT_TYPES:
         raise ValueError(f"Неизвестный тип результата: {result_type}")
     if value is None:
@@ -125,7 +125,7 @@ def format_result(value, result_type, is_average=False):
 
 
 def format_attempt(attempt, result_type):
-    """Попытка для отображения: 9.87, 11.87 (+2), DNF, DNS, —."""
+    """Attempt for display: 9.87, 11.87 (+2), DNF, DNS, —."""
     if attempt is None:
         return "—"
     value = attempt_value(attempt, result_type)
@@ -148,19 +148,19 @@ def _check_attempt(attempt, result_type):
         if penalty in ("none", "plus2"):
             raise ValueError("У попытки без DNF/DNS должно быть значение")
         return
-    # bool — подкласс int в Python, его отсекаем явно.
+    # bool is a subclass of int in Python, so it is excluded explicitly.
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"Значение попытки должно быть целым больше нуля: {value}")
 
 
 def _check_window(n):
-    # Меньше трёх попыток: после отбрасывания лучшей и худшей нечего усреднять.
+    # Fewer than three attempts: nothing left to average after dropping the best and worst.
     if not isinstance(n, int) or isinstance(n, bool) or n < 3:
         raise ValueError(f"Число попыток для среднего должно быть не меньше 3: {n}")
 
 
 def _trimmed_mean(values, result_type):
-    """Среднее без одной лучшей и одной худшей попытки; два DNF и более — DNF."""
+    """Average without one best and one worst attempt; two or more DNFs give DNF."""
     if values.count(DNF) >= 2:
         return DNF
     kept = sorted(values, key=_sort_key)[1:-1]
@@ -168,7 +168,7 @@ def _trimmed_mean(values, result_type):
 
 
 def _sort_key(value):
-    # DNF хуже любого времени.
+    # DNF is worse than any time.
     return (value == DNF, value)
 
 
@@ -182,10 +182,10 @@ def _best(values):
 
 
 def _mean(values, result_type):
-    # Округление вниз до сотых: тысячные просто отбрасываются.
+    # Round down to hundredths: thousandths are simply dropped.
     total = sum(values)
     if result_type == "moves":
-        total *= 100  # среднее FMC — в сотых долях хода
+        total *= 100  # the FMC mean is in hundredths of a move
     return total // len(values)
 
 

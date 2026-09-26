@@ -14,22 +14,22 @@ import {
 export const sessionKey = (eventId: string) => `training-session:${eventId}`
 
 /**
- * Тренировочная сессия дисциплины в localStorage. Переживает перезагрузку,
- * на сервер не отправляется. Экземпляры на одной странице (таймер,
- * статистика) видят одни и те же данные. При смене eventId читается
- * сессия другой дисциплины.
+ * Training session of an event in localStorage. Survives a reload and
+ * is not sent to the server. Instances on one page (timer,
+ * statistics) see the same data. When eventId changes, the session
+ * of the other event is read.
  *
- * storage — для тестов; если хранилище недоступно (приватный режим),
- * сессия живёт только в памяти.
+ * storage is for tests; if storage is unavailable (private mode),
+ * the session lives only in memory.
  */
 export function useTrainingSession(eventId: MaybeRefOrGetter<string>, storage?: StorageLike) {
-  // Сессию меняем только заменой массива: пустой массив по умолчанию
-  // useStorage отдаёт одним и тем же объектом.
+  // The session is changed only by replacing the array: useStorage returns
+  // the default empty array as the same object.
   const solves = useStorage<TrainingSolve[]>(() => sessionKey(toValue(eventId)), [], storage, {
     serializer: { read: parseSession, write: serializeSession },
     writeDefaults: false,
-    // Синхронная запись: с отложенной ('pre') запись, поставленная в очередь
-    // до смены дисциплины, уходила уже под ключ новой дисциплины.
+    // Synchronous writes: with the deferred ('pre') flush, a write queued
+    // before an event change went under the new event's key.
     flush: 'sync',
   })
 

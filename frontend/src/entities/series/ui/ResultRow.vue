@@ -3,25 +3,25 @@ import type { RouteLocationRaw } from 'vue-router'
 import { plural } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
-// Строка таблицы результатов. Время и отметки рекордов передаются слотами
-// (TimeValue и RecordBadge — в других слайсах entities), развёрнутая часть
-// (обычно AttemptSeries) — слотом по умолчанию.
+// A result table row. The time and record marks are passed via slots
+// (TimeValue and RecordBadge are in other entities slices), the expanded part
+// (usually AttemptSeries) via the default slot.
 //
-// Имя — ссылка на профиль, строка разворачивается нажатием в любом другом месте:
-// кнопка разворота растянута на всю строку (::after), а ссылка лежит поверх неё.
-// Так ссылка не оказывается внутри кнопки.
+// The name links to the profile; tapping anywhere else expands the row:
+// the expand button is stretched over the whole row (::after) and the link lies on top of it.
+// This way the link is not inside the button.
 const expanded = defineModel<boolean>('expanded', { default: false })
 
 defineProps<{
   place: number | null
   name: string
-  /** Профиль участника, на который ведёт имя. */
+  /** The member profile the name links to. */
   profileTo?: RouteLocationRaw
-  /** Строка текущего пользователя: подсветка и пометка «Вы». */
+  /** The current user's row: highlight and the "You" label. */
   isMe?: boolean
-  /** Подпись под основным результатом: ao5, mo3, bo3… */
+  /** Caption under the main result: ao5, mo3, bo3… */
   resultLabel: string
-  /** Для незаконченной серии: сколько попыток сдано и сколько всего. */
+  /** For an unfinished series: how many attempts are submitted out of the total. */
   progress?: { done: number; total: number }
 }>()
 </script>

@@ -29,8 +29,8 @@ def upgrade():
     with op.batch_alter_table('user_consents', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_user_consents_user_id'), ['user_id'], unique=False)
 
-    # Удалённый аккаунт: логина и хеша пароля нет (NULL). Уже созданные аккаунты
-    # согласий не давали — их спросят при следующем входе.
+    # Deleted account: no login and no password hash (NULL). Existing accounts
+    # have not given consents; they will be asked on next login.
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.add_column(sa.Column('deleted_at', sa.DateTime(), nullable=True))
         batch_op.alter_column('login', existing_type=sa.String(length=32), nullable=True)
@@ -38,7 +38,7 @@ def upgrade():
 
 
 def downgrade():
-    # Удалённые аккаунты получают логин-заглушку и хеш, под которым войти нельзя.
+    # Deleted accounts get a placeholder login and a hash nobody can log in with.
     op.execute(
         "UPDATE users SET login = 'deleted-' || id, password_hash = '!' "
         "WHERE deleted_at IS NOT NULL"

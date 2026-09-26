@@ -2,15 +2,15 @@ services:
   backend:
     build: ./backend
     environment:
-      SECRET_KEY: ${SECRET_KEY:?Задайте SECRET_KEY в файле .env}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in the .env file}
       DATABASE_URL: sqlite:////app/instance/cubing.db
-      # Куки только по HTTPS (браузеры делают исключение для localhost).
+      # Cookies over HTTPS only (browsers make an exception for localhost).
       SECURE_COOKIES: ${SECURE_COOKIES:-1}
-      # 0 — регистрация закрыта, вход для созданных аккаунтов работает.
+      # 0 closes registration; login for existing accounts works.
       REGISTRATION_OPEN: ${REGISTRATION_OPEN:-1}
     volumes:
       - backend-data:/app/instance
-    # Наружу не публикуется: доступен только контейнеру web по адресу backend:5000.
+    # Not published: reachable only by the web container at backend:5000.
     expose:
       - "5000"
     restart: unless-stopped

@@ -1,23 +1,23 @@
 import { http } from '@/shared/api'
 
-// Только для администратора, см. backend/app/admin.py.
+// Administrator only, see backend/app/admin.py.
 
-/** Удалённый аккаунт, оставивший имя в результатах и рекордах. */
+/** A deleted account that kept its name in results and records. */
 export interface DeletedUser {
   id: number
   display_name: string
   deleted_at: string
-  /** Версия согласия на распространение, которое не отозвано для имени. */
+  /** Version of the publication consent that is not withdrawn for the name. */
   consent_version: string
 }
 
-/** Удалённые аккаунты с сохранённым именем; query — часть имени. */
+/** Deleted accounts that kept their name; query is part of the name. */
 export async function searchDeletedUsers(query: string) {
   const params = new URLSearchParams({ q: query })
   return (await http.get<{ users: DeletedUser[] }>(`/api/admin/deleted-users?${params}`)).users
 }
 
-/** Отзыв согласия: имя заменяется на «Удалённый участник». */
+/** Withdraws the consent: the name is replaced with the deleted-user name. */
 export async function anonymizeDeletedUser(userId: number) {
   await http.post<void>(`/api/admin/deleted-users/${userId}/anonymize`)
 }

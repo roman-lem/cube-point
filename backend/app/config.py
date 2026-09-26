@@ -3,21 +3,25 @@ from datetime import timedelta
 
 
 class Config:
-    """Настройки из переменных окружения."""
+    """Settings from environment variables."""
 
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
-    # Относительный путь SQLite считается от папки instance/.
+    # A relative SQLite path is resolved against the instance/ folder.
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///cubing.db")
 
-    # Куки только по HTTPS. В docker-compose включено по умолчанию,
-    # для локальной разработки через Vite выключено.
+    # Cookies over HTTPS only. Enabled by default in docker-compose,
+    # disabled for local development with Vite.
     SECURE_COOKIES = os.environ.get("SECURE_COOKIES") == "1"
 
-    # 0 — регистрация закрыта: форма показывает «Регистрация скоро откроется»,
-    # сервер отклоняет запросы. Вход и аккаунты от организатора работают.
+    # 0 closes registration: the form says registration opens soon and
+    # the server rejects requests. Login and organizer-created accounts work.
     REGISTRATION_OPEN = os.environ.get("REGISTRATION_OPEN", "1") != "0"
 
-    # Сессия живёт до закрытия браузера, «Запомнить меня» — remember-кука Flask-Login.
+    # `flask seed` wipes and fills the database with demo data, so it only runs
+    # where it is explicitly allowed (development), never on production by accident.
+    ALLOW_SEED = os.environ.get("ALLOW_SEED") == "1"
+
+    # The session lasts until the browser closes; "remember me" is the Flask-Login remember cookie.
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = SECURE_COOKIES
@@ -26,6 +30,6 @@ class Config:
     REMEMBER_COOKIE_SAMESITE = "Lax"
     REMEMBER_COOKIE_SECURE = SECURE_COOKIES
 
-    # CSRF-токен действует, пока жива сессия. По умолчанию он истекает
-    # через час, и долгая сессия перестала бы отправлять формы.
+    # The CSRF token is valid while the session lives. By default it expires
+    # after an hour, and a long session would stop being able to submit forms.
     WTF_CSRF_TIME_LIMIT = None

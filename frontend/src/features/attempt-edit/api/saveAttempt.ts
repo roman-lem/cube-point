@@ -7,9 +7,9 @@ const attemptUrl = (meetupId: number, eventId: string, userId: number, number: n
   `/participants/${userId}/attempts/${number}`
 
 /**
- * Ввод или правка попытки организатором. version — версия серии, прочитанная
- * клиентом (null — серии ещё нет). Ответ и ошибка конфликта (в ApiError.data.event)
- * содержат свежие данные всей дисциплины.
+ * An organizer enters or edits an attempt. version is the series version read
+ * by the client (null: no series yet). The response and the conflict error (in ApiError.data.event)
+ * contain fresh data for the whole event.
  */
 export async function saveAttempt(
   meetupId: number,
@@ -24,8 +24,8 @@ export async function saveAttempt(
 }
 
 /**
- * Стирает ошибочно введённую попытку — только последнюю в серии.
- * Серия без попыток удаляется. Ответ — свежие данные дисциплины.
+ * Erases an attempt entered by mistake, only the last one in the series.
+ * A series without attempts is deleted. The response is fresh event data.
  */
 export async function deleteAttempt(
   meetupId: number,
@@ -38,15 +38,15 @@ export async function deleteAttempt(
   return (await http.delete<{ event: DeskEvent }>(url, { version })).event
 }
 
-/** Запись журнала попытки: значение, кто и когда его установил (ISO в UTC). */
+/** An attempt history entry: the value, who set it and when (ISO in UTC). */
 export interface AttemptHistoryEntry extends Attempt {
   solution: string | null
-  /** null — аккаунт удалён. */
+  /** null means the account is deleted. */
   changed_by: { id: number; display_name: string } | null
   changed_at: string
 }
 
-/** Журнал попытки по порядку, первая запись — исходный результат. */
+/** Attempt history in order, the first entry is the original result. */
 export async function fetchAttemptHistory(
   meetupId: number,
   eventId: string,
@@ -57,7 +57,7 @@ export async function fetchAttemptHistory(
   return (await http.get<{ history: AttemptHistoryEntry[] }>(url)).history
 }
 
-/** Возвращает попытке исходный результат — обычная правка, тоже попадает в журнал. */
+/** Restores the attempt's original result: a regular edit that also goes to the history. */
 export async function restoreAttempt(
   meetupId: number,
   eventId: string,

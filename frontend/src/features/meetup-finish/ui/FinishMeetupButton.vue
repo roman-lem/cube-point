@@ -10,8 +10,8 @@ import {
   fetchFinishSummary, finishMeetup, resolveFmc, type FinishSummary, type UnresolvedFmc,
 } from '../api/finishApi'
 
-// Завершение встречи: сводка незавершённых серий и несданные попытки FMC,
-// которые организатор проверяет в своём браузере или засчитывает как DNF.
+// Finishing a meetup: summary of unfinished series and unsubmitted FMC attempts,
+// which the organizer checks in their browser or counts as DNF.
 const { meetup } = defineProps<{ meetup: Meetup }>()
 const emit = defineEmits<{ finished: [meetup: Meetup] }>()
 
@@ -19,7 +19,7 @@ const open = ref(false)
 const summary = ref<FinishSummary | null>(null)
 const finishing = ref(false)
 const busyKey = ref<string | null>(null)
-/** Итоги разрешённых попыток FMC: «Анна Иванова — 28 ходов». */
+/** Outcomes of resolved FMC attempts: "Анна Иванова — 28 ходов". */
 const resolved = ref<string[]>([])
 const error = ref('')
 

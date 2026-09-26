@@ -1,14 +1,14 @@
-"""Модели БД. Схема описана в разделе «Модель данных» CLAUDE.md.
+"""Database models. The schema is described in "Data model" in docs/ARCHITECTURE.md.
 
-Удаление:
-- вниз по иерархии владения (встреча → дисциплины → серии → попытки) — каскадное;
-- клуб со встречами удалить нельзя (RESTRICT), сначала удаляются встречи;
-- пользователя с результатами удалить нельзя (RESTRICT): удаление аккаунта
-  обезличивает его (accounts.delete_account), а результаты остаются;
-- служебные ссылки «кто сделал» (created_by, decided_by и т. п.) обнуляются.
+Deletion:
+- down the ownership hierarchy (meetup → events → series → attempts) it cascades;
+- a club with meetups cannot be deleted (RESTRICT), meetups are deleted first;
+- a user with results cannot be deleted (RESTRICT): account deletion
+  anonymizes it (accounts.delete_account) and the results stay;
+- auxiliary "who did it" references (created_by, decided_by, etc.) are set to NULL.
 
-Результаты (value, best, average) — целые числа, DNF = -1 (см. results.py),
-NULL — результата нет.
+Results (value, best, average) are integers, DNF = -1 (see results.py),
+NULL means no result.
 """
 
 import enum
@@ -22,7 +22,7 @@ from .extensions import db
 
 
 def utcnow():
-    # Метки времени храним в UTC без часового пояса: SQLite его всё равно теряет.
+    # Timestamps are stored in UTC without a time zone: SQLite loses it anyway.
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
@@ -70,16 +70,16 @@ class Penalty(enum.StrEnum):
     DNS = "dns"
 
 
-# Цвета логотипа клуба (кружок с первой буквой названия). Сами цвета —
-# CSS-переменные --color-logo-* на фронте.
+# Club logo colors (a circle with the first letter of the name). The colors themselves
+# are the --color-logo-* CSS variables on the frontend.
 CLUB_COLORS = ("blue", "sky", "teal", "amber", "orange", "rose", "slate", "brown")
 
 
 class ConsentType(enum.StrEnum):
-    PROCESSING = "processing"    # согласие на обработку персональных данных
-    PUBLICATION = "publication"  # согласие на распространение (публикацию)
-    # Удалённый аккаунт оставил имя в результатах и рекордах: согласия на обработку
-    # и распространение, данные раньше, не отозваны для отображаемого имени.
+    PROCESSING = "processing"    # consent to personal data processing
+    PUBLICATION = "publication"  # consent to publication
+    # A deleted account kept its name in results and records: the processing and
+    # publication consents given earlier are not withdrawn for the display name.
     DELETED_NAME = "deleted_name"
 
 
@@ -89,7 +89,7 @@ class RecordType(enum.StrEnum):
 
 
 def enum_type(enum_class):
-    """Enum в БД: строка со значением (не именем) и CHECK на допустимые значения."""
+    """Enum in the DB: a string with the value (not the name) and a CHECK on allowed values."""
     return db.Enum(
         enum_class,
         native_enum=False,
@@ -104,7 +104,7 @@ def user_fk(ondelete):
     return db.ForeignKey("users.id", ondelete=ondelete)
 
 
-# Имя удалённого аккаунта в таблицах и профиле (accounts.delete_account).
+# Name of a deleted account in tables and the profile (accounts.delete_account).
 DELETED_USER_NAME = "Удалённый участник"
 
 
@@ -112,7 +112,7 @@ class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    # login и password_hash — NULL только у удалённого аккаунта.
+    # login and password_hash are NULL only for a deleted account.
     login = db.Column(db.String(32), unique=True)
     display_name = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(255))
@@ -135,26 +135,26 @@ class User(UserMixin, db.Model):
 
     @property
     def has_profile(self):
-        """Есть ли публичный профиль: нет у удалённого аккаунта с сохранённым именем.
+        """Whether there is a public profile: a deleted account that kept its name has none.
 
-        Согласие, данное при удалении, — только на имя в таблицах результатов
-        и рекордов, а не на профиль со всеми встречами.
+        The consent given at deletion covers only the name in result tables
+        and records, not a profile with all the meetups.
         """
         return self.deleted_at is None or self.display_name == DELETED_USER_NAME
 
     def get_id(self):
-        # Версия сессии в идентификаторе: при её увеличении все сессии
-        # и remember-куки пользователя перестают действовать (см. auth.load_user).
+        # The session version is part of the ID: when it increases, all sessions
+        # and remember cookies of the user stop working (see auth.load_user).
         return f"{self.id}:{self.session_version}"
 
 
 class UserConsent(db.Model):
-    """Согласие пользователя: какое, какой версии текста и когда дано.
+    """A user's consent: which one, which text version and when it was given.
 
-    Записи только добавляются (новая версия текста — новая запись),
-    удаляются вместе с аккаунтом. Текущие версии — consents.CONSENT_VERSIONS.
-    Исключение — DELETED_NAME: остаётся после удаления аккаунта, пока
-    администратор не обезличит его (admin.anonymize_user).
+    Entries are only added (a new text version means a new entry),
+    and deleted together with the account. Current versions: consents.CONSENT_VERSIONS.
+    The exception is DELETED_NAME: it stays after account deletion until
+    the administrator anonymizes the account (admin.anonymize_user).
     """
 
     __tablename__ = "user_consents"
@@ -172,7 +172,7 @@ class Club(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     city = db.Column(db.String(100), nullable=False)
-    timezone = db.Column(db.String(64), nullable=False)  # например, Asia/Yekaterinburg
+    timezone = db.Column(db.String(64), nullable=False)  # e.g. Asia/Yekaterinburg
     description = db.Column(db.Text)
     logo_path = db.Column(db.String(255))
     logo_color = db.Column(db.String(16), nullable=False, default="blue", server_default="blue")
@@ -221,16 +221,16 @@ class ClubMember(db.Model):
 class Meetup(db.Model):
     __tablename__ = "meetups"
     __table_args__ = (
-        # Список встреч клуба и выборки для рекордов клуба.
+        # Club meetup list and queries for club records.
         db.Index("ix_meetups_club_id_date", "club_id", "date"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    # RESTRICT: клуб со встречами удалить нельзя, чтобы не потерять результаты.
+    # RESTRICT: a club with meetups cannot be deleted, so results are not lost.
     club_id = db.Column(
         db.Integer, db.ForeignKey("clubs.id", ondelete="RESTRICT"), nullable=False,
     )
-    date = db.Column(db.Date, nullable=False)  # дата в часовом поясе клуба
+    date = db.Column(db.Date, nullable=False)  # date in the club's time zone
     starts_at = db.Column(db.DateTime, nullable=False)
     ends_at = db.Column(db.DateTime)
     place = db.Column(db.String(200))
@@ -282,8 +282,8 @@ class MeetupEvent(db.Model):
     meetup_id = db.Column(
         db.Integer, db.ForeignKey("meetups.id", ondelete="CASCADE"), nullable=False,
     )
-    # Идентификатор из EVENTS. Без CHECK в БД, чтобы новая дисциплина
-    # не требовала миграции.
+    # ID from EVENTS. No CHECK in the DB, so a new event
+    # does not require a migration.
     event_id = db.Column(db.String(16), nullable=False, index=True)
     format = db.Column(enum_type(Format), nullable=False)
 
@@ -330,10 +330,10 @@ class Series(db.Model):
     )
     started_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     completed_at = db.Column(db.DateTime)
-    # Оптимистичная блокировка: SQLAlchemy сам увеличивает version при UPDATE
-    # и бросает StaleDataError, если серию успел изменить кто-то другой.
+    # Optimistic locking: SQLAlchemy increments version on UPDATE itself
+    # and raises StaleDataError if someone else has changed the series.
     version = db.Column(db.Integer, nullable=False)
-    # Кеш подсчёта из results.calc_series, пересчитывается при сохранении.
+    # Cache of results.calc_series, recalculated on save.
     best = db.Column(db.Integer)
     average = db.Column(db.Integer)
 
@@ -367,11 +367,11 @@ class Attempt(db.Model):
         db.Integer, db.ForeignKey("series.id", ondelete="CASCADE"), nullable=False,
     )
     attempt_number = db.Column(db.Integer, nullable=False)
-    # Сотые доли секунды или число ходов (FMC), без штрафа.
+    # Hundredths of a second or number of moves (FMC), without the penalty.
     value = db.Column(db.Integer)
     penalty = db.Column(enum_type(Penalty), nullable=False, default=Penalty.NONE)
-    solution = db.Column(db.Text)  # только FMC
-    # Момент сдачи, не меняется при правке. Используется для рекордов.
+    solution = db.Column(db.Text)  # FMC only
+    # Submission moment, does not change on edits. Used for records.
     submitted_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated_at = db.Column(db.DateTime)
     entered_by = db.Column(db.Integer, user_fk("SET NULL"))
@@ -383,10 +383,10 @@ class Attempt(db.Model):
 
 
 class AttemptHistory(db.Model):
-    """Журнал попытки: значение после каждого создания и изменения.
+    """Attempt history: the value after every creation and change.
 
-    Записи только добавляются (scoring.save_attempt). Первая — исходный результат.
-    Журнал удаляется только вместе с попыткой (стирание ошибочного ввода организатора).
+    Entries are only added (scoring.save_attempt). The first one is the original result.
+    History is deleted only together with the attempt (erasing an organizer's mistaken entry).
     """
 
     __tablename__ = "attempt_history"
@@ -406,10 +406,10 @@ class AttemptHistory(db.Model):
 
 
 class FmcAttempt(db.Model):
-    """Попытка FMC до сдачи: старт отсчёта, черновик и заморозка решения.
+    """An FMC attempt before submission: countdown start, draft and frozen solution.
 
-    Строка остаётся и после сдачи, результат и решение — в attempts.
-    Правила — раздел «FMC» CLAUDE.md.
+    The row stays after submission; the result and the solution are in attempts.
+    Rules: "FMC" in docs/ARCHITECTURE.md.
     """
 
     __tablename__ = "fmc_attempts"
@@ -424,7 +424,7 @@ class FmcAttempt(db.Model):
     started_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     draft = db.Column(db.Text, nullable=False, default="")
     draft_saved_at = db.Column(db.DateTime)
-    # Заморозка сдачи: NULL — решение не сдавали или вернулись к нему.
+    # Submission freeze: NULL means not submitted or returned to the solution.
     frozen_solution = db.Column(db.Text)
     frozen_at = db.Column(db.DateTime)
 
@@ -444,7 +444,7 @@ class Disqualification(db.Model):
 
 
 class ClubRecord(db.Model):
-    """Кеш рекордов клуба, полностью пересчитывается функцией recalc_records."""
+    """Club records cache, fully recalculated by recalc_records."""
 
     __tablename__ = "club_records"
 
@@ -465,12 +465,12 @@ class ClubRecord(db.Model):
 
 
 class LoginFailure(db.Model):
-    """Неудачная попытка входа, для ограничения перебора паролей (auth/throttle.py)."""
+    """A failed login attempt, for password brute-force protection (auth/throttle.py)."""
 
     __tablename__ = "login_failures"
     __table_args__ = (db.Index("ix_login_failures_login_created_at", "login", "created_at"),)
 
     id = db.Column(db.Integer, primary_key=True)
-    # Логин как его ввели (в нижнем регистре), пользователя с таким логином может не быть.
+    # Login as entered (lowercased); a user with this login may not exist.
     login = db.Column(db.String(64), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)

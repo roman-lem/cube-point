@@ -4,10 +4,10 @@ import { ClubLogo, type AdminClubSummary } from '@/entities/club'
 import { formatDate, plural } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
-// Список клубов с поиском по названию и городу (макет admin_clubs).
+// Club list with search by name and city.
 const { clubs, selectedId } = defineProps<{
   clubs: AdminClubSummary[]
-  /** Открытый клуб — подсвечивается на широком экране. */
+  /** The open club is highlighted on a wide screen. */
   selectedId?: number
 }>()
 

@@ -1,7 +1,13 @@
-# Окружение и секреты
+# Environment and secrets
 .env
 .env.*
 !.env.example
+
+# Local-only files: agent instructions, design references, mockups
+CLAUDE.md
+.claude/
+DESIGN.md
+makets/
 
 # Python
 __pycache__/
@@ -9,16 +15,26 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Databases and backups
 backend/instance/
 *.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.dump
 
 # Node / Vite
 node_modules/
 dist/
+coverage/
 *.tsbuildinfo
 *.local
 
-# Редакторы и ОС
+# Editors and OS
 .vscode/*
 !.vscode/extensions.json
 .idea/

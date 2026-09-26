@@ -9,8 +9,8 @@ import { ApiError } from '@/shared/api'
 import { EVENTS, eventName, formatDate, movesWord, type EventId } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
 
-// Рекорды клуба (макет club_records): лучшая сборка или среднее по дисциплинам.
-// Правила — раздел «Рекорды» CLAUDE.md.
+// Club records: best single or average per event.
+// Rules: "Records" in docs/ARCHITECTURE.md.
 const { clubId } = defineProps<{ clubId: number }>()
 
 const clubStore = useCurrentClubStore()
@@ -39,7 +39,7 @@ watch(
   { immediate: true },
 )
 
-// У дисциплин, где все встречи были в bo-форматах, среднего нет — их в «Среднем» не показываем.
+// Events where all meetups used bo formats have no average, so they are hidden under "Average".
 const rows = computed(() =>
   (records.value ?? []).filter((event) => event[type.value] !== null),
 )

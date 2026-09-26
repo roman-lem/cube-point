@@ -1,7 +1,7 @@
-// HTTP-клиент для /api: JSON, куки сессии, CSRF-токен и единый формат ошибок.
+// HTTP client for /api: JSON, session cookies, CSRF token and a uniform error format.
 //
-// Ошибка сервера: { error: { code, message, fields?, ...данные } },
-// см. backend/app/errors.py.
+// Server error: { error: { code, message, fields?, ...data } },
+// see backend/app/errors.py.
 
 export type FieldErrors = Record<string, string>
 
@@ -10,9 +10,9 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
-    /** Ошибки под полями формы, только у validation_error. */
+    /** Errors under form fields, validation_error only. */
     readonly fields: FieldErrors = {},
-    /** Остальные поля ошибки: свежие данные при конфликте, retry_after и т. п. */
+    /** Other error fields: fresh data on a conflict, retry_after, etc. */
     readonly data: Record<string, unknown> = {},
   ) {
     super(message)
@@ -25,23 +25,23 @@ let unauthorizedHandler: Handler | null = null
 let passwordChangeHandler: Handler | null = null
 let consentsHandler: Handler | null = null
 
-/** Вызывается, когда сессии нет или она отозвана (401 unauthorized). */
+/** Called when there is no session or it was revoked (401 unauthorized). */
 export function onUnauthorized(handler: Handler) {
   unauthorizedHandler = handler
 }
 
-/** Вызывается, когда сервер требует сменить временный пароль. */
+/** Called when the server requires changing the temporary password. */
 export function onPasswordChangeRequired(handler: Handler) {
   passwordChangeHandler = handler
 }
 
-/** Вызывается, когда сервер требует дать согласия на обработку данных. */
+/** Called when the server requires consents to data processing. */
 export function onConsentsRequired(handler: Handler) {
   consentsHandler = handler
 }
 
-// Токен привязан к сессии и живёт вместе с ней. Запрашиваем его при первом
-// изменяющем запросе, а если сервер его отклонил — перечитываем.
+// The token is bound to the session and lives as long as it does. It is requested on the first
+// modifying request and reloaded if the server rejected it.
 let csrfToken: string | null = null
 
 async function getCsrfToken(): Promise<string> {
@@ -100,7 +100,7 @@ async function readError(response: Response): Promise<ApiError> {
     const { code, message, fields, ...data } = error
     return new ApiError(response.status, code, message, fields, data)
   } catch {
-    // Ответ не от нашего API (например, 502 от nginx).
+    // The response is not from our API (e.g. 502 from nginx).
     return new ApiError(response.status, 'http_error', 'Ошибка сервера, попробуйте ещё раз')
   }
 }

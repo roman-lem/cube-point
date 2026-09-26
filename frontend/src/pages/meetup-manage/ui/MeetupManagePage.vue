@@ -31,7 +31,7 @@ function onUpdate(meetup: Meetup) {
   const statusChanged = data.value?.meetup.status !== meetup.status
   data.value = { ...data.value!, meetup }
   if (statusChanged) {
-    // Индикатор LIVE на вкладке «Клуб».
+    // LIVE indicator on the "Club" tab.
     clubStore.load(true)
   }
 }

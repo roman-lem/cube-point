@@ -8,7 +8,7 @@ describe('movesWord', () => {
     expect(movesWord(value)).toBe(word)
   })
 
-  it('среднее — «хода»', () => {
+  it('a mean uses «хода»', () => {
     expect(movesWord(2533, true)).toBe('хода')
   })
 })

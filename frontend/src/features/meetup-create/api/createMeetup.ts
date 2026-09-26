@@ -3,7 +3,7 @@ import { http } from '@/shared/api'
 import type { SeriesFormat } from '@/shared/lib'
 
 export interface CreateMeetupData {
-  /** Дата и время — по часам клуба: "2026-10-19", "18:00". */
+  /** Date and time by the club's clock: "2026-10-19", "18:00". */
   date: string
   starts_at: string
   ends_at: string

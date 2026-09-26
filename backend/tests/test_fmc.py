@@ -1,4 +1,4 @@
-"""Попытки FMC: старт, черновик, заморозка, сдача и дедлайн."""
+"""FMC attempts: start, draft, freeze, submission and deadline."""
 
 from datetime import date, timedelta
 
@@ -61,7 +61,7 @@ def start_series(client, meetup_id):
 
 
 def fmc(client, series, action, method="post", number=None, **body):
-    """Запрос к /api/series/<id>/fmc/<action> для текущей попытки серии."""
+    """Request to /api/series/<id>/fmc/<action> for the current attempt of the series."""
     body["attempt_number"] = number or series["next_attempt"]["number"]
     return getattr(client, method)(f"/api/series/{series['id']}/fmc/{action}", json=body)
 
@@ -80,7 +80,7 @@ def send_result(client, series, value, solution, penalty="none"):
 
 
 def expire(world, series, extra=timedelta(seconds=1)):
-    """Сдвигает старт текущей попытки назад так, что её час истёк."""
+    """Moves the start of the current attempt back so that its hour has expired."""
     with world["app"].app_context():
         fmc_attempt = db.session.get(
             FmcAttempt, (series["id"], series["next_attempt"]["number"]),
@@ -98,7 +98,7 @@ def saved_attempt(world, series_id, number=1):
         return attempt
 
 
-# Старт
+# Start
 
 def test_scramble_is_hidden_until_start(world, bo1):
     meetup_id, clients = bo1
@@ -154,7 +154,7 @@ def test_draft_and_freeze_need_started_attempt(world, bo1):
         assert error(response)["code"] == "not_started"
 
 
-# Черновик
+# Draft
 
 def test_draft_is_saved(world, bo1):
     meetup_id, clients = bo1
@@ -187,7 +187,7 @@ def test_draft_after_deadline_is_rejected(world, bo1):
     assert me.get_json()["series"]["next_attempt"]["fmc"]["draft"] == "F'"
 
 
-# Заморозка
+# Freeze
 
 def test_freeze_fixes_solution_and_time(world, bo1):
     meetup_id, clients = bo1
@@ -198,7 +198,7 @@ def test_freeze_fixes_solution_and_time(world, bo1):
     assert state["frozen_solution"] == SOLUTION
     assert state["frozen_at"] is not None
 
-    # Повторная заморозка и черновик не меняют замороженный текст.
+    # A repeated freeze and a draft do not change the frozen text.
     again = fmc(clients["anna"], series, "freeze", solution="R").get_json()["series"]
     assert again["next_attempt"]["fmc"]["frozen_solution"] == SOLUTION
     assert again["next_attempt"]["fmc"]["frozen_at"] == state["frozen_at"]
@@ -214,7 +214,7 @@ def test_unfreeze_allows_new_submission_time(world, bo1):
     assert response.status_code == 200
     state = response.get_json()["series"]["next_attempt"]["fmc"]
     assert state["frozen_solution"] is None and state["frozen_at"] is None
-    # Черновик остаётся тем, что было заморожено.
+    # The draft stays what was frozen.
     assert state["draft"] == "F'"
 
     second = fmc(clients["anna"], series, "freeze", solution=SOLUTION).get_json()["series"]
@@ -247,7 +247,7 @@ def test_freeze_after_deadline_saves_dnf_with_solution(world, bo1):
     ]
 
 
-# Сдача
+# Submission
 
 def test_result_is_saved_with_frozen_solution(world, bo1):
     meetup_id, clients = bo1
@@ -337,7 +337,7 @@ def test_draft_becomes_result_after_deadline(world, bo1):
     assert attempt.solution == SOLUTION
     with world["app"].app_context():
         fmc_attempt = db.session.get(FmcAttempt, (series["id"], 1))
-        # Время сдачи — дедлайн, а не момент проверки.
+        # The submission time is the deadline, not the moment of the check.
         assert attempt.submitted_at == fmc_attempt.started_at + FMC_TIME_LIMIT
 
 
@@ -347,7 +347,7 @@ def test_mo3_attempts_have_own_start(world):
     frozen = fmc(clients["anna"], series, "freeze", solution=SOLUTION).get_json()["series"]
     series = send_result(clients["anna"], frozen, 3, SOLUTION).get_json()["series"]
 
-    # Вторая попытка не начата: скрамбла нет, пока её не стартовали.
+    # The second attempt is not started: no scramble until it is started.
     assert series["next_attempt"] == {"number": 2, "scramble": None, "fmc": None}
     series = start_attempt(clients["anna"], series)
     assert series["next_attempt"]["scramble"] == SCRAMBLES[1]

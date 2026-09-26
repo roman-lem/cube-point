@@ -1,14 +1,14 @@
-// Машина состояний таймера: чистая функция переходов, время передаётся снаружи
-// (performance.now() в момент события), поэтому её легко проверять тестами.
+// Timer state machine: a pure transition function, time is passed in from outside
+// (performance.now() at the event), so it is easy to test.
 //
-// idle ──нажатие──▶ holding ──HOLD_MS──▶ ready ──отпускание──▶ running ──нажатие──▶ stopped
-//   └─(с инспекцией) нажатие ──▶ inspection ──нажатие──▶ holding …
-// Отпускание в holding раньше срока возвращает назад (в idle или инспекцию).
-// Из stopped новое нажатие начинает следующую сборку, как из idle.
+// idle ──press──▶ holding ──HOLD_MS──▶ ready ──release──▶ running ──press──▶ stopped
+//   └─(with inspection) press ──▶ inspection ──press──▶ holding …
+// Releasing in holding too early goes back (to idle or inspection).
+// From stopped a new press starts the next solve, as from idle.
 
-/** Сколько держать палец или пробел до готовности. */
+/** How long to hold the finger or space until ready. */
 export const HOLD_MS = 300
-/** Инспекция: 15 секунд, до 17 — штраф +2, дольше — DNF. */
+/** Inspection: 15 seconds, up to 17 a +2 penalty, longer is DNF. */
 export const INSPECTION_MS = 15_000
 export const INSPECTION_DNF_MS = 17_000
 
@@ -17,14 +17,14 @@ export type SuggestedPenalty = 'none' | 'plus2' | 'dnf'
 
 export interface TimerState {
   phase: Phase
-  /** Начало удержания. */
+  /** Start of holding. */
   holdStart: number
-  /** Начало инспекции; null — сборка без инспекции. */
+  /** Start of inspection; null means a solve without inspection. */
   inspectionStart: number | null
   solveStart: number
-  /** Время сборки в сотых долях секунды, известно после остановки. */
+  /** Solve time in hundredths of a second, known after stopping. */
   result: number
-  /** Штраф за инспекцию, предлагается участнику после сборки. */
+  /** Inspection penalty, offered to the participant after the solve. */
   inspectionPenalty: SuggestedPenalty
 }
 
@@ -69,7 +69,7 @@ export function transition(
         return { ...state, phase: 'holding', holdStart: now }
       }
       if (phase === 'running') {
-        // Сотые доли: тысячные отбрасываются, как в подсчёте результатов.
+        // Hundredths: thousandths are dropped, as in result calculation.
         return { ...state, phase: 'stopped', result: Math.floor((now - state.solveStart) / 10) }
       }
       return state

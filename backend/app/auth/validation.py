@@ -1,6 +1,6 @@
-"""Проверка полей форм входа, регистрации и смены пароля.
+"""Validation of login, registration and password change form fields.
 
-Каждая функция возвращает текст ошибки или None.
+Each function returns an error text or None.
 """
 
 import re
@@ -12,7 +12,7 @@ NAME_MIN, NAME_MAX = 2, 100
 PASSWORD_MIN, PASSWORD_MAX = 8, 128
 
 LOGIN_RE = re.compile(r"[a-z0-9][a-z0-9_.-]*")
-# Имя или никнейм: буквы, цифры, пробел и символы - ' ’ _ . (Анна-Мария, alex_cube, Д'Артаньян).
+# Name or nickname: letters, digits, space and - ' ’ _ . (Анна-Мария, alex_cube, Д'Артаньян).
 NAME_RE = re.compile(r"[\w .'’-]+")
 LETTER_RE = re.compile(r"[^\W\d_]")
 
@@ -46,7 +46,7 @@ def name_error(name):
 
 
 def _is_deleted_name(name):
-    # Без учёта регистра и ё/е: живой участник не должен выглядеть удалённым.
+    # Ignoring case and ё/е: a real participant must not look like a deleted one.
     def normalize(text):
         return text.casefold().replace("ё", "е")
     return normalize(name) == normalize(DELETED_USER_NAME)

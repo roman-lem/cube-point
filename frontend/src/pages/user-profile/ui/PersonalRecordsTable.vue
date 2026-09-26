@@ -3,8 +3,8 @@ import { TimeValue } from '@/entities/attempt'
 import type { UserProfile } from '@/entities/user'
 import { EVENTS, eventName, movesWord } from '@/shared/lib'
 
-// Таблица личных рекордов (макет personal_records): сингл и среднее по дисциплинам.
-// Нет удачных результатов или среднего (bo-форматы) — «—», а не DNF.
+// Personal records table: single and average per event.
+// No successful results or no average (bo formats) show "—", not DNF.
 defineProps<{ records: UserProfile['personal_records'] }>()
 </script>
 

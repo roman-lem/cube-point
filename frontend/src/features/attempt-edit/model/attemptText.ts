@@ -1,8 +1,8 @@
 import { MAX_FMC_MOVES, formatResult, parseTimeInput, type Attempt, type ResultType } from '@/shared/lib'
 
-// Ручной ввод попытки организатором — одной строкой, как в электронной таблице:
-// «1234» → 12.34, «10234» → 1:02.34, «1234+» → 12.34 (+2), «d» или «dnf» → DNF,
-// «1234 d» → DNF с сохранённым временем, «dns» → DNS. В FMC — число ходов.
+// An organizer enters an attempt as a single line, like in a spreadsheet:
+// "1234" → 12.34, "10234" → 1:02.34, "1234+" → 12.34 (+2), "d" or "dnf" → DNF,
+// "1234 d" → DNF with the time kept, "dns" → DNS. In FMC it is a move count.
 
 const SUFFIXES: Record<string, Attempt['penalty']> = {
   '': 'none',
@@ -15,7 +15,7 @@ const SUFFIXES: Record<string, Attempt['penalty']> = {
 
 const INPUT_RE = /^([\d:.,]*)\s*(\+2?|dnf|dns|d)?$/i
 
-/** Попытка из введённого текста или null, если ввод не понят. Пустой текст — тоже null. */
+/** The attempt from the entered text, or null if the input is not understood. Empty text is null too. */
 export function parseAttemptText(text: string, resultType: ResultType): Attempt | null {
   const match = INPUT_RE.exec(text.trim())
   if (!match) {
@@ -47,7 +47,7 @@ function parseMoves(text: string): number | null {
   return moves >= 1 && moves <= MAX_FMC_MOVES ? moves : null
 }
 
-/** Текст попытки для редактирования; parseAttemptText разбирает его обратно. */
+/** Attempt text for editing; parseAttemptText parses it back. */
 export function attemptToText(attempt: Attempt | null, resultType: ResultType): string {
   if (!attempt) {
     return ''
@@ -61,7 +61,7 @@ export function sameAttempt(a: Attempt | null, b: Attempt | null): boolean {
   return a?.value === b?.value && a?.penalty === b?.penalty
 }
 
-/** «+» и кнопка +2: включает и выключает штраф. Без времени — null. */
+/** "+" and the +2 button: toggles the penalty. Without a time, null. */
 export function togglePlus2(attempt: Attempt | null): Attempt | null {
   if (attempt?.value == null) {
     return null
@@ -70,8 +70,8 @@ export function togglePlus2(attempt: Attempt | null): Attempt | null {
 }
 
 /**
- * «d» и кнопка DNF: ставит DNF, время остаётся. Повторно — снимает DNF,
- * если время есть (иначе снимать нечего — null).
+ * "d" and the DNF button: sets DNF, the time stays. Again: removes DNF
+ * if there is a time (otherwise there is nothing to remove, null).
  */
 export function toggleDnf(attempt: Attempt | null): Attempt | null {
   if (attempt?.penalty === 'dnf') {

@@ -4,7 +4,7 @@ import { ClubOrganizers } from '@/features/club-organizers'
 import { plural } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
-// Управление клубом (макет admin_clubs_desk, правая панель).
+// Club management (right panel on a wide screen).
 const { club } = defineProps<{ club: AdminClub }>()
 const emit = defineEmits<{ changed: [club: AdminClub] }>()
 </script>

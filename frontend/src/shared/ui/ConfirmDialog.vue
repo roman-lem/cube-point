@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import AppButton from './AppButton.vue'
 
-// Диалог подтверждения поверх страницы (нативный <dialog>).
+// Confirmation dialog over the page (native <dialog>).
 const open = defineModel<boolean>('open', { required: true })
 
 const {
@@ -17,15 +17,15 @@ const {
   title: string
   confirmLabel?: string
   cancelLabel?: string
-  /** false — закрыть диалог можно только подтверждением. */
+  /** false: the dialog can be closed only by confirming. */
   cancelable?: boolean
-  /** Опасное действие: кнопка подтверждения в стиле danger. */
+  /** Dangerous action: the confirm button uses the danger style. */
   danger?: boolean
-  /** Идёт запрос: кнопки неактивны, закрыть диалог нельзя. */
+  /** A request is in flight: the buttons are disabled and the dialog cannot be closed. */
   loading?: boolean
-  /** Подтвердить пока нельзя (например, не всё разрешено в диалоге). */
+  /** Confirming is not possible yet (e.g. not everything in the dialog is resolved). */
   confirmDisabled?: boolean
-  /** Широкий диалог для содержимого со списками. */
+  /** A wide dialog for content with lists. */
   wide?: boolean
 }>()
 
@@ -44,7 +44,7 @@ function sync(value: boolean) {
 watch(open, sync)
 onMounted(() => sync(open.value))
 
-// Esc, клик по фону и кнопка отмены закрывают диалог, если не идёт запрос.
+// Esc, a click on the backdrop and the cancel button close the dialog unless a request is in flight.
 function cancel() {
   if (!loading && cancelable) {
     open.value = false

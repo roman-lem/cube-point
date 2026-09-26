@@ -25,12 +25,12 @@ import {
 import { AppButton, AppCard, AppSelect, ConfirmDialog } from '@/shared/ui'
 import { TimerScreen, type TimerResult } from '@/widgets/timer'
 
-// Таймер. Режим — в адресе, чтобы переживать перезагрузку:
-//   /timer?event=333                          — тренировка (по умолчанию);
-//   /timer?event=333&meetup=5                 — тренировка, «Начать серию» на встрече 5;
-//   /timer?event=333&meetup=5&mode=series     — соревновательный режим.
-// Правила — «Таймер» в CLAUDE.md. FMC здесь пока нет. Статистика
-// тренировочной сессии — на вкладке «Статистика».
+// Timer. The mode is in the URL to survive a reload:
+//   /timer?event=333                          — training (default);
+//   /timer?event=333&meetup=5                 — training with "Start series" for meetup 5;
+//   /timer?event=333&meetup=5&mode=series     — competition mode.
+// Rules: "Timer" in docs/ARCHITECTURE.md. No FMC here yet. Training session
+// statistics are on the "Statistics" tab.
 
 const route = useRoute()
 const router = useRouter()
@@ -54,13 +54,13 @@ function go(query: { event: string; meetup?: number | null; mode?: 'series' }) {
   })
 }
 
-// Смена дисциплины всегда ведёт в тренировку.
+// Changing the event always leads to training.
 const selectedEvent = computed({
   get: () => eventId.value,
   set: (value: EventId) => go({ event: value, meetup: meetupParam.value }),
 })
 
-// Встреча, на которой можно собирать выбранную дисциплину
+// The meetup where the selected event can be solved
 
 const activeMeetups = ref<ActiveMeetup[] | null>(null)
 
@@ -85,7 +85,7 @@ const context = computed(() => {
   return { meetup, event: meetup.events.find((e) => e.event_id === eventId.value)! }
 })
 
-// Тренировка
+// Training
 
 const trainingScramble = ref<string | null>(null)
 let scrambleRequest = 0
@@ -94,13 +94,13 @@ async function nextScramble() {
   const request = ++scrambleRequest
   trainingScramble.value = null
   const scramble = await randomScramble(eventId.value)
-  // Пока генерировали, могли сменить дисциплину.
+  // The event may have changed while generating.
   if (request === scrambleRequest) {
     trainingScramble.value = scramble
   }
 }
 
-// Сборка сразу попадает в сессию дисциплины, без подтверждения.
+// A solve goes into the event's session right away, without confirmation.
 const training = useTrainingSession(eventId)
 const { last: lastSolve } = training
 
@@ -111,7 +111,7 @@ function onSolved(result: TimerResult) {
   nextScramble()
 }
 
-// Удаление последней сборки — с подтверждением.
+// Deleting the last solve requires confirmation.
 const removing = ref<TrainingSolve | null>(null)
 const removeOpen = computed({
   get: () => removing.value !== null,
@@ -133,7 +133,7 @@ watch([eventId, isSeriesMode], () => {
   }
 }, { immediate: true })
 
-// Серия
+// Series
 
 const timerScreen = ref<InstanceType<typeof TimerScreen>>()
 const series = ref<MySeries | null>(null)
@@ -142,7 +142,7 @@ const notice = ref('')
 const saving = ref(false)
 const pending = ref<TimerResult | null>(null)
 
-// Несохранённая попытка переживает перезагрузку страницы.
+// An unsaved attempt survives a page reload.
 const pendingKey = computed(() =>
   series.value?.next_attempt ? `pending-attempt:${series.value.id}:${series.value.next_attempt.number}` : null,
 )
@@ -165,7 +165,7 @@ watch(pending, (value) => {
       sessionStorage.removeItem(pendingKey.value)
     }
   } catch {
-    // Хранилище недоступно (приватный режим) — попытка просто не переживёт перезагрузку.
+    // Storage is unavailable (private mode): the attempt just will not survive a reload.
   }
 })
 
@@ -177,7 +177,7 @@ async function loadSeries() {
     return
   }
   if (!context.value) {
-    // Встреча закончилась или участник не подтверждён — возвращаемся к тренировке.
+    // The meetup is over or the participant is not approved: back to training.
     go({ event: eventId.value })
     return
   }
@@ -194,8 +194,8 @@ async function loadSeries() {
   }
 }
 
-// Перечитываем серию только при смене самой серии, а не при каждом
-// обновлении списка встреч (он перечитывается после сохранения попытки).
+// Reload the series only when the series itself changes, not on every
+// update of the meetup list (it is reloaded after an attempt is saved).
 const seriesTarget = computed(() =>
   isSeriesMode.value && activeMeetups.value !== null
     ? `${eventId.value}:${context.value?.meetup.id ?? ''}`
@@ -226,7 +226,7 @@ async function save(result: TimerResult) {
     const oldKey = pendingKey.value
     series.value = response.series
     if (response.conflict) {
-      // Попытку оставляем: если она всё ещё следующая, её можно сохранить заново.
+      // Keep the attempt: if it is still the next one, it can be saved again.
       notice.value = response.series.next_attempt
         ? 'Серию успели изменить, данные обновлены. Проверьте время и сохраните ещё раз.'
         : 'Серию успели изменить, и она уже завершена.'
@@ -238,7 +238,7 @@ async function save(result: TimerResult) {
         try {
           sessionStorage.removeItem(oldKey)
         } catch {
-          // см. выше
+          // see above
         }
       }
       pending.value = null
@@ -258,7 +258,7 @@ useEventListener(window, 'beforeunload', (event: BeforeUnloadEvent) => {
   }
 })
 
-// Экран не гаснет, пока идёт серия.
+// The screen stays on while a series is in progress.
 const wakeLock = useWakeLock()
 watch(
   () => isSeriesMode.value && series.value?.status === 'in_progress',
@@ -270,7 +270,7 @@ watch(
         await wakeLock.release()
       }
     } catch {
-      // Не поддерживается или запрещено — не страшно.
+      // Not supported or not allowed: no big deal.
     }
   },
 )
@@ -288,7 +288,7 @@ const seriesResult = computed(() => {
 
 <template>
   <main class="page timer-page">
-    <!-- Соревновательный режим -->
+    <!-- Competition mode -->
     <template v-if="isSeriesMode">
       <AppCard v-if="seriesError">{{ seriesError }}</AppCard>
 
@@ -331,7 +331,7 @@ const seriesResult = computed(() => {
       <AppCard v-else class="page__muted">Загружаем серию…</AppCard>
     </template>
 
-    <!-- Тренировка -->
+    <!-- Training -->
     <TimerScreen
       v-else
       mode="training"

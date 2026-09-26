@@ -1,6 +1,6 @@
-// Версии текстов согласий на странице политики (pages/privacy).
-// Меняются вместе с текстом и с CONSENT_VERSIONS в backend/app/consents.py:
-// сервер принимает только текущую версию.
+// Versions of the consent texts on the policy page (pages/privacy).
+// They change together with the text and with CONSENT_VERSIONS in backend/app/consents.py:
+// the server accepts only the current version.
 export const CONSENT_VERSIONS = {
   processing: '2026-09-26',
   publication: '2026-09-26',
@@ -11,7 +11,7 @@ export interface ConsentChoice {
   publication: boolean
 }
 
-/** Тело запроса: версия текста у каждого отмеченного согласия. */
+/** Request body: the text version of each checked consent. */
 export function consentsPayload(choice: ConsentChoice) {
   return {
     processing: choice.processing ? CONSENT_VERSIONS.processing : null,
@@ -19,7 +19,7 @@ export function consentsPayload(choice: ConsentChoice) {
   }
 }
 
-/** Ошибки под чекбоксами, если какое-то согласие не отмечено. */
+/** Errors under the checkboxes if some consent is not checked. */
 export function missingConsents(choice: ConsentChoice): Record<string, string> {
   const errors: Record<string, string> = {}
   if (!choice.processing) errors.consent_processing = 'Нужно ваше согласие'

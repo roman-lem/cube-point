@@ -11,15 +11,15 @@ import {
 } from '@/shared/lib'
 import { AppIcon } from '@/shared/ui'
 
-// Таблица ввода результатов организатора как электронная таблица (макет org_meetup_desk):
-// стрелки и Enter — навигация, цифры — время (1234 → 12.34), «+» — +2, «d» — DNF.
-// Ячейка сохраняется сама при потере фокуса и по Enter. Delete, Backspace или пустая
-// ячейка стирают попытку — только последнюю в серии (ошибочный ввод). Уголок в ячейке —
-// попытку исправляли, по нажатию — её история и возврат исходного результата.
+// The organizer's result entry table, like a spreadsheet:
+// arrows and Enter navigate, digits are a time (1234 → 12.34), "+" is +2, "d" is DNF.
+// A cell saves itself on blur and on Enter. Delete, Backspace or an empty
+// cell erase the attempt, only the last one in the series (a mistaken entry). A corner in a cell
+// means the attempt was corrected; tapping shows its history and restoring the original result.
 const { event, saving } = defineProps<{
   event: DeskEvent
   saving: AttemptSaving
-  /** Часовой пояс клуба: время правок в истории. */
+  /** The club's time zone: time of edits in the history. */
   timeZone: string
 }>()
 
@@ -29,8 +29,8 @@ const hasAverage = computed(() => event.format === 'ao5' || event.format === 'mo
 const columns = computed(() => Array.from({ length: count.value }, (_, i) => i))
 
 const active = ref({ row: 0, col: 0 })
-/** Редактируемая ячейка — отдельно от активной: клик по другой ячейке
- * меняет активную раньше, чем редактируемая теряет фокус. */
+/** The edited cell is separate from the active one: a click on another cell
+ * changes the active cell before the edited one loses focus. */
 const editCell = ref<{ userId: number; col: number } | null>(null)
 const draft = ref('')
 const table = ref<HTMLElement>()
@@ -44,7 +44,7 @@ function doneCount(row: DeskRow) {
   return attemptsOf(row).filter(Boolean).length
 }
 
-/** Можно править введённые попытки и вводить следующую по порядку. */
+/** Entered attempts can be edited and the next one in order entered. */
 function isEditable(row: DeskRow, col: number) {
   return col <= doneCount(row)
 }
@@ -70,10 +70,10 @@ function isEditing(row: DeskRow, col: number) {
   return editCell.value?.userId === row.user.id && editCell.value.col === col
 }
 
-/** Попытка, история которой открыта. */
+/** The attempt whose history is open. */
 const historyCell = ref<{ user: DeskRow['user']; col: number } | null>(null)
 const historyOpen = ref(false)
-/** Текущее значение попытки: строка обновляется после возврата и опроса сервера. */
+/** Current value of the attempt: the row updates after a restore and server polling. */
 const historyAttempt = computed(() => {
   const cell = historyCell.value
   const row = event.rows.find((r) => r.user.id === cell?.user.id)
@@ -85,7 +85,7 @@ function showHistory(row: DeskRow, col: number) {
   historyOpen.value = true
 }
 
-// Навигация
+// Navigation
 
 function move(dRow: number, dCol: number) {
   const row = Math.min(Math.max(active.value.row + dRow, 0), event.rows.length - 1)
@@ -101,7 +101,7 @@ function move(dRow: number, dCol: number) {
 function select(rowIndex: number, col: number) {
   const row = event.rows[rowIndex]
   if (row && isEditing(row, col)) {
-    // Клик внутри поля ввода — просто перемещение курсора.
+    // A click inside the input just moves the caret.
     return
   }
   if (editCell.value) {
@@ -147,14 +147,14 @@ function commit() {
   }
 }
 
-/** Стирает попытку, если она есть. Не последнюю сервер не сотрёт и объяснит почему. */
+/** Erases the attempt if there is one. The server will not erase a non-last one and will explain why. */
 function clear(row: DeskRow, col: number) {
   if (attemptsOf(row)[col]) {
     save(row, col, null)
   }
 }
 
-/** «+» и «d» в ячейке без редактирования: штраф сразу сохраняется. */
+/** "+" and "d" in a cell that is not being edited: the penalty is saved right away. */
 function applyPenalty(toggle: (attempt: Attempt | null) => Attempt | null) {
   const row = activeRow()
   const col = active.value.col
@@ -195,7 +195,7 @@ function onTableKey(e: KeyboardEvent) {
     e.preventDefault()
     applyPenalty(togglePlus2)
   } else if (e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В') {
-    // «в» — та же клавиша в русской раскладке.
+    // "в" is the same key in the Russian layout.
     e.preventDefault()
     applyPenalty(toggleDnf)
   } else if (/^[\d.,:]$/.test(e.key)) {
@@ -225,7 +225,7 @@ function onInputKey(e: KeyboardEvent) {
 }
 
 function onInputBlur() {
-  // Enter, стрелки и клик по другой ячейке уже сохранили ячейку; здесь — уход фокуса за таблицу.
+  // Enter, arrows and a click on another cell have already saved the cell; this handles focus leaving the table.
   if (editCell.value) {
     commit()
   }
@@ -486,7 +486,7 @@ tbody tr:last-child td {
   font-variant-numeric: tabular-nums;
 }
 
-/* Уголок исправленной попытки, как у примечания в электронной таблице. */
+/* Corner of a corrected attempt, like a note in a spreadsheet. */
 .results-table__edited {
   position: absolute;
   top: 0;

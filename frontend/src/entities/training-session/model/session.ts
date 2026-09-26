@@ -1,36 +1,36 @@
-// Тренировочная сессия: сборки одной дисциплины, хранятся только в браузере.
-// Правила — «Таймер» в CLAUDE.md. Здесь чистые функции без Vue: разбор
-// данных из хранилища, изменения сессии и её статистика.
+// Training session: solves of one event, stored only in the browser.
+// Rules: "Timer" in docs/ARCHITECTURE.md. Pure functions without Vue: parsing
+// stored data, session changes and statistics.
 import { DNF, attemptValue, averageOf } from '@/shared/lib'
 
-/** DNS в тренировке нет: его ставит только завершение встречи. */
+/** Training has no DNS: only meetup finish sets it. */
 export type TrainingPenalty = 'none' | 'plus2' | 'dnf'
 
 export interface TrainingSolve {
-  /** Время без штрафа в сотых долях секунды. */
+  /** Time without the penalty in hundredths of a second. */
   value: number
   penalty: TrainingPenalty
-  /** Момент сборки (мс с 1970 года), он же идентификатор сборки в сессии. */
+  /** Solve moment (ms since 1970), also the solve's ID in the session. */
   at: number
 }
 
 export interface SessionStats {
   ao5: number | null
   ao12: number | null
-  /** Лучшая сборка, DNF, если все DNF, или null, если сборок нет. */
+  /** Best solve, DNF if all are DNF, or null if there are no solves. */
   best: number | null
   count: number
 }
 
-/** Версия формата в хранилище. Данные другой версии не читаются. */
+/** Storage format version. Data of another version is not read. */
 export const SESSION_VERSION = 1
 
 const PENALTIES: TrainingPenalty[] = ['none', 'plus2', 'dnf']
 
 /**
- * Сборки из строки хранилища. Никогда не бросает исключений:
- * битые данные или другая версия — пустая сессия, некорректная
- * сборка (или повтор at) выбрасывается, остальные сохраняются.
+ * Solves from a storage string. Never throws:
+ * broken data or another version gives an empty session, an invalid
+ * solve (or a repeated at) is dropped, the rest are kept.
  */
 export function parseSession(raw: string | null): TrainingSolve[] {
   if (!raw) {
@@ -60,7 +60,7 @@ export function serializeSession(solves: TrainingSolve[]): string {
   return JSON.stringify({ version: SESSION_VERSION, solves })
 }
 
-/** Новая сборка в конец сессии. at всегда больше, чем у предыдущей. */
+/** A new solve at the end of the session. at is always greater than the previous one. */
 export function addSolve(
   solves: TrainingSolve[],
   value: number,

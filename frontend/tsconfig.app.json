@@ -9,7 +9,7 @@
     "noUnusedParameters": true
   },
   "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts"],
-  // Тесты читают testdata/ вне frontend/, которой нет в Docker-сборке.
-  // Их типы проверяет tsconfig.test.json (npm run type-check).
+  // Tests read testdata/ outside frontend/, which is absent in the Docker build.
+  // Their types are checked by tsconfig.test.json (npm run type-check).
   "exclude": ["src/**/*.test.ts"]
 }

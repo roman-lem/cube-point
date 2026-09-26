@@ -4,8 +4,8 @@ import { useUserStore } from '@/entities/user'
 import { SITE_NAME } from '@/shared/config'
 import { AppButton } from '@/shared/ui'
 
-// Шапка лендинга и страницы клубов: вместо вкладок приложения — название
-// сервиса и «Войти», а вошедшему — ссылка на профиль.
+// Header of the landing and the clubs page: instead of the app tabs, the service
+// name and "Log in", or a profile link for a logged-in user.
 const route = useRoute()
 const userStore = useUserStore()
 </script>

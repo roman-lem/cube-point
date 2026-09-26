@@ -5,12 +5,12 @@ import { ApiError } from '@/shared/api'
 import { AppButton, AppInput, ConfirmDialog, SettingRow } from '@/shared/ui'
 import { deleteAccount } from '../api/deleteAccount'
 
-// Удаление своего аккаунта с подтверждением паролем. Логин, почта, пароль
-// и согласия уничтожаются, результаты остаются под именем «Удалённый участник».
-// Галочка «Оставить моё имя» оставляет имя в таблицах результатов и рекордов:
-// данное согласие на распространение не отзывается, профиля больше нет.
-// Галочки нет, если согласий текущей версии нет (страница /consent).
-// Последний организатор клуба сначала передаёт роль (restriction с сервера).
+// Deleting one's own account, confirmed with the password. Login, email, password
+// and consents are destroyed, results stay under the deleted-user name.
+// The "keep my name" checkbox keeps the name in result and record tables:
+// the given publication consent is not withdrawn, and there is no profile anymore.
+// The checkbox is absent if there are no current-version consents (the /consent page).
+// The last organizer of a club has to hand over the role first (restriction from the server).
 const emit = defineEmits<{ deleted: [] }>()
 
 const userStore = useUserStore()

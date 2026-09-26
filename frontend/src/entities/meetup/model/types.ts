@@ -4,7 +4,7 @@ export type MeetupStatus = 'planned' | 'live' | 'finished'
 
 export type RequestStatus = 'pending' | 'approved' | 'rejected'
 
-/** Встреча в списке встреч клуба. Даты — ISO: date по часам клуба, *_at — UTC. */
+/** A meetup in the club's meetup list. Dates are ISO: date by the club's clock, *_at in UTC. */
 export interface MeetupSummary {
   id: number
   date: string
@@ -21,49 +21,49 @@ export interface MeetupEvent {
   id: number
   event_id: string
   format: SeriesFormat
-  /** Число начатых серий в дисциплине. */
+  /** Number of started series in the event. */
   participants_count: number
-  /** Лидер таблицы; только на странице встречи. */
+  /** Table leader; only on the meetup page. */
   leader?: EventLeader | null
-  /** Серия текущего пользователя; только на странице встречи. */
+  /** Current user's series; only on the meetup page. */
   my_series?: MyEventSeries | null
 }
 
 export interface EventLeader {
   display_name: string
   value: number
-  /** Лидер показан средним (иначе — лучшей попыткой). */
+  /** The leader is shown by the average (otherwise by the best attempt). */
   is_average: boolean
 }
 
-/** Серия текущего пользователя для карточки дисциплины. */
+/** Current user's series for the event card. */
 export interface MyEventSeries {
   status: 'in_progress' | 'completed'
   attempts_done: number
   best: number | null
   average: number | null
-  /** null — без места: все попытки DNF или серия не закончена. */
+  /** null means no place: all attempts DNF or the series is unfinished. */
   place: number | null
-  /** Число строк в таблице дисциплины. */
+  /** Number of rows in the event table. */
   total: number
 }
 
 export interface Meetup extends Omit<MeetupSummary, 'events'> {
   club: { id: number; name: string; timezone: string }
   events: MeetupEvent[]
-  /** Только для организатора и пока встреча не завершена. */
+  /** Only for organizers and only until the meetup is finished. */
   join_token?: string
 }
 
-/** Страница встречи GET /api/meetups/:id. */
+/** Meetup page GET /api/meetups/:id. */
 export interface MeetupPageData {
   meetup: Meetup
-  /** Роль в клубе встречи (entities не импортируют друг друга, поэтому без ClubRole). */
+  /** Role in the meetup's club (entities do not import each other, hence no ClubRole). */
   my_role: 'member' | 'organizer' | null
   my_request: { status: RequestStatus } | null
 }
 
-/** Встреча по ссылке-приглашению, для баннера на странице входа. */
+/** A meetup from an invitation link, for the banner on the login page. */
 export interface JoinPreview {
   id: number
   date: string
@@ -72,7 +72,7 @@ export interface JoinPreview {
   club: { id: number; name: string; timezone: string }
 }
 
-/** Идущая встреча, где пользователь подтверждён (GET /api/me/active). */
+/** A live meetup where the user is approved (GET /api/me/active). */
 export interface ActiveMeetup {
   id: number
   date: string
@@ -82,7 +82,7 @@ export interface ActiveMeetup {
   events: {
     event_id: string
     format: SeriesFormat
-    /** Серия пользователя; null — не начата. */
+    /** The user's series; null means not started. */
     series: { status: 'in_progress' | 'completed'; attempts_done: number } | null
   }[]
 }

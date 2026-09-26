@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { DNF, formatAttempt, formatResult, type Penalty, type ResultType } from '@/shared/lib'
 
-// Время, среднее или число ходов. С penalty — попытка: value без штрафа,
-// показывается «11.87 (+2)», DNF или DNS. Без penalty — готовый результат.
+// Time, average or move count. With penalty it is an attempt: value without the penalty,
+// shown as "11.87 (+2)", DNF or DNS. Without penalty it is a final result.
 const {
   value,
   penalty,

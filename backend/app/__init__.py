@@ -2,7 +2,7 @@ import os
 
 from flask import Flask
 
-from . import models  # noqa: F401 — регистрирует модели для миграций
+from . import models  # noqa: F401 — registers the models for migrations
 from .admin import make_admin_command
 from .api import api
 from .config import Config

@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ClubCard, fetchClubs, type ClubSummary } from '@/entities/club'
 import { AppCard, AppIcon, PageHeader } from '@/shared/ui'
 
-// Все клубы с поиском по названию и городу. Карточки — как на лендинге.
+// All clubs with search by name and city. Cards are the same as on the landing.
 const clubs = ref<ClubSummary[] | null>(null)
 const failed = ref(false)
 const query = ref('')

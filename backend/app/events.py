@@ -1,4 +1,4 @@
-"""Дисциплины. Идентификаторы совпадают с WCA, список можно расширять."""
+"""Events. The IDs match WCA; the list can be extended."""
 
 from dataclasses import dataclass
 from datetime import timedelta
@@ -7,7 +7,7 @@ from datetime import timedelta
 @dataclass(frozen=True)
 class Event:
     name: str
-    result_type: str  # "time" или "moves", как в results.py
+    result_type: str  # "time" or "moves", as in results.py
     default_format: str
 
 
@@ -20,7 +20,7 @@ EVENTS = {
     "333bf": Event(name="3×3 вслепую", result_type="time", default_format="bo5"),
 }
 
-# Время на попытку FMC, у каждой попытки свой час.
+# Time limit for an FMC attempt; each attempt has its own hour.
 FMC_TIME_LIMIT = timedelta(minutes=60)
 
 

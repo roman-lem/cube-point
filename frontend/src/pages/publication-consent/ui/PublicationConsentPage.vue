@@ -2,12 +2,12 @@
 import { CONSENT_VERSIONS } from '@/features/auth'
 import { PageHeader } from '@/shared/ui'
 
-// Согласие на распространение персональных данных — отдельным документом,
-// как требует ст. 10.1 ФЗ-152. На него ведёт второй чекбокс регистрации.
-// При изменении текста меняется версия CONSENT_VERSIONS.publication
-// (features/auth/model/consents.ts) и в backend/app/consents.py.
+// Consent to publication of personal data, as a separate document
+// as required by Art. 10.1 of 152-FZ. The second registration checkbox links to it.
+// When the text changes, the version CONSENT_VERSIONS.publication changes
+// (features/auth/model/consents.ts) and in backend/app/consents.py.
 //
-// ЗАГЛУШКА: текст ниже — черновик-заполнитель, его заменит владелец проекта.
+// PLACEHOLDER: the text below is a draft to be replaced by the project owner.
 </script>
 
 <template>

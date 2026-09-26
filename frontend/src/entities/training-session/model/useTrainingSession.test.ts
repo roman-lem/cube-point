@@ -1,5 +1,5 @@
-// Восстановление сессии из хранилища. Вместо localStorage — хранилище на Map:
-// тесты идут в среде node, без браузера.
+// Restoring the session from storage. A Map-based storage replaces localStorage:
+// tests run in node, without a browser.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { effectScope, nextTick, ref, type EffectScope } from 'vue'
 import { serializeSession } from './session'
@@ -32,7 +32,7 @@ function session(eventId: Parameters<typeof useTrainingSession>[0], storage = me
 }
 
 describe('useTrainingSession', () => {
-  it('восстанавливает сессию из хранилища', () => {
+  it('restores the session from storage', () => {
     const { solves, stats, last } = session('333', memoryStorage({ [KEY]: saved }))
 
     expect(solves.value.map((s) => s.value)).toEqual([1000, 1100])
@@ -41,10 +41,10 @@ describe('useTrainingSession', () => {
   })
 
   it.each([
-    ['битый JSON', '{"solves": [{'],
-    ['старый формат без версии', JSON.stringify([{ time: 1000 }])],
-    ['другая версия', JSON.stringify({ version: 0, solves: [] })],
-  ])('%s — пустая сессия, работа продолжается', async (_, raw) => {
+    ['broken JSON', '{"solves": [{'],
+    ['old format without version', JSON.stringify([{ time: 1000 }])],
+    ['another version', JSON.stringify({ version: 0, solves: [] })],
+  ])('%s: empty session, work goes on', async (_, raw) => {
     const storage = memoryStorage({ [KEY]: raw })
     const s = session('333', storage)
 
@@ -57,7 +57,7 @@ describe('useTrainingSession', () => {
     expect(JSON.parse(storage.data.get(KEY)!).solves).toHaveLength(1)
   })
 
-  it('из повреждённой сессии выбрасываются только некорректные сборки', () => {
+  it('only invalid solves are dropped from a damaged session', () => {
     const raw = JSON.stringify({
       version: 1,
       solves: [{ value: 1000, penalty: 'none', at: 1 }, { value: 'x' }, { value: 900, penalty: 'dnf', at: 2 }],
@@ -68,7 +68,7 @@ describe('useTrainingSession', () => {
     expect(solves.value.map((s) => s.at)).toEqual([1, 2])
   })
 
-  it('изменения сохраняются в хранилище и переживают «перезагрузку»', async () => {
+  it('changes are saved to storage and survive a reload', async () => {
     const storage = memoryStorage()
     const first = session('333', storage)
 
@@ -83,7 +83,7 @@ describe('useTrainingSession', () => {
     expect(reloaded.solves.value.map((s) => [s.value, s.penalty])).toEqual([[1100, 'dnf']])
   })
 
-  it('пустую сессию в хранилище не записывает', () => {
+  it('does not write an empty session to storage', () => {
     const storage = memoryStorage()
 
     session('333', storage)
@@ -91,7 +91,7 @@ describe('useTrainingSession', () => {
     expect(storage.data.size).toBe(0)
   })
 
-  it('новая сессия очищает только свою дисциплину', async () => {
+  it('a new session clears only its own event', async () => {
     const storage = memoryStorage({ [KEY]: saved, [sessionKey('222')]: saved })
     const s = session('333', storage)
 
@@ -102,7 +102,7 @@ describe('useTrainingSession', () => {
     expect(session('222', storage).solves.value).toHaveLength(2)
   })
 
-  it('при смене дисциплины читается её сессия, чужие данные не переносятся', async () => {
+  it('changing the event reads its session, other data is not carried over', async () => {
     const storage = memoryStorage({ [KEY]: saved })
     const eventId = ref('333')
     const s = session(eventId, storage)

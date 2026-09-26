@@ -7,8 +7,8 @@ import { missingConsents } from '../model/consents'
 import { useFormErrors } from '@/shared/lib'
 import ConsentFields from './ConsentFields.vue'
 
-// Согласия от того, у кого их нет: аккаунт создал организатор
-// или текст согласия обновился.
+// Consents from someone who has none: the account was created by an organizer
+// or the consent text was updated.
 const emit = defineEmits<{ success: [] }>()
 
 const userStore = useUserStore()

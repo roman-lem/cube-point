@@ -22,14 +22,14 @@ import {
 } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, AppSelect, ConfirmDialog, PageHeader } from '@/shared/ui'
 
-// Статистика (макет statistics): свои серии на идущих встречах
-// и тренировочная сессия выбранной дисциплины. Дисциплина — в адресе
-// (/statistics?event=222), чтобы переживать перезагрузку.
+// Statistics: one's own series at live meetups
+// and the training session of the selected event. The event is in the URL
+// (/statistics?event=222) to survive a reload.
 
 const route = useRoute()
 const router = useRouter()
 
-// Серии на встречах
+// Series at meetups
 
 const meetups = ref<LiveSeriesMeetup[]>([])
 const seriesError = ref('')
@@ -54,8 +54,8 @@ const isAverageFormat = (series: LiveSeries) => series.format === 'ao5' || serie
 const isFmc = (series: LiveSeries) => EVENTS[series.event_id as EventId]?.resultType === 'moves'
 const resultType = (series: LiveSeries) => (isFmc(series) ? 'moves' : 'time')
 
-// «Продолжить» открывает соревновательный режим сразу, без подтверждения.
-// У FMC свой экран.
+// "Continue" opens competition mode right away, without confirmation.
+// FMC has its own screen.
 function continueRoute(meetupId: number, series: LiveSeries) {
   if (isFmc(series)) {
     return { name: 'fmc', params: { meetupId } }
@@ -66,7 +66,7 @@ function continueRoute(meetupId: number, series: LiveSeries) {
   }
 }
 
-// Тренировочная сессия
+// Training session
 
 const eventOptions = TIMER_EVENT_IDS.map((id) => ({ value: id, label: EVENTS[id].name }))
 
@@ -110,7 +110,7 @@ function confirmClear() {
 
     <AppCard v-if="seriesError" class="page__muted">{{ seriesError }}</AppCard>
 
-    <!-- Серии на идущих встречах -->
+    <!-- Series at live meetups -->
     <section v-for="meetup in meetups" :key="meetup.id" class="page__section">
       <div>
         <h2 class="page__section-title">{{ meetup.club.name }}</h2>
@@ -164,7 +164,7 @@ function confirmClear() {
       </AppCard>
     </section>
 
-    <!-- Тренировочная сессия -->
+    <!-- Training session -->
     <section class="page__section">
       <div class="statistics__training-head">
         <h2 class="page__section-title">Тренировка</h2>

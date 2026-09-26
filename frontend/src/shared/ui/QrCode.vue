@@ -2,14 +2,14 @@
 import { computed } from 'vue'
 import { qrSvg } from '../lib/qr'
 
-// QR-код строки (обычно ссылки) в виде SVG.
+// QR code of a string (usually a link) as SVG.
 const { value } = defineProps<{ value: string }>()
 
 const svg = computed(() => qrSvg(value))
 </script>
 
 <template>
-  <!-- SVG строит uqr из value, чужой разметки в нём нет. -->
+  <!-- The SVG is built by uqr from value, it contains no foreign markup. -->
   <div class="qr-code" role="img" :aria-label="`QR-код: ${value}`" v-html="svg" />
 </template>
 

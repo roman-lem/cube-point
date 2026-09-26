@@ -6,25 +6,25 @@ import { LoginForm, RegisterForm } from '@/features/auth'
 import { safeRedirect } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
 
-// Одна страница на два маршрута: /login и /register.
+// One page for two routes: /login and /register.
 const route = useRoute()
 const router = useRouter()
 
 const isLogin = computed(() => route.name === 'login')
-// ?redirect=… переносится при переключении между входом и регистрацией.
+// ?redirect=… is carried over when switching between login and registration.
 const switchTo = computed(() => ({
   name: isLogin.value ? 'register' : 'login',
   query: route.query,
 }))
 
-// Пришли по ссылке встречи (/join/…): ?join=токен, показываем баннер встречи.
+// Came via a meetup link (/join/…): ?join=token, show the meetup banner.
 const joinPreview = ref<JoinPreview | null>(null)
 watch(
   () => route.query.join,
   async (token) => {
     joinPreview.value = null
     if (typeof token === 'string' && token) {
-      // Неверная ссылка — просто без баннера, ошибку покажет страница встречи.
+      // An invalid link just means no banner; the meetup page will show the error.
       joinPreview.value = await fetchJoinPreview(token).catch(() => null)
     }
   },

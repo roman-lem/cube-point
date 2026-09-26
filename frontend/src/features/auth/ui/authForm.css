@@ -1,4 +1,4 @@
-/* Общая раскладка форм входа, регистрации и смены пароля. */
+/* Common layout of the login, registration and password change forms. */
 .auth-form {
   display: flex;
   flex-direction: column;

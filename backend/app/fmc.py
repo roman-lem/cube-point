@@ -1,9 +1,9 @@
-"""Попытка FMC: старт отсчёта, черновик, заморозка и сдача решения.
+"""FMC attempt: countdown start, draft, freezing and submitting the solution.
 
-Адреса: /api/series/<id>/fmc/…. Серия FMC начинается общим стартом серии
-(series.py), а каждая попытка — своим стартом со своим часом. Решение
-проверяет клиент, сервер сохраняет его результат вместе с текстом решения.
-Правила — раздел «FMC» CLAUDE.md.
+Routes: /api/series/<id>/fmc/…. An FMC series begins with the common series start
+(series.py), and each attempt has its own start and its own hour. The solution
+is checked by the client; the server stores its result along with the solution text.
+Rules: "FMC" in docs/ARCHITECTURE.md.
 """
 
 import re
@@ -28,9 +28,9 @@ from .series import (
 fmc_bp = Blueprint("fmc", __name__)
 
 MAX_SOLUTION_LENGTH = 1000
-# Ходы, которые можно набрать на клавиатуре FMC: грани, широкие повороты, перехваты.
+# Moves available on the FMC keyboard: faces, wide turns, rotations.
 MOVE_RE = re.compile(r"(?:[RLUDFB]w?|[xyz])['2]?")
-# Решение длиннее — DNF по регламенту WCA. Сам DNF ставит клиент при проверке.
+# A longer solution is DNF under the WCA regulations. The client sets the DNF itself when checking.
 MAX_MOVES = 80
 
 
@@ -48,7 +48,7 @@ def get_my_fmc_series(series_id):
 
 
 def check_number(series, data):
-    """Номер попытки из запроса: только следующая несданная попытка серии."""
+    """Attempt number from the request: only the next unsubmitted attempt of the series."""
     number = data.get("attempt_number")
     if not is_int(number):
         raise ApiError(422, "invalid_attempt", "Некорректный номер попытки")
@@ -68,7 +68,7 @@ def get_started(series, number):
 
 
 def parse_solution(data):
-    """Решение из запроса: ходы через один пробел."""
+    """Solution from the request: moves separated by single spaces."""
     solution = get_str(data, "solution")
     moves = solution.split()
     if len(solution) > MAX_SOLUTION_LENGTH or not all(MOVE_RE.fullmatch(m) for m in moves):
@@ -83,9 +83,9 @@ def series_response(series):
 @fmc_bp.post("/series/<int:series_id>/fmc/start")
 @login_required
 def start_attempt(series_id):
-    """Старт попытки: с этого момента идёт час и выдаётся скрамбл.
+    """Attempt start: from this moment the hour runs and the scramble is given out.
 
-    Повторный старт возвращает уже начатую попытку (двойное нажатие).
+    A repeated start returns the already started attempt (double tap).
     """
     series = get_my_fmc_series(series_id)
     number = check_number(series, json_body())
@@ -94,7 +94,7 @@ def start_attempt(series_id):
         try:
             db.session.commit()
         except IntegrityError:
-            # Попытку успел начать параллельный запрос.
+            # A concurrent request has already started the attempt.
             db.session.rollback()
             series = db.session.get(Series, series_id)
     return series_response(series)
@@ -103,7 +103,7 @@ def start_attempt(series_id):
 @fmc_bp.put("/series/<int:series_id>/fmc/draft")
 @login_required
 def save_draft(series_id):
-    """Черновик решения. После дедлайна и при заморозке не принимается."""
+    """Solution draft. Not accepted after the deadline or while frozen."""
     series = get_my_fmc_series(series_id)
     data = json_body()
     fmc_attempt = get_started(series, check_number(series, data))
@@ -123,10 +123,10 @@ def save_draft(series_id):
 @fmc_bp.post("/series/<int:series_id>/fmc/freeze")
 @login_required
 def freeze(series_id):
-    """Первый шаг сдачи: замораживает текст решения и время сдачи.
+    """First submission step: freezes the solution text and the submission time.
 
-    Заморозка после дедлайна (плохая сеть) всё равно фиксирует текст, но
-    попытка сразу сохраняется как DNF — снять его может организатор.
+    Freezing after the deadline (bad network) still records the text, but
+    the attempt is saved as DNF right away; the organizer can remove it.
     """
     series = get_my_fmc_series(series_id)
     data = json_body()
@@ -155,7 +155,7 @@ def freeze(series_id):
 @fmc_bp.delete("/series/<int:series_id>/fmc/freeze")
 @login_required
 def unfreeze(series_id):
-    """«Вернуться к решению»: снимает заморозку, пока время не вышло."""
+    """Back to solution: removes the freeze while time is not over."""
     series = get_my_fmc_series(series_id)
     fmc_attempt = get_started(series, check_number(series, json_body()))
     if utcnow() >= fmc_deadline(fmc_attempt):
@@ -169,11 +169,11 @@ def unfreeze(series_id):
 @fmc_bp.post("/series/<int:series_id>/fmc/result")
 @login_required
 def submit_result(series_id):
-    """Второй шаг сдачи: результат, посчитанный клиентом.
+    """Second submission step: the result computed by the client.
 
-    Решение — замороженный текст, а если время вышло без сдачи — последний
-    черновик. Клиент присылает текст, который проверял: если он не совпадает
-    с сохранённым, сохранение отклоняется и клиент перечитывает серию.
+    The solution is the frozen text or, if time ran out without submission, the last
+    draft. The client sends the text it checked: if it does not match the stored
+    one, the save is rejected and the client reloads the series.
     """
     series = get_my_fmc_series(series_id)
     data = json_body()
@@ -201,7 +201,7 @@ def submit_result(series_id):
 
 
 def parse_result(data):
-    """Ходы, штраф и версия. У DNF ходов нет, +2 в FMC не бывает."""
+    """Moves, penalty and version. DNF has no moves; FMC never has +2."""
     value = data.get("value")
     penalty = get_str(data, "penalty")
     version = data.get("version")
@@ -215,7 +215,7 @@ def parse_result(data):
 
 
 def save_or_conflict(series, number, value, penalty, version, **kwargs):
-    """save_attempt с фиксацией; при конфликте версий — 409 со свежей серией."""
+    """save_attempt with commit; on a version conflict, 409 with the fresh series."""
     series_id = series.id
     try:
         save_attempt(series, number, value, penalty, version, current_user, **kwargs)

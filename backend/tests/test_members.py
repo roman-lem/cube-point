@@ -1,4 +1,4 @@
-"""Участники клуба: список, карточка, сброс пароля, организаторы, блокировка."""
+"""Club members: list, member card, password reset, organizers, bans."""
 
 import pytest
 
@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import ClubMember, ClubRole, LoginFailure, User
 
 from .helpers import MEMBER, ORGANIZER, PASSWORD, client_for, create_club, create_user, error
-from .test_series import (  # noqa: F401 — фикстуры
+from .test_series import (  # noqa: F401 — fixtures
     clients, meetup_id, org, solve, start, submit, user_id_of, world,
 )
 
@@ -46,7 +46,7 @@ def ban(client, world, login, reason="Грубил участникам"):
     return client.put(members_url(world, user_id_of(world, login), "ban"), json={"reason": reason})
 
 
-# Права
+# Permissions
 
 def manager_requests(world):
     anna = user_id_of(world, "anna")
@@ -90,7 +90,7 @@ def test_admin_manages_members_without_membership(world):
     assert membership(world, "anna").role == ClubRole.ORGANIZER
 
 
-# Список
+# List
 
 def test_public_list_hides_banned(world):
     create_user(world["app"], "banned", MEMBER, world["club_id"], banned=True)
@@ -173,7 +173,7 @@ def test_create_member_with_taken_login(world, org):
     assert error(response)["fields"]["login"] == "Логин уже занят"
 
 
-# Сброс пароля
+# Password reset
 
 def test_password_reset_revokes_sessions(world, org, clients):
     anna = clients["anna"]
@@ -183,9 +183,9 @@ def test_password_reset_revokes_sessions(world, org, clients):
 
     assert response.status_code == 200
     password = response.get_json()["temporary_password"]
-    # Старая сессия больше не действует.
+    # The old session no longer works.
     assert anna.get("/api/me/active").status_code == 401
-    # Старый пароль не подходит, временный — подходит, но требует смены.
+    # The old password does not work; the temporary one does but requires a change.
     client = world["app"].test_client()
     old = client.post("/api/auth/login", json={"login": "anna", "password": PASSWORD})
     assert old.status_code == 401
@@ -218,7 +218,7 @@ def test_organizer_cannot_reset_organizer_password(world, org):
 
 
 def test_organizer_of_another_club_is_protected(world, org):
-    """Участник этого клуба, но организатор другого: пароль сбрасывает только администратор."""
+    """A member of this club but an organizer of another: only the administrator resets the password."""
     other_club = create_club(world["app"])
     with world["app"].app_context():
         db.session.add(ClubMember(
@@ -252,10 +252,10 @@ def test_admin_resets_organizer_password(world, org):
     response = admin.post(members_url(world, user_id_of(world, "org"), "password-reset"))
 
     assert response.status_code == 200
-    assert org.get(members_url(world)).get_json()["can_manage"] is False  # сессия отозвана
+    assert org.get(members_url(world)).get_json()["can_manage"] is False  # session revoked
 
 
-# Организаторы
+# Organizers
 
 def test_promote_and_demote_organizer(world, org):
     anna = user_id_of(world, "anna")
@@ -297,7 +297,7 @@ def test_banned_cannot_become_organizer(world, org):
     assert membership(world, "banned").role == ClubRole.MEMBER
 
 
-# Блокировка
+# Bans
 
 def test_ban_and_unban(world, org):
     response = ban(org, world, "anna", "  Грубил   участникам ")
@@ -363,7 +363,7 @@ def test_banned_mid_meetup_stops_submitting(world, org, clients, meetup_id):
     assert error(start(clients["anna"], meetup_id, "222"))["code"] == "banned"
     fmc_series = start(clients["anna"], meetup_id, "333fm")
     assert error(fmc_series)["code"] == "banned"
-    # Сданные попытки остались, организатор по-прежнему вводит результаты за участника.
+    # Submitted attempts stay; the organizer still enters results for the member.
     anna = user_id_of(world, "anna")
     response = org.put(
         f"/api/meetups/{meetup_id}/events/333/participants/{anna}/attempts/3",

@@ -3,12 +3,12 @@ import { http } from '@/shared/api'
 
 const base = (clubId: number) => `/api/admin/clubs/${clubId}/organizers`
 
-/** Назначает организатором: добавляет в клуб или повышает участника. */
+/** Makes the user an organizer: adds them to the club or promotes a member. */
 export async function addOrganizer(clubId: number, login: string) {
   return (await http.post<{ club: AdminClub }>(base(clubId), { login })).club
 }
 
-/** Понижает организатора до участника; последнего снять нельзя. */
+/** Demotes an organizer to a member; the last one cannot be removed. */
 export async function removeOrganizer(clubId: number, userId: number) {
   return (await http.delete<{ club: AdminClub }>(`${base(clubId)}/${userId}`)).club
 }

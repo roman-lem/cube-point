@@ -5,7 +5,7 @@ import { AppIcon } from '@/shared/ui'
 import type { MeetupSummary } from '../model/types'
 import MeetupStatusBadge from './MeetupStatusBadge.vue'
 
-// full — ближайшая встреча крупно, compact — строка в списке прошедших.
+// full: the upcoming meetup, large; compact: a row in the list of past ones.
 const { variant = 'full' } = defineProps<{
   meetup: MeetupSummary
   timezone: string

@@ -1,8 +1,8 @@
-"""Тестовые данные: `flask seed` (или `flask seed --reset`, чтобы очистить БД).
+"""Demo data: `flask seed` (or `flask seed --reset` to wipe the DB first).
 
-Клуб Tyumen | Speedcubing, две завершённые встречи и одна live.
-Случайность с фиксированным зерном — данные каждый раз одинаковые
-(кроме дат: они отсчитываются от сегодняшнего дня).
+The Tyumen | Speedcubing club, two finished meetups and one live.
+Randomness with a fixed seed: the data is the same every time
+(except dates, which are counted from today).
 """
 
 import random
@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 
 import click
+from flask import current_app
 from flask.cli import with_appcontext
 from sqlalchemy import inspect
 from werkzeug.security import generate_password_hash
@@ -27,7 +28,7 @@ from .results import ATTEMPTS_COUNT, calc_series
 from .scoring import recalc_records
 
 PASSWORD = "password"
-# Тюмень — UTC+5 круглый год (Asia/Yekaterinburg).
+# Tyumen is UTC+5 all year round (Asia/Yekaterinburg).
 CLUB_UTC_OFFSET = timedelta(hours=5)
 
 
@@ -35,10 +36,10 @@ CLUB_UTC_OFFSET = timedelta(hours=5)
 class Cuber:
     name: str
     login: str
-    level: float  # среднее на 3×3 в секундах
-    fmc: int | None = None  # среднее FMC в ходах, None — не решает FMC
-    bld: float | None = None  # время 3BLD в секундах, None — не собирает вслепую
-    no_phone: bool = False  # результаты за него вводит организатор
+    level: float  # 3x3 average in seconds
+    fmc: int | None = None  # FMC mean in moves, None: does not do FMC
+    bld: float | None = None  # 3BLD time in seconds, None: does not do blindfolded
+    no_phone: bool = False  # the organizer enters their results
     user: User | None = None
 
 
@@ -58,34 +59,36 @@ REGULARS = [
     Cuber("Егор Михайлов", "egor.m", 17.3),
 ]
 EGOR = REGULARS[11]
-# Новички подали заявку на текущую встречу, но ещё не в клубе.
+# Newcomers requested to join the current meetup but are not in the club yet.
 PENDING = [
     Cuber("Иван Орлов", "ivan.orlov", 42.0),
     Cuber("Вероника Белова", "veronika.b", 27.5),
 ]
 REJECTED = Cuber("Кирилл Зайцев", "kirill.z", 35.0)
 
-# Во сколько раз время в дисциплине отличается от 3×3.
+# How many times an event's time differs from 3x3.
 TIME_FACTORS = {"333": 1.0, "222": 0.42, "pyram": 0.38, "333oh": 1.8}
-# Доля участников, которые сдают дисциплину (3×3 сдают все).
+# Share of participants who do the event (everyone does 3x3).
 EVENT_POPULARITY = {"222": 0.75, "pyram": 0.5}
 
 
 @click.command("seed")
-@click.option("--reset", is_flag=True, help="Удалить все данные перед заполнением.")
+@click.option("--reset", is_flag=True, help="Delete all data before seeding.")
 @with_appcontext
 def seed_command(reset):
-    """Заполнить БД тестовыми данными."""
+    """Fill the DB with demo data."""
+    if not current_app.config["ALLOW_SEED"]:
+        raise click.ClickException("Seeding is disabled. Set ALLOW_SEED=1 to enable it.")
     missing = set(db.metadata.tables) - set(inspect(db.engine).get_table_names())
     if missing:
         raise click.ClickException(
-            f"В БД нет таблиц {', '.join(sorted(missing))}. Сначала `flask db upgrade`."
+            f"Missing tables: {', '.join(sorted(missing))}. Run `flask db upgrade` first."
         )
     if reset:
         for table in reversed(db.metadata.sorted_tables):
             db.session.execute(table.delete())
     elif db.session.query(User).first():
-        raise click.ClickException("БД не пустая. Запустите `flask seed --reset`.")
+        raise click.ClickException("The database is not empty. Run `flask seed --reset`.")
 
     rng = random.Random(2026)
     now = utcnow().replace(second=0, microsecond=0)
@@ -118,7 +121,7 @@ def seed_command(reset):
     )
     _add_join_requests(live, organizer, now)
 
-    # Участники вступают в клуб при первом подтверждении заявки.
+    # Participants join the club when their request is approved for the first time.
     for cuber in REGULARS:
         joined = first if cuber in REGULARS[:10] else second
         db.session.add(ClubMember(
@@ -135,7 +138,7 @@ def seed_command(reset):
 
 
 def _create_users(now):
-    # Хеш считается медленно, у всех тестовых пользователей он один.
+    # Hashing is slow, so all demo users share one hash.
     password_hash = generate_password_hash(PASSWORD)
     admin = User(
         login="admin", display_name="Администратор", password_hash=password_hash,
@@ -150,8 +153,8 @@ def _create_users(now):
         db.session.add(cuber.user)
     db.session.flush()
 
-    # Аккаунт для пришедшего без телефона создал организатор: согласия
-    # человек даст при первом входе. Остальные дали их при регистрации.
+    # The organizer created the account for someone without a phone: they will give
+    # consents on first login. The others gave them at registration.
     nikita = next(c for c in REGULARS if c.no_phone).user
     nikita.created_by = ORGANIZER.user.id
     nikita.must_change_password = True
@@ -237,12 +240,12 @@ def _add_series(meetup, meetup_event, scrambles, cuber, organizer, rng):
     is_live = meetup.status == MeetupStatus.LIVE
 
     if is_live:
-        # На текущей встрече часть серий ещё не начата или не закончена.
+        # At the current meetup some series are not started or not finished yet.
         solved = rng.randint(0, count)
         if solved == 0:
             return
     elif count > 1 and rng.random() < 0.12:
-        solved = rng.randint(1, count - 1)  # ушёл, не дособрав серию
+        solved = rng.randint(1, count - 1)  # left without finishing the series
     else:
         solved = count
 
@@ -261,12 +264,12 @@ def _add_series(meetup, meetup_event, scrambles, cuber, organizer, rng):
             value, penalty = _timed_attempt(cuber, meetup_event.event_id, rng)
             solution = None
         attempt = _attempt(number, value, penalty, solution, submitted_at, entered_by)
-        # Изредка организатор исправляет сданную попытку: +2, которого не было.
+        # Occasionally the organizer corrects a submitted attempt: a +2 that was missed.
         if penalty == Penalty.NONE and solution is None and rng.random() < 0.03:
             _edit(attempt, Penalty.PLUS2, organizer.id, submitted_at + timedelta(minutes=5))
         series.attempts.append(attempt)
 
-    # При завершении встречи несобранные попытки начатых серий становятся DNS.
+    # On meetup finish, missing attempts of started series become DNS.
     if meetup.status == MeetupStatus.FINISHED:
         for number in range(solved + 1, count + 1):
             series.attempts.append(_attempt(
@@ -286,7 +289,7 @@ def _add_series(meetup, meetup_event, scrambles, cuber, organizer, rng):
 
 
 def _attempt(number, value, penalty, solution, submitted_at, entered_by):
-    """Попытка с первой записью журнала, как её создала бы save_attempt."""
+    """Attempt with its first history entry, as save_attempt would create it."""
     attempt = Attempt(
         attempt_number=number, value=value, penalty=penalty, solution=solution,
         submitted_at=submitted_at, entered_by=entered_by,
@@ -318,18 +321,18 @@ def _timed_attempt(cuber, event_id, rng):
     if roll < 0.05:
         penalty = Penalty.PLUS2
     elif roll < 0.08:
-        penalty = Penalty.DNF  # время остаётся, чтобы штраф можно было снять
+        penalty = Penalty.DNF  # the time stays so the penalty can be removed
     else:
         penalty = Penalty.NONE
     return round(seconds * 100), penalty
 
 
 def _fmc_attempt(cuber, scramble, rng):
-    """Решение, которое действительно собирает кубик.
+    """A solution that actually solves the cube.
 
-    Берётся обратная последовательность к скрамблу и удлиняется до
-    уровня участника вставками взаимно сокращающихся пар ходов.
-    DNF — то же решение без одного хода, оно уже не собирает кубик.
+    Takes the inverse of the scramble and pads it to the participant's
+    level by inserting pairs of moves that cancel each other.
+    DNF is the same solution minus one move, which no longer solves the cube.
     """
     moves = _inverse(scramble.split())
     extra = max(0, round(rng.gauss(cuber.fmc, 3)) - len(moves))
@@ -355,8 +358,8 @@ def _inverse(moves):
     return [m[0] + inverted[m[1:]] for m in reversed(moves)]
 
 
-# Скрамблы — случайные ходы. Они не официальные и для тестовых данных
-# этого достаточно; на реальных встречах их генерирует приложение.
+# Scrambles are random moves. They are not official, and that is enough
+# for demo data; at real meetups the app generates them.
 
 CUBE_AXES = {"R": 0, "L": 0, "U": 1, "D": 1, "F": 2, "B": 2}
 
@@ -378,7 +381,7 @@ def _random_moves(faces, suffixes, length, rng, axes=None):
         face = rng.choice(faces)
         if moves and face == moves[-1][0]:
             continue
-        # R L R — лишний ход: R и L на одной оси, третий ход сокращается.
+        # R L R is one move too many: R and L share an axis, the third move cancels.
         if axes and len(moves) >= 2 and axes[face] == axes[moves[-1][0]] == axes[moves[-2][0]]:
             continue
         moves.append(face + rng.choice(suffixes))
@@ -401,13 +404,13 @@ def _add_join_requests(meetup, organizer, now):
 def _print_summary(admin):
     series = db.session.query(Series)
     attempts = db.session.query(Attempt)
-    click.echo("Тестовые данные созданы.")
-    click.echo(f"  Пароль у всех пользователей: {PASSWORD} (администратор: {admin.login})")
-    click.echo(f"  Пользователей: {db.session.query(User).count()}, "
-               f"встреч: {db.session.query(Meetup).count()}, "
-               f"серий: {series.count()} "
-               f"(незавершённых: {series.filter_by(status=SeriesStatus.IN_PROGRESS).count()})")
-    click.echo(f"  Попыток: {attempts.count()}, "
+    click.echo("Demo data created.")
+    click.echo(f"  Password for all users: {PASSWORD} (administrator: {admin.login})")
+    click.echo(f"  Users: {db.session.query(User).count()}, "
+               f"meetups: {db.session.query(Meetup).count()}, "
+               f"series: {series.count()} "
+               f"(unfinished: {series.filter_by(status=SeriesStatus.IN_PROGRESS).count()})")
+    click.echo(f"  Attempts: {attempts.count()}, "
                f"+2: {attempts.filter_by(penalty=Penalty.PLUS2).count()}, "
                f"DNF: {attempts.filter_by(penalty=Penalty.DNF).count()}, "
                f"DNS: {attempts.filter_by(penalty=Penalty.DNS).count()}")

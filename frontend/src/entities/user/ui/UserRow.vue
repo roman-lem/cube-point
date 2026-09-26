@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-// Строка пользователя: инициалы, имя и логин, справа — действие (слот).
-// Слот badges — отметки после имени, details — текст после логина через «·».
-// Логин видят только организаторы и администратор: без него строка — имя и details.
+// User row: initials, name and login, an action on the right (slot).
+// The badges slot is marks after the name, details is text after the login after "·".
+// Only organizers and the administrator see the login: without it the row is the name and details.
 const { displayName } = defineProps<{ displayName: string; login?: string; details?: string }>()
 
 const initials = computed(() =>

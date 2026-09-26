@@ -1,28 +1,28 @@
-// Защита от решения, полученного из скрамбла (запрещено регламентом WCA).
+// Protection against a solution derived from the scramble (forbidden by the WCA regulations).
 //
-// Автоматически ловим только очевидное: в решении есть подряд идущие ходы,
-// совпадающие с частью обратного скрамбла длиной от SCRAMBLE_MATCH_MOVES.
-// Перехваты и широкие повороты не спасают: решение сначала переводится
-// в повороты граней в исходной ориентации куба.
+// Only the obvious is caught automatically: the solution contains consecutive moves
+// matching a part of the inverse scramble at least SCRAMBLE_MATCH_MOVES long.
+// Rotations and wide turns do not help: the solution is first converted
+// to face turns in the cube's original orientation.
 
-/** С какой длины совпадение с обратным скрамблом считается нарушением. */
+/** Match length with the inverse scramble from which it counts as a violation. */
 export const SCRAMBLE_MATCH_MOVES = 6
 
 type Face = 'R' | 'L' | 'U' | 'D' | 'F' | 'B'
 type Rotation = 'x' | 'y' | 'z'
-/** Какая грань в исходной ориентации сейчас стоит на каждом месте. */
+/** Which face of the original orientation is now in each position. */
 type Orientation = Record<Face, Face>
 
-// Куда уходит грань при перехвате по часовой стрелке: x как R, y как U, z как F.
-// После x на месте U оказывается бывшая F и т. д.
+// Where a face goes on a clockwise rotation: x like R, y like U, z like F.
+// After x the former F is in the U position, and so on.
 const ROTATION_CYCLES: Record<Rotation, [Face, Face, Face, Face]> = {
   x: ['F', 'U', 'B', 'D'],
   y: ['R', 'F', 'L', 'B'],
   z: ['U', 'R', 'D', 'L'],
 }
 
-// Широкий поворот = поворот противоположной грани и перехват: Rw = L x, Lw = R x'.
-// Третье значение — направление перехвата.
+// A wide turn = a turn of the opposite face plus a rotation: Rw = L x, Lw = R x'.
+// The third value is the rotation direction.
 const WIDE: Record<Face, [Face, Rotation, string]> = {
   R: ['L', 'x', ''],
   L: ['R', 'x', "'"],
@@ -34,7 +34,7 @@ const WIDE: Record<Face, [Face, Rotation, string]> = {
 
 const MOVE_RE = /^(?:([RLUDFB])(w)?|([xyz]))(['2])?$/
 
-/** Сколько четвертей по часовой: '' → 1, 2 → 2, ' → 3. */
+/** How many clockwise quarter turns: '' → 1, 2 → 2, ' → 3. */
 function turns(modifier: string): number {
   return modifier === '2' ? 2 : modifier === "'" ? 3 : 1
 }
@@ -43,7 +43,7 @@ function rotate(orientation: Orientation, rotation: Rotation, quarterTurns: numb
   let result = orientation
   const [a, b, c, d] = ROTATION_CYCLES[rotation]
   for (let i = 0; i < quarterTurns; i++) {
-    // Грань с места a переезжает на место b и т. д.
+    // The face from position a moves to position b, and so on.
     result = { ...result, [b]: result[a], [c]: result[b], [d]: result[c], [a]: result[d] }
   }
   return result
@@ -55,8 +55,8 @@ function combine(modifier: string, extra: string): string {
 }
 
 /**
- * Повороты граней в исходной ориентации куба, без перехватов.
- * Ходы, которые не удалось разобрать, пропускаются: их отсекает checkSolution.
+ * Face turns in the cube's original orientation, without rotations.
+ * Moves that could not be parsed are skipped: checkSolution rejects them.
  */
 export function toFaceTurns(moves: string[]): string[] {
   let orientation: Orientation = { R: 'R', L: 'L', U: 'U', D: 'D', F: 'F', B: 'B' }
@@ -83,7 +83,7 @@ function invert(move: string): string {
   return move.endsWith("'") ? move.slice(0, -1) : `${move}'`
 }
 
-/** Есть ли в решении SCRAMBLE_MATCH_MOVES ходов подряд из обратного скрамбла. */
+/** Whether the solution has SCRAMBLE_MATCH_MOVES consecutive moves from the inverse scramble. */
 export function isScrambleDerived(scramble: string[], solution: string[]): boolean {
   const inverse = toFaceTurns(scramble).reverse().map(invert)
   const turnsInSolution = toFaceTurns(solution)

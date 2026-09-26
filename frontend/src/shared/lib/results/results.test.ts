@@ -1,4 +1,4 @@
-// Проверка подсчёта результатов по общим случаям с бэкендом.
+// Result calculation checked against the cases shared with the backend.
 import { describe, expect, it } from 'vitest'
 import cases from '../../../../../testdata/results_cases.json'
 import {
@@ -48,7 +48,7 @@ describe('calcSeries', () => {
   })
 })
 
-describe('calcSeries: ошибки', () => {
+describe('calcSeries: errors', () => {
   it.each(cases.calcSeriesErrors as Omit<SeriesCase, 'expected'>[])('$name', (c) => {
     expect(() => calcSeries(c.attempts, c.format, c.resultType)).toThrow()
   })
@@ -56,7 +56,7 @@ describe('calcSeries: ошибки', () => {
 
 describe('formatResult', () => {
   it.each(cases.formatResult as FormatResultCase[])(
-    '$value ($resultType, среднее: $isAverage) → $expected',
+    '$value ($resultType, average: $isAverage) → $expected',
     (c) => {
       expect(formatResult(c.value, c.resultType, c.isAverage)).toBe(c.expected)
     },
@@ -75,7 +75,7 @@ describe('averageOf', () => {
   })
 })
 
-describe('averageOf: ошибки', () => {
+describe('averageOf: errors', () => {
   it.each(cases.averageOfErrors as Omit<WindowCase<never>, 'expected'>[])('$name', (c) => {
     expect(() => averageOf(c.attempts, c.n, c.resultType)).toThrow()
   })
@@ -87,7 +87,7 @@ describe('rollingAverages', () => {
   })
 })
 
-describe('rollingAverages: ошибки', () => {
+describe('rollingAverages: errors', () => {
   it.each(cases.rollingAveragesErrors as Omit<WindowCase<never>, 'expected'>[])('$name', (c) => {
     expect(() => rollingAverages(c.attempts, c.n, c.resultType)).toThrow()
   })

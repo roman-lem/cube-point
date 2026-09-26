@@ -6,8 +6,8 @@ import { DeleteAccountControl } from '@/features/account-delete'
 import { ChangePasswordForm, LogoutButton } from '@/features/auth'
 import { AppCard, AppIcon, PageHeader } from '@/shared/ui'
 
-// Настройки своего аккаунта (макет profile_settings). Имя и логин пока только
-// для чтения, привязки почты ещё нет.
+// One's own account settings. Name and login are read-only
+// for now, there is no email binding yet.
 const router = useRouter()
 const userStore = useUserStore()
 const passwordChanged = ref(false)

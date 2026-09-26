@@ -6,13 +6,13 @@ import { LandingHeader } from '@/widgets/landing-header'
 import { AppNavigation } from '@/widgets/navigation'
 
 const route = useRoute()
-// Таймер и FMC занимают весь экран под зону касания, там подвала нет.
+// The timer and FMC use the whole screen as a touch area, so there is no footer.
 const showFooter = computed(() => !route.meta.bare && route.meta.tab !== 'timer')
 </script>
 
 <template>
   <div class="app">
-    <!-- Лендинг — со своей шапкой, страницы для печати — без навигации. -->
+    <!-- The landing has its own header, print pages have no navigation. -->
     <LandingHeader v-if="route.meta.layout === 'landing'" />
     <AppNavigation v-else-if="!route.meta.bare" />
     <RouterView />

@@ -9,10 +9,10 @@ const {
 } = defineProps<{
   variant?: 'primary' | 'secondary' | 'danger'
   type?: 'button' | 'submit'
-  /** Идёт запрос: кнопка неактивна, чтобы не отправить форму дважды. */
+  /** A request is in flight: the button is disabled so the form is not sent twice. */
   loading?: boolean
   disabled?: boolean
-  /** Кнопка-ссылка на страницу приложения. */
+  /** A link button to an app page. */
   to?: RouteLocationRaw
 }>()
 </script>

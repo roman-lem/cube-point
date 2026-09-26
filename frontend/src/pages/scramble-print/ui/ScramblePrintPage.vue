@@ -6,9 +6,9 @@ import { formatDate, plural } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, PageHeader } from '@/shared/ui'
 import ScrambleBlank from './ScrambleBlank.vue'
 
-// Печать бланков со скрамблами: бланк A5 на участника, по два на листе A4.
-// Скрамблы одинаковые у всех, поэтому бланки одинаковые. FMC не печатается —
-// его скрамбл выдаётся только после старта попытки.
+// Printing score sheets with scrambles: an A5 sheet per participant, two per A4 page.
+// Scrambles are the same for everyone, so the sheets are identical. FMC is not printed:
+// its scramble is given out only after the attempt starts.
 const { meetupId } = defineProps<{ meetupId: number }>()
 
 const MAX_BLANKS = 200
@@ -26,7 +26,7 @@ async function load() {
     ])
     page.value = data
     events.value = scrambles
-    // По бланку на подтверждённого участника, с запасом до чётного — лист A4 целиком.
+    // A sheet per approved participant, rounded up to even so the A4 page is full.
     const count = Math.max(data.meetup.participants_count, 2)
     blanks.value = count + (count % 2)
   } catch (e) {
@@ -39,7 +39,7 @@ watch(() => meetupId, load, { immediate: true })
 const safeBlanks = computed(() =>
   Math.min(Math.max(Math.floor(Number(blanks.value)) || 1, 1), MAX_BLANKS),
 )
-/** Листы A4 по два бланка. */
+/** A4 pages with two sheets each. */
 const sheets = computed(() =>
   Array.from({ length: Math.ceil(safeBlanks.value / 2) }, (_, i) =>
     Math.min(2, safeBlanks.value - i * 2),
@@ -129,7 +129,7 @@ function print() {
   font-family: var(--font-mono);
 }
 
-/* Превью на экране: листы A4 в альбомной ориентации, с прокруткой на узком экране. */
+/* On-screen preview: landscape A4 pages, scrollable on a narrow screen. */
 .scramble-print__sheets {
   display: flex;
   flex-direction: column;
@@ -148,7 +148,7 @@ function print() {
   border: 1px solid var(--color-border);
 }
 
-/* Линия разреза между бланками. */
+/* Cut line between the sheets. */
 .scramble-print__sheet > :first-child:not(:last-child) {
   border-right: 0.2mm dashed var(--color-text-secondary);
 }
@@ -176,7 +176,7 @@ function print() {
 </style>
 
 <style>
-/* Лист печати: A4 альбомный без полей — отступы задаёт сам бланк. */
+/* Print page: landscape A4 without margins, the sheet sets its own padding. */
 @page {
   size: A4 landscape;
   margin: 0;

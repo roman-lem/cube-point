@@ -2,70 +2,70 @@ import type { Attempt, SeriesFormat } from '@/shared/lib'
 
 export type SeriesStatus = 'in_progress' | 'completed'
 
-/** Попытка в таблицах и сериях. У исправленной организатором — отметка и исходное значение. */
+/** An attempt in tables and series. One corrected by an organizer has a mark and the original value. */
 export interface SeriesAttempt extends Attempt {
   edited?: boolean
   original?: Attempt
 }
 
-/** Сохранённая попытка серии. */
+/** A saved attempt of a series. */
 export interface SavedAttempt extends SeriesAttempt {
   number: number
-  /** Решение FMC. */
+  /** FMC solution. */
   solution?: string
 }
 
-/** Начатая попытка FMC (метки времени — ISO в UTC). */
+/** A started FMC attempt (timestamps are ISO in UTC). */
 export interface FmcAttemptState {
   started_at: string
   deadline: string
-  /** Время сервера в момент ответа: по нему клиент поправляет свои часы. */
+  /** Server time at the moment of the response: the client corrects its clock by it. */
   server_now: string
-  /** Последний сохранённый на сервере черновик решения. */
+  /** The last solution draft saved on the server. */
   draft: string
-  /** Замороженное при сдаче решение; null — не заморожено. */
+  /** The solution frozen at submission; null means not frozen. */
   frozen_solution: string | null
   frozen_at: string | null
 }
 
-/** Своя серия участника (GET …/series/me, ответы на старт и сохранение попытки). */
+/** A participant's own series (GET …/series/me, responses to start and attempt save). */
 export interface MySeries {
   id: number
   meetup_id: number
   event_id: string
   format: SeriesFormat
   status: SeriesStatus
-  /** Версия для проверки одновременной записи, отправляется с попыткой. */
+  /** Version for the concurrent edit check, sent with the attempt. */
   version: number
   attempts: SavedAttempt[]
   best: number | null
   average: number | null
-  /** Следующая попытка и её скрамбл; у завершённой серии null. */
+  /** The next attempt and its scramble; null for a finished series. */
   next_attempt: {
     number: number
-    /** В FMC скрамбл есть только после старта попытки. */
+    /** In FMC the scramble exists only after the attempt starts. */
     scramble: string | null
-    /** Только в FMC: состояние попытки, null — ещё не начата. */
+    /** FMC only: attempt state, null means not started yet. */
     fmc?: FmcAttemptState | null
   } | null
 }
 
-/** Строка таблицы дисциплины. */
+/** Event table row. */
 export interface ResultsRow {
-  /** null — без места: все попытки DNF или серия не закончена. */
+  /** null means no place: all attempts DNF or the series is unfinished. */
   place: number | null
-  /** has_profile — false у удалённого аккаунта с сохранённым именем: имя без ссылки. */
+  /** has_profile is false for a deleted account that kept its name: the name has no link. */
   user: { id: number; display_name: string; has_profile: boolean }
   status: SeriesStatus
-  /** По ячейке на каждую попытку формата, несобранные — null. */
+  /** A cell for each attempt of the format, null for attempts not yet done. */
   attempts: (SeriesAttempt | null)[]
   best: number | null
   average: number | null
-  /** Отметки рекордов (entities не импортируют друг друга, поэтому без RecordMark). */
+  /** Record marks (entities do not import each other, hence no RecordMark). */
   marks: { single: ('PB' | 'LR')[]; average: ('PB' | 'LR')[] }
 }
 
-/** Таблица дисциплины на встрече. */
+/** Event table at a meetup. */
 export interface EventResults {
   meetup: {
     id: number
@@ -77,19 +77,19 @@ export interface EventResults {
   rows: ResultsRow[]
 }
 
-/** Своя серия на идущей встрече (GET /api/me/series). */
+/** One's own series at a live meetup (GET /api/me/series). */
 export interface LiveSeries {
   id: number
   event_id: string
   format: SeriesFormat
   status: SeriesStatus
-  /** По ячейке на каждую попытку формата, несобранные — null. */
+  /** A cell for each attempt of the format, null for attempts not yet done. */
   attempts: (SeriesAttempt | null)[]
   best: number | null
   average: number | null
 }
 
-/** Идущая встреча и свои серии на ней. */
+/** A live meetup and one's own series at it. */
 export interface LiveSeriesMeetup {
   id: number
   date: string

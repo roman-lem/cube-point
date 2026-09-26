@@ -8,8 +8,8 @@ import { DEFAULT_TIME_ZONE, timeZoneOptions, useFormErrors } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, AppInput, AppSelect, FormError } from '@/shared/ui'
 import { createClub, searchUsers } from '../api/createClub'
 
-// Создание клуба администратором (макет admin_club_creation): название, город,
-// часовой пояс и обязательный первый организатор, найденный по логину.
+// Club creation by the administrator: name, city,
+// time zone and a required first organizer found by login.
 const emit = defineEmits<{ created: [club: AdminClub] }>()
 
 const { fieldErrors, formError, clearErrors, showError } = useFormErrors()

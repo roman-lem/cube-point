@@ -1,8 +1,8 @@
 /**
- * Адрес для перехода после входа из ?redirect=…
+ * Where to go after login, from ?redirect=…
  *
- * Принимаются только пути внутри сайта: "/…", но не "//evil.com"
- * и не "/\evil.com" (браузер считает оба адресом другого сайта).
+ * Only paths within the site are accepted: "/…", but not "//evil.com"
+ * and not "/\evil.com" (the browser treats both as another site).
  */
 export function safeRedirect(value: unknown, fallback = '/'): string {
   if (typeof value !== 'string' || !value.startsWith('/')) {

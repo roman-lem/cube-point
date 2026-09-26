@@ -4,7 +4,7 @@ export interface Step {
   text?: string
 }
 
-// Нумерованные шаги: на узком экране — колонкой, на широком — в ряд карточек.
+// Numbered steps: a column on a narrow screen, a row of cards on a wide one.
 defineProps<{ steps: Step[] }>()
 </script>
 

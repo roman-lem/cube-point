@@ -2,13 +2,13 @@
 import { CONSENT_VERSIONS } from '@/features/auth'
 import { PageHeader } from '@/shared/ui'
 
-// Политика обработки персональных данных и текст согласия на обработку.
-// Чекбокс регистрации ведёт на #processing; согласие на распространение —
-// отдельная страница (pages/publication-consent).
-// При изменении текста согласия меняется его версия в CONSENT_VERSIONS
-// (features/auth/model/consents.ts) и в backend/app/consents.py.
+// Personal data processing policy and the text of the processing consent.
+// The registration checkbox links to #processing; the publication consent is
+// a separate page (pages/publication-consent).
+// When the consent text changes, its version changes in CONSENT_VERSIONS
+// (features/auth/model/consents.ts) and in backend/app/consents.py.
 //
-// ЗАГЛУШКА: текст ниже — черновик-заполнитель, его заменит владелец проекта.
+// PLACEHOLDER: the text below is a draft to be replaced by the project owner.
 </script>
 
 <template>
@@ -85,7 +85,7 @@ import { PageHeader } from '@/shared/ui'
 }
 
 .privacy section {
-  /* Якорь #processing не прячется под верхней навигацией. */
+  /* The #processing anchor is not hidden under the top navigation. */
   scroll-margin-top: 80px;
 }
 

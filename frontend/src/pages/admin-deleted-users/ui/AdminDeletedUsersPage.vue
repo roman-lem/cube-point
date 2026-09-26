@@ -2,7 +2,7 @@
 import { DeletedNames } from '@/features/deleted-name'
 import { PageHeader } from '@/shared/ui'
 
-// Администрирование: имена удалённых аккаунтов в результатах и рекордах.
+// Administration: names of deleted accounts in results and records.
 </script>
 
 <template>

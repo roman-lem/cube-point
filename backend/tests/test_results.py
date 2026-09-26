@@ -1,4 +1,4 @@
-"""Проверка подсчёта результатов по общим случаям с фронтендом."""
+"""Result calculation checked against the cases shared with the frontend."""
 
 import json
 from pathlib import Path

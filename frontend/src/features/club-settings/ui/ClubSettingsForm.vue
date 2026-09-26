@@ -217,7 +217,7 @@ async function submit() {
   grid-row: 2;
 }
 
-/* Подпись поля ссылки есть для экранных читалок, визуально её заменяет тип. */
+/* The link field label exists for screen readers; visually the type replaces it. */
 .club-settings__link-url :deep(label) {
   position: absolute;
   width: 1px;

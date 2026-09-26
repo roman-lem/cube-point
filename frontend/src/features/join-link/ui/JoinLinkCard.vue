@@ -6,7 +6,7 @@ import { downloadBlob, formatDate, qrPng } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, ConfirmDialog, QrCode } from '@/shared/ui'
 import { printQr } from '../lib/printQr'
 
-// QR-код и ссылка на встречу для организатора. Токен есть, пока встреча не завершена.
+// QR code and meetup link for the organizer. The token exists until the meetup is finished.
 const { meetup } = defineProps<{ meetup: Meetup & { join_token: string } }>()
 const emit = defineEmits<{ reissued: [token: string] }>()
 

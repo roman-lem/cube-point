@@ -1,13 +1,13 @@
-"""Публичные страницы: рекорды клуба и профиль участника.
+"""Public pages: club records and member profile.
 
-Адреса: /api/clubs/<id>/records, /api/users/<id>, /api/users/<id>/meetups.
-Открыты всем, в том числе гостям, поэтому о человеке отдаются только id и имя,
-без логина. Правила — раздел «Рекорды» CLAUDE.md. У удалённого аккаунта
-с сохранённым именем профиля нет (User.has_profile).
+Routes: /api/clubs/<id>/records, /api/users/<id>, /api/users/<id>/meetups.
+Open to everyone including guests, so only the id and name are returned for a person,
+without the login. Rules: "Records" in docs/ARCHITECTURE.md. A deleted account
+that kept its name has no profile (User.has_profile).
 
-Результаты встреч, где человека дисквалифицировали, в профиле не показываются
-и в PB не учитываются. Блокировка в клубе на профиль не влияет: прошлые
-результаты и рекорды остаются, только клуб пропадает из списка клубов.
+Results of meetups where the person was disqualified are not shown in the profile
+and do not count towards PB. A club ban does not affect the profile: past
+results and records stay, only the club disappears from the club list.
 """
 
 from flask import Blueprint, request
@@ -31,12 +31,12 @@ PAGE_SIZE = 10
 
 
 def public_user(user):
-    # has_profile — можно ли вести на профиль (User.has_profile).
+    # has_profile: whether the name can link to a profile (User.has_profile).
     return {"id": user.id, "display_name": user.display_name, "has_profile": user.has_profile}
 
 
 def get_profile_user(user_id):
-    """Пользователь с публичным профилем, иначе 404."""
+    """User with a public profile, otherwise 404."""
     user = get_or_404(User, user_id, "Участник не найден")
     if not user.has_profile:
         raise ApiError(404, "not_found", "Участник не найден")
@@ -51,13 +51,13 @@ def serialize_meetup_ref(meetup):
     }
 
 
-# Рекорды клуба
+# Club records
 
 @profiles.get("/clubs/<int:club_id>/records")
 def club_records(club_id):
-    """Рекорды клуба из кеша club_records: сингл и среднее по дисциплинам.
+    """Club records from the club_records cache: single and average per event.
 
-    Только дисциплины, где есть хотя бы один рекорд, в порядке EVENTS.
+    Only events with at least one record, in EVENTS order.
     """
     get_or_404(Club, club_id, "Клуб не найден")
     by_event = {}
@@ -81,10 +81,10 @@ def club_records(club_id):
     }
 
 
-# Профиль участника
+# Member profile
 
 def attended_meetups(user_id):
-    """Условия для запроса по Meetup: у человека есть серия и он не дисквалифицирован."""
+    """Conditions for a query on Meetup: the person has a series and is not disqualified."""
     has_series = db.select(Series.id).join(MeetupEvent).where(
         MeetupEvent.meetup_id == Meetup.id, Series.user_id == user_id,
     ).exists()
@@ -95,10 +95,10 @@ def attended_meetups(user_id):
 
 
 def personal_bests(user_id):
-    """Лучшие результаты человека по всем клубам: {event_id: {"single": строка, "average": строка}}.
+    """The person's best results across all clubs: {event_id: {"single": row, "average": row}}.
 
-    Только дисциплины, где у него есть серии. Строка — из best_result или None,
-    если удачных результатов нет.
+    Only events where they have series. A row comes from best_result, or None
+    if there are no successful results.
     """
     event_ids = set(db.session.scalars(
         db.select(MeetupEvent.event_id).distinct()
@@ -116,7 +116,7 @@ def personal_bests(user_id):
 
 @profiles.get("/users/<int:user_id>")
 def user_profile(user_id):
-    """Имя, клубы, число встреч и личные рекорды (PB) по дисциплинам."""
+    """Name, clubs, number of meetups and personal bests (PB) per event."""
     user = get_profile_user(user_id)
     clubs = db.session.scalars(
         db.select(Club).join(ClubMember)
@@ -150,9 +150,9 @@ def user_profile(user_id):
 
 @profiles.get("/users/<int:user_id>/meetups")
 def user_meetups(user_id):
-    """История встреч с результатами, от новых к старым, по PAGE_SIZE встреч.
+    """Meetup history with results, newest first, PAGE_SIZE meetups at a time.
 
-    ?offset= — сколько встреч уже загружено. Отметки PB и LR — только актуальные рекорды.
+    ?offset= is how many meetups are already loaded. PB and LR marks are current records only.
     """
     user = get_profile_user(user_id)
     offset = max(request.args.get("offset", 0, type=int), 0)

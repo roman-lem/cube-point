@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Отметка у имени участника клуба: организатор или заблокирован.
+// Mark next to a club member's name: organizer or banned.
 defineProps<{ kind: 'organizer' | 'banned' }>()
 </script>
 

@@ -32,8 +32,8 @@ def upgrade():
     with op.batch_alter_table('attempt_history', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_attempt_history_attempt_id'), ['attempt_id'], unique=False)
 
-    # Начальная запись для уже сохранённых попыток — из текущих значений:
-    # исходный результат попыток, которые правили раньше, уже не восстановить.
+    # The initial entry for already saved attempts comes from the current values:
+    # the original result of attempts edited earlier cannot be recovered.
     op.execute(
         "INSERT INTO attempt_history (attempt_id, value, penalty, solution, changed_by, changed_at) "
         "SELECT id, value, penalty, solution, entered_by, COALESCE(updated_at, submitted_at) "

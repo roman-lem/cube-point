@@ -11,5 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 5000
-# Перед запуском применяются миграции БД.
+# Database migrations are applied before start.
 CMD ["sh", "-c", "flask db upgrade && exec gunicorn --bind 0.0.0.0:5000 --workers 2 wsgi:app"]

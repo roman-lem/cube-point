@@ -1,4 +1,4 @@
-"""Ограничения схемы и поведение при удалении."""
+"""Schema constraints and deletion behavior."""
 
 from datetime import date, datetime
 
@@ -50,11 +50,11 @@ def count(session, model):
 
 
 def delete(session, model, id_):
-    # Удаление SQL-запросом, а не через ORM: проверяем ON DELETE в самой БД.
+    # Deleting with an SQL query, not through the ORM: checks ON DELETE in the DB itself.
     session.execute(sa.delete(model).where(model.id == id_))
 
 
-# Уникальность и проверки
+# Uniqueness and checks
 
 
 def test_one_series_per_user_in_event(session):
@@ -120,10 +120,10 @@ def test_login_is_stored_lowercase_and_unique(session):
 
 
 @pytest.mark.parametrize("value, penalty", [
-    (None, Penalty.NONE),   # без DNF/DNS нужно время
+    (None, Penalty.NONE),   # a time is required without DNF/DNS
     (None, Penalty.PLUS2),
-    (0, Penalty.NONE),      # время больше нуля
-    (-1, Penalty.DNF),      # DNF не хранится как -1 в попытке
+    (0, Penalty.NONE),      # the time is greater than zero
+    (-1, Penalty.DNF),      # DNF is not stored as -1 in an attempt
 ])
 def test_invalid_attempt_value(session, value, penalty):
     series = make_series(session, make_user(session))
@@ -154,14 +154,14 @@ def test_series_version_detects_concurrent_change(session):
     session.commit()
     assert series.version == 1
 
-    # Кто-то другой уже сохранил серию.
+    # Someone else has already saved the series.
     session.execute(sa.text("UPDATE series SET version = 2 WHERE id = :id"), {"id": series.id})
     series.best = 1234
     with pytest.raises(StaleDataError):
         session.flush()
 
 
-# Удаление
+# Deletion
 
 
 def test_deleting_series_deletes_attempts(session):
@@ -212,7 +212,7 @@ def test_deleting_club_deletes_members_and_records(session):
     ])
     session.flush()
 
-    delete(session, Meetup, meetup.id)  # сначала встречи — иначе RESTRICT
+    delete(session, Meetup, meetup.id)  # meetups first, otherwise RESTRICT
     delete(session, Club, club_id)
 
     assert count(session, ClubMember) == 0
@@ -252,7 +252,7 @@ def test_deleting_author_keeps_their_meetup(session):
     assert meetup.created_by is None
 
 
-# Миграции и тестовые данные
+# Migrations and demo data
 
 
 def test_migrations_match_models(tmp_path):
@@ -266,6 +266,7 @@ def test_migrations_match_models(tmp_path):
 
 
 def test_seed_command(app, session):
+    app.config["ALLOW_SEED"] = True
     result = app.test_cli_runner().invoke(args=["seed"])
 
     assert result.exit_code == 0, result.output
@@ -276,5 +277,14 @@ def test_seed_command(app, session):
         assert session.scalar(
             sa.select(sa.func.count()).select_from(Attempt).where(Attempt.penalty == penalty)
         ) > 0, penalty
-    # Кеш рекордов заполнен: сингл и среднее во всех дисциплинах со средним.
+    # The records cache is filled: single and average in all events with an average.
     assert count(session, ClubRecord) > 0
+
+
+def test_seed_command_disabled_by_default(app, session):
+    app.config["ALLOW_SEED"] = False
+    result = app.test_cli_runner().invoke(args=["seed", "--reset"])
+
+    assert result.exit_code != 0
+    assert "ALLOW_SEED" in result.output
+    assert count(session, User) == 0

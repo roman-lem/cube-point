@@ -1,27 +1,27 @@
 import type { Attempt, SeriesFormat } from '@/shared/lib'
 
-/** Попытка в таблице ввода; у FMC — с текстом решения. */
+/** An attempt in the entry table; FMC ones include the solution text. */
 export interface DeskAttempt extends Attempt {
   solution?: string
-  /** Попытку исправляли: в журнале больше одной записи. */
+  /** The attempt was corrected: more than one history entry. */
   edited?: boolean
-  /** Исходный результат (первая запись журнала), только у исправленной. */
+  /** Original result (the first history entry), only for a corrected attempt. */
   original?: Attempt
 }
 
-/** Серия участника в таблице ввода организатора. */
+/** A participant's series in the organizer's entry table. */
 export interface DeskSeries {
   id: number
-  /** Версия для проверки одновременной записи. */
+  /** Version for the concurrent edit check. */
   version: number
   status: 'in_progress' | 'completed'
-  /** По ячейке на каждую попытку формата, несобранные — null. */
+  /** A cell for each attempt of the format, null for attempts not yet done. */
   attempts: (DeskAttempt | null)[]
   best: number | null
   average: number | null
 }
 
-/** Строка таблицы ввода: подтверждённый участник и его серия (null — не начата). */
+/** Entry table row: an approved participant and their series (null: not started). */
 export interface DeskRow {
   user: { id: number; display_name: string }
   disqualified: boolean
@@ -30,7 +30,7 @@ export interface DeskRow {
   series: DeskSeries | null
 }
 
-/** Дисциплина в панели организатора. Строки — по имени, а не по месту. */
+/** An event in the organizer desk. Rows are sorted by name, not by place. */
 export interface DeskEvent {
   event_id: string
   format: SeriesFormat
@@ -38,18 +38,18 @@ export interface DeskEvent {
 }
 
 export interface DeskParticipant {
-  /** login — null, если участник удалил аккаунт. */
+  /** login is null if the participant deleted their account. */
   user: { id: number; display_name: string; login: string | null }
   disqualification: { reason: string; created_at: string } | null
 }
 
-/** Панель встречи организатора (GET /api/meetups/:id/desk). */
+/** Organizer's meetup desk (GET /api/meetups/:id/desk). */
 export interface MeetupDesk {
   participants: DeskParticipant[]
   events: DeskEvent[]
 }
 
-/** Скрамблы дисциплины для печати бланков (без FMC). */
+/** Event scrambles for printing score sheets (without FMC). */
 export interface PrintEvent {
   event_id: string
   format: SeriesFormat

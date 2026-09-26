@@ -1,4 +1,4 @@
-"""Серии и попытки: старт, порядок попыток, версии, рекорды клуба и таблица дисциплины."""
+"""Series and attempts: start, attempt order, versions, club records and event table."""
 
 from datetime import date, timedelta
 
@@ -47,7 +47,7 @@ def clients(world):
 
 
 def create_live_meetup(world, org, clients, days_ahead=2):
-    """Идущая встреча, где anna и boris подтверждены, а pending ждёт."""
+    """A live meetup where anna and boris are approved and pending is waiting."""
     response = org.post(
         f"/api/clubs/{world['club_id']}/meetups", json=meetup_data(days_ahead),
     )
@@ -85,7 +85,7 @@ def submit(client, series, value, penalty="none", number=None, version=None):
 
 
 def solve(client, meetup_id, values, event_id="333"):
-    """Начинает серию и сдаёт попытки по порядку. Возвращает серию."""
+    """Starts a series and submits attempts in order. Returns the series."""
     series = start(client, meetup_id, event_id).get_json()["series"]
     for value in values:
         penalty = "dnf" if value is None else "none"
@@ -111,7 +111,7 @@ def results(client, meetup_id, event_id="333"):
     return response.get_json()["rows"]
 
 
-# Старт серии
+# Starting a series
 
 def test_approved_participant_starts_series(clients, meetup_id):
     response = start(clients["anna"], meetup_id)
@@ -181,7 +181,7 @@ def test_unknown_event(clients, meetup_id):
     assert start(clients["anna"], meetup_id, "444").status_code == 404
 
 
-# Попытки
+# Attempts
 
 def test_only_current_scramble_is_given(clients, meetup_id):
     series = solve(clients["anna"], meetup_id, [1000, 1100])
@@ -200,7 +200,7 @@ def test_attempt_out_of_order_is_rejected(clients, meetup_id):
 
     assert skipped.status_code == 409
     assert error(skipped)["code"] == "wrong_attempt_number"
-    # Сохранённую попытку участник не меняет.
+    # A participant does not change a saved attempt.
     assert repeated.status_code == 409
     assert error(repeated)["code"] == "wrong_attempt_number"
 
@@ -213,7 +213,7 @@ def test_version_conflict(clients, meetup_id):
     assert response.status_code == 409
     body = error(response)
     assert body["code"] == "version_conflict"
-    # Клиент получает актуальную серию и может повторить сохранение.
+    # The client gets the current series and can retry the save.
     assert body["series"]["version"] == series["version"]
     assert submit(clients["anna"], body["series"], 1100).status_code == 201
 
@@ -221,7 +221,7 @@ def test_version_conflict(clients, meetup_id):
 def test_version_grows_on_every_save(clients, meetup_id):
     series = start(clients["anna"], meetup_id).get_json()["series"]
     first = submit(clients["anna"], series, 1000).get_json()["series"]
-    # Лучшая не меняется, среднего ещё нет — версия всё равно растёт.
+    # The best does not change and there is no average yet, but the version still grows.
     second = submit(clients["anna"], first, 1500).get_json()["series"]
 
     assert series["version"] < first["version"] < second["version"]
@@ -282,7 +282,7 @@ def test_fmc_attempt_is_not_submitted_as_timed(clients, meetup_id):
     assert error(response)["code"] == "fmc_series"
 
 
-# Рекорды клуба
+# Club records
 
 def test_record_moves_to_new_best_result(world, clients, meetup_id):
     anna, boris = user_id_of(world, "anna"), user_id_of(world, "boris")
@@ -312,7 +312,7 @@ def test_record_tie_stays_with_first(world, clients, meetup_id):
 def test_record_tie_goes_to_earlier_meetup(world, org, clients):
     later = create_live_meetup(world, org, clients, days_ahead=5)
     earlier = create_live_meetup(world, org, clients, days_ahead=3)
-    # На более поздней встрече результат сдан раньше, но рекорд за более ранней датой.
+    # At a later meetup the result was submitted earlier, but the record goes to the earlier date.
     solve(clients["boris"], later, [1000])
 
     solve(clients["anna"], earlier, [1000])
@@ -343,7 +343,7 @@ def test_disqualified_results_leave_records_and_table(world, clients, meetup_id)
     ]
 
 
-# Таблица дисциплины
+# Event table
 
 def test_results_table_order_and_places(world, org, clients, meetup_id):
     for login in ("vera", "gleb", "dima"):
@@ -354,11 +354,11 @@ def test_results_table_order_and_places(world, org, clients, meetup_id):
         clients[login].post(f"/api/join/{meetup['join_token']}")
     org.post(f"/api/meetups/{meetup_id}/requests/approve-all")
 
-    solve(clients["anna"], meetup_id, [1000, 1100, 1200, 1300, 1400])   # среднее 12.00
-    solve(clients["boris"], meetup_id, [1400, 1300, 1200, 1100, 1000])  # то же — общее место
-    solve(clients["vera"], meetup_id, [800, None, None, 900, 900])      # DNF, лучшая 8.00
-    solve(clients["gleb"], meetup_id, [None] * 5)                        # все DNF
-    solve(clients["dima"], meetup_id, [700])                             # в процессе
+    solve(clients["anna"], meetup_id, [1000, 1100, 1200, 1300, 1400])   # average 12.00
+    solve(clients["boris"], meetup_id, [1400, 1300, 1200, 1100, 1000])  # same, shared place
+    solve(clients["vera"], meetup_id, [800, None, None, 900, 900])      # DNF, best 8.00
+    solve(clients["gleb"], meetup_id, [None] * 5)                        # all DNF
+    solve(clients["dima"], meetup_id, [700])                             # in progress
 
     rows = results(world["app"].test_client(), meetup_id)
 
@@ -383,7 +383,7 @@ def test_results_table_for_best_of_format(world, clients, meetup_id):
 
 
 def test_record_marks(world, org, clients, meetup_id):
-    # Раньше у Анны было 8.00 на другой встрече — сегодняшний результат не PB.
+    # Anna had 8.00 at another meetup earlier, so today's result is not a PB.
     earlier = create_live_meetup(world, org, clients, days_ahead=1)
     solve(clients["anna"], earlier, [800])
     solve(clients["anna"], meetup_id, [1000, 1000, 1000, 1000, 1000])
@@ -392,7 +392,7 @@ def test_record_marks(world, org, clients, meetup_id):
     rows = {r["user"]["id"]: r["marks"] for r in results(clients["anna"], meetup_id)}
 
     assert rows[user_id_of(world, "anna")] == {"single": [], "average": ["LR", "PB"]}
-    # Первый результат человека — тоже PB. Рекорд сингла у Анны с прошлой встречи.
+    # A person's first result is a PB too. The single record is Anna's from the previous meetup.
     assert rows[user_id_of(world, "boris")] == {"single": ["PB"], "average": ["PB"]}
 
 
@@ -402,7 +402,7 @@ def test_results_are_public(world, meetup_id):
     assert guest.get(f"/api/meetups/{meetup_id}/events/333/results").status_code == 200
 
 
-# Карточки дисциплин на странице встречи
+# Event cards on the meetup page
 
 def test_meetup_page_shows_my_series_and_leader(world, clients, meetup_id):
     solve(clients["anna"], meetup_id, [1000, 1100, 1200, 1300, 1400])
@@ -420,7 +420,7 @@ def test_meetup_page_shows_my_series_and_leader(world, clients, meetup_id):
     assert events[1]["leader"] is None
 
 
-# Активные встречи
+# Active meetups
 
 def test_my_active_meetups(clients, meetup_id):
     solve(clients["anna"], meetup_id, [1000])
@@ -434,7 +434,7 @@ def test_my_active_meetups(clients, meetup_id):
     assert pending == []
 
 
-# Серии пользователя на идущих встречах
+# User's series at live meetups
 
 def test_my_series_on_live_meetups(clients, meetup_id):
     solve(clients["anna"], meetup_id, [1000, None])

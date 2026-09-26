@@ -9,9 +9,9 @@ import {
 } from '@/shared/lib'
 import type { SeriesAttempt } from '../model/types'
 
-// Попытки серии в ряд, отброшенные в ao5 — в скобках, несобранные — пустые.
-// Исправленная организатором попытка — с отметкой в углу, по нажатию под рядом
-// видно исходное значение.
+// Series attempts in a row: ones dropped in ao5 in parentheses, ones not yet done empty.
+// An attempt corrected by an organizer has a corner mark; tapping it shows the
+// original value under the row.
 const { attempts, format, resultType = 'time' } = defineProps<{
   attempts: (SeriesAttempt | null)[]
   format: SeriesFormat
@@ -21,7 +21,7 @@ const { attempts, format, resultType = 'time' } = defineProps<{
 const cells = computed(() => {
   const count = ATTEMPTS_COUNT[format]
   const filled = Array.from({ length: count }, (_, i) => attempts[i] ?? null)
-  // calcSeries ждёт несобранные попытки только в конце списка.
+  // calcSeries expects attempts not yet done only at the end of the list.
   const entered = [...filled]
   while (entered.length > 0 && entered[entered.length - 1] === null) {
     entered.pop()
@@ -39,7 +39,7 @@ const cells = computed(() => {
   })
 })
 
-/** Номер попытки (с нуля), у которой показано исходное значение. */
+/** Index (zero-based) of the attempt whose original value is shown. */
 const shown = ref<number | null>(null)
 const shownOriginal = computed(() => (shown.value === null ? null : cells.value[shown.value]?.original))
 
@@ -123,7 +123,7 @@ function toggle(i: number) {
   cursor: pointer;
 }
 
-/* Отметка исправленной попытки — уголок, как у примечания в электронной таблице. */
+/* Mark of a corrected attempt: a corner, like a note in a spreadsheet. */
 .attempt-series__edited::after {
   content: '';
   position: absolute;

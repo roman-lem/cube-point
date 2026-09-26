@@ -1,11 +1,11 @@
-"""Сохранение результатов, рекорды клуба и таблица дисциплины на встрече.
+"""Saving results, club records and the event table of a meetup.
 
-save_attempt — единственное место, где сохраняются результаты: через неё
-проходят сдача попытки участником, правки организатора, возврат исходного
-результата и DNS при завершении встречи. Она же ведёт журнал попытки
-(attempt_history). delete_attempt — стирание ошибочно введённой попытки
-организатором. Правила — в разделах «Рекорды», «Панель организатора»
-и «Одновременная запись» CLAUDE.md.
+save_attempt is the only place where results are saved: it handles
+attempts submitted by participants, organizer edits, restoring the original
+result and DNS on meetup finish. It also keeps the attempt history
+(attempt_history). delete_attempt erases an attempt entered by mistake
+by an organizer. Rules: "Records", "Organizer desk"
+and "Concurrent edits" in docs/ARCHITECTURE.md.
 """
 
 from sqlalchemy.orm import attributes, selectinload
@@ -29,21 +29,21 @@ class VersionConflict(ApiError):
         )
 
 
-# Сохранение
+# Saving
 
 def save_attempt(
     series, number, value, penalty, expected_version, user,
     solution=None, submitted_at=None,
 ):
-    """Создаёт или меняет попытку серии, пересчитывает серию и рекорды клуба.
+    """Creates or changes an attempt of a series, recalculates the series and club records.
 
-    Проверка версии: если серию изменили после того, как клиент её прочитал,
-    бросает VersionConflict. Права и порядок попыток проверяет вызывающий.
-    solution — текст решения FMC (None — не менять), submitted_at — момент
-    сдачи новой попытки, если это не «сейчас» (заморозка решения FMC).
+    Version check: if the series changed after the client read it,
+    raises VersionConflict. Permissions and attempt order are checked by the caller.
+    solution is the FMC solution text (None: leave unchanged), submitted_at is the
+    submission moment of a new attempt if it is not "now" (frozen FMC solution).
 
-    Каждое создание и изменение добавляет запись в журнал попытки. Сохранение
-    того же значения попытку и журнал не трогает.
+    Every creation and change adds an entry to the attempt history. Saving
+    the same value touches neither the attempt nor the history.
     """
     if expected_version != series.version:
         raise VersionConflict()
@@ -52,7 +52,7 @@ def save_attempt(
     if solution is None and attempt is not None:
         solution = attempt.solution
     if attempt is None:
-        # submitted_at проставляется только при создании и потом не меняется.
+        # submitted_at is set only on creation and never changes afterwards.
         attempt = Attempt(attempt_number=number, submitted_at=submitted_at or utcnow())
         series.attempts.append(attempt)
         changed = True
@@ -72,8 +72,8 @@ def save_attempt(
 
     meetup_event = series.meetup_event
     recalc_series(series, meetup_event)
-    # Версия растёт при каждом сохранении, даже если best и average не изменились:
-    # иначе SQLAlchemy не обновит строку серии и параллельная запись пройдёт.
+    # The version grows on every save, even if best and average did not change:
+    # otherwise SQLAlchemy would not update the series row and a concurrent write would pass.
     attributes.flag_modified(series, "status")
     db.session.flush()
 
@@ -81,15 +81,15 @@ def save_attempt(
 
 
 def delete_attempt(series, number, expected_version):
-    """Стирает последнюю попытку серии (ошибочный ввод организатора).
+    """Erases the last attempt of a series (an organizer's mistaken entry).
 
-    Только последнюю: пропуск в середине сломал бы порядок попыток. Серия без
-    попыток удаляется целиком, чтобы человек не попал в таблицу и не получил
-    DNS при завершении встречи. Исключение — начатые попытки FMC: момент старта
-    остаётся, иначе участник получил бы новый час. Возвращает False, если серия удалена.
+    Only the last one: a gap in the middle would break the attempt order. A series without
+    attempts is deleted entirely, so the person does not appear in the table or get
+    DNS on meetup finish. Exception: started FMC attempts, whose start moment
+    is kept, otherwise the participant would get a new hour. Returns False if the series was deleted.
 
-    Попытку, которую сдал сам участник, стереть нельзя, только исправить: иначе
-    вместе с ней пропал бы журнал с исходным результатом.
+    An attempt submitted by the participant cannot be erased, only corrected: otherwise
+    its history with the original result would be lost along with it.
     """
     if expected_version != series.version:
         raise VersionConflict()
@@ -121,17 +121,17 @@ def delete_attempt(series, number, expected_version):
 
 
 def is_participant_attempt(series, attempt):
-    """Попытку сдал сам участник: первая запись журнала — от владельца серии."""
+    """The attempt was submitted by the participant: the first history entry is by the series owner."""
     return bool(attempt.history) and attempt.history[0].changed_by == series.user_id
 
 
 def recalc_series(series, meetup_event):
-    """Кеш best и average серии и её статус по введённым попыткам."""
+    """Cached best and average of the series and its status from the entered attempts."""
     count = ATTEMPTS_COUNT[meetup_event.format.value]
     attempts = [None] * count
     for attempt in series.attempts:
         attempts[attempt.attempt_number - 1] = attempt_dict(attempt)
-    # calc_series ждёт несобранные попытки только в конце списка.
+    # calc_series expects attempts not yet done only at the end of the list.
     while attempts and attempts[-1] is None:
         attempts.pop()
 
@@ -150,10 +150,10 @@ def attempt_dict(attempt):
 
 
 def serialize_attempt(attempt):
-    """Попытка для таблиц: у исправленной — отметка и исходное значение.
+    """Attempt for tables: a corrected one gets a mark and the original value.
 
-    Исправленная — у которой в журнале больше одной записи. Исходное значение
-    видят все, полную историю (кто и когда) — только организатор.
+    Corrected means more than one history entry. The original value
+    is visible to everyone, the full history (who and when) only to organizers.
     """
     item = attempt_dict(attempt)
     if len(attempt.history) > 1:
@@ -163,10 +163,10 @@ def serialize_attempt(attempt):
     return item
 
 
-# Лучшие результаты: рекорды клуба и личные рекорды
+# Best results: club records and personal bests
 
 def not_disqualified():
-    """Условие для запроса с Series и Meetup: участник не дисквалифицирован на встрече."""
+    """Condition for a query with Series and Meetup: the participant is not disqualified at the meetup."""
     return ~db.select(Disqualification.id).where(
         Disqualification.meetup_id == Meetup.id,
         Disqualification.user_id == Series.user_id,
@@ -174,10 +174,10 @@ def not_disqualified():
 
 
 def _single_query(event_id):
-    """Удачные попытки дисциплины в порядке рекорда.
+    """Successful attempts of an event in record order.
 
-    При равенстве рекорд за тем, кто поставил его первым: дата встречи,
-    затем момент сдачи попытки.
+    On ties the record belongs to whoever set it first: meetup date,
+    then the attempt's submission moment.
     """
     value = db.case(
         (Attempt.penalty == Penalty.PLUS2, Attempt.value + PLUS_TWO), else_=Attempt.value,
@@ -202,10 +202,10 @@ def _single_query(event_id):
 
 
 def _average_query(event_id):
-    """Средние дисциплины (без DNF) в порядке рекорда.
+    """Averages of an event (without DNF) in record order.
 
-    Среднее есть только у форматов со средним (ao5, mo3), у bo-форматов — только сингл.
-    Момент получения среднего — сдача последней попытки серии.
+    Only formats with an average (ao5, mo3) have averages; bo formats have only singles.
+    The moment an average is achieved is the submission of the series' last attempt.
     """
     last_submitted = (
         db.select(db.func.max(Attempt.submitted_at))
@@ -236,16 +236,16 @@ RECORD_QUERIES = {RecordType.SINGLE: _single_query, RecordType.AVERAGE: _average
 
 
 def best_result(event_id, record_type, *conditions):
-    """Лучший результат дисциплины среди отобранных условиями или None.
+    """Best result of an event among those selected by the conditions, or None.
 
-    Строка: user_id, series_id, value, achieved_at.
+    Row: user_id, series_id, value, achieved_at.
     """
     query, order = RECORD_QUERIES[record_type](event_id)
     return db.session.execute(query.where(*conditions).order_by(*order).limit(1)).first()
 
 
 def recalc_records(club_id, event_id):
-    """Полностью пересчитывает кеш рекордов клуба (сингл и среднее) в дисциплине."""
+    """Fully recalculates the club records cache (single and average) for an event."""
     for record_type in RecordType:
         best = best_result(event_id, record_type, Meetup.club_id == club_id)
         record = db.session.get(ClubRecord, (club_id, event_id, record_type))
@@ -263,9 +263,9 @@ def recalc_records(club_id, event_id):
 
 
 def personal_record_series(event_id, record_type, user_ids):
-    """Серии, в которых поставлены личные рекорды: {user_id: series_id}.
+    """Series holding personal bests: {user_id: series_id}.
 
-    PB считается по всем встречам человека во всех клубах.
+    PB is computed over all of the person's meetups in all clubs.
     """
     if not user_ids:
         return {}
@@ -280,10 +280,10 @@ def personal_record_series(event_id, record_type, user_ids):
     return dict(rows)
 
 
-# Таблица дисциплины
+# Event table
 
 def _result_key(value):
-    # Любой результат лучше DNF, DNF лучше отсутствия результата.
+    # Any result is better than DNF, DNF is better than no result.
     if value is None:
         return (2, 0)
     if value == DNF:
@@ -298,12 +298,12 @@ def ranking_key(series, series_format):
 
 
 def rank(series_list, series_format):
-    """Порядок строк таблицы и места: [(место или None, серия)].
+    """Order of table rows and places: [(place or None, series)].
 
-    1. Завершённые серии с удачной попыткой — с местами, при равенстве место общее.
-    2. Завершённые серии, где все попытки DNF, — без места.
-    3. Незавершённые — без места, по лучшей попытке, затем по числу попыток.
-    Внутри равных — по имени.
+    1. Finished series with a successful attempt get places; ties share a place.
+    2. Finished series where all attempts are DNF get no place.
+    3. Unfinished series get no place, sorted by best attempt, then by number of attempts.
+    Ties are sorted by name.
     """
     series_list = sorted(series_list, key=lambda s: s.user.display_name)
     completed = [s for s in series_list if s.status == SeriesStatus.COMPLETED]
@@ -329,10 +329,10 @@ def rank(series_list, series_format):
 
 
 def event_table(meetup_event):
-    """Строки таблицы дисциплины: [{"place", "series", "marks"}].
+    """Event table rows: [{"place", "series", "marks"}].
 
-    marks — отметки рекордов у сингла и среднего: списки из "LR" и "PB".
-    Только актуальные рекорды. Дисквалифицированные в таблицу не попадают.
+    marks are record marks of the single and the average: lists of "LR" and "PB".
+    Current records only. Disqualified participants are not in the table.
     """
     meetup = meetup_event.meetup
     disqualified = {d.user_id for d in meetup.disqualifications}

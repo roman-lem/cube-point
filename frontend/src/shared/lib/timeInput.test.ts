@@ -20,7 +20,7 @@ describe('parseTimeInput', () => {
   })
 
   it.each(['', 'abc', '0', '0.00', '1:75.00', '1:5.00', '9.876', '-5', '1.2.3', '17500'])(
-    'отклоняет «%s»',
+    'rejects "%s"',
     (text) => {
       expect(parseTimeInput(text)).toBeNull()
     },

@@ -52,7 +52,7 @@ def error(response):
     return response.get_json()["error"]
 
 
-# Регистрация
+# Registration
 
 def test_register_creates_user_and_logs_in(client):
     response = register(client, login="Ivan_Petrov", display_name="  Иван   Петров ")
@@ -120,7 +120,7 @@ def test_register_reports_all_invalid_fields(client):
     }
 
 
-# Согласия
+# Consents
 
 def consent_rows(app, login="ivan_petrov"):
     with app.app_context():
@@ -157,7 +157,7 @@ def test_register_rejects_outdated_consent_version(client):
 
 
 def create_account_without_consents(app, login="newbie"):
-    """Аккаунт, созданный организатором: согласий нет."""
+    """An account created by an organizer: no consents."""
     with app.app_context():
         db.session.add(User(
             login=login, display_name="Новичок", password_hash=generate_password_hash(PASSWORD),
@@ -196,12 +196,12 @@ def test_new_consent_version_is_asked_again(client, app, monkeypatch):
 
     new_consents = {t.value: v for t, v in new_versions.items()}
     assert client.post("/api/auth/consents", json={"consents": new_consents}).status_code == 200
-    # Прежние записи остаются: журнал согласий только дополняется.
+    # Earlier entries stay: the consent log is append-only.
     assert len(consent_rows(app)) == 4
     assert client.get("/api/clubs").status_code == 200
 
 
-# Закрытая регистрация
+# Closed registration
 
 def test_registration_open_by_default(client):
     assert client.get("/api/auth/registration").get_json() == {"open": True}
@@ -225,7 +225,7 @@ def test_register_with_non_json_body(client):
     assert response.status_code == 422
 
 
-# Вход и выход
+# Login and logout
 
 def test_login_and_logout(client, app):
     register(client)
@@ -279,7 +279,7 @@ def test_unknown_api_path_returns_json_error(client):
     assert error(response)["code"] == "not_found"
 
 
-# Отзыв сессий
+# Session revocation
 
 def test_session_is_revoked_when_session_version_changes(client, app):
     register(client)
@@ -295,7 +295,7 @@ def test_remember_cookie_restores_session(client, app):
     browser = app.test_client()
     login(browser, remember=True)
 
-    # Браузер закрыли: сессионная кука пропала, remember-кука осталась.
+    # The browser was closed: the session cookie is gone, the remember cookie stays.
     browser.delete_cookie("session")
 
     assert me(browser)["login"] == "ivan_petrov"
@@ -332,7 +332,7 @@ def test_session_cookie_flags(client):
                for c in cookies)
 
 
-# Смена пароля
+# Password change
 
 def test_change_password_revokes_other_sessions(client, app):
     register(client)
@@ -386,7 +386,7 @@ def test_must_change_password_allows_only_password_change(client, app):
     assert blocked.status_code == 403
     assert error(blocked)["code"] == "password_change_required"
 
-    # Текущий (временный) пароль при обязательной смене не нужен.
+    # The current (temporary) password is not needed for a forced change.
     response = browser.post("/api/auth/password", json={"new_password": "brand-new-pass"})
 
     assert response.status_code == 200
@@ -394,7 +394,7 @@ def test_must_change_password_allows_only_password_change(client, app):
     assert browser.post("/api/auth/register", json={}).status_code == 422
 
 
-# Ограничение попыток входа
+# Login throttling
 
 def test_too_many_failed_logins_block_even_correct_password(client, app):
     register(client)
@@ -474,6 +474,6 @@ def test_request_with_csrf_token_is_accepted(csrf_client):
     )
 
     assert response.status_code == 201
-    # После входа тот же токен продолжает действовать.
+    # After login the same token keeps working.
     logout = csrf_client.post("/api/auth/logout", headers={"X-CSRFToken": token})
     assert logout.status_code == 204
