@@ -130,7 +130,7 @@ Deleting a meetup cascades to its events, series and attempts. A club with meetu
 
 ### Events and formats
 
-- Events use WCA IDs: `333`, `222`, `333oh`, `pyram`, `333fm`, `333bf`. The list is defined in code (`backend/app/events.py` and its mirror `frontend/src/shared/lib/events.ts`).
+- Events use WCA IDs, all official events except Multi-Blind and FTO, in the standard WCA order: `333`, `222`, `444`, `555`, `666`, `777`, `333bf`, `333fm`, `333oh`, `clock`, `minx`, `pyram`, `skewb`, `sq1`, `444bf`, `555bf`. The list is defined in code (`backend/app/events.py` and its mirror `frontend/src/shared/lib/events.ts`).
 - Formats are set per event when a meetup is created:
 
 | Format | Result |
@@ -139,7 +139,7 @@ Deleting a meetup cascades to its events, series and attempts. A club with meetu
 | `mo3` (mean of 3) | The mean of all three. Any DNF/DNS makes the mean DNF. |
 | `bo1`, `bo3`, `bo5` (best of N) | The best attempt. |
 
-- Defaults: FMC is `bo1`, 3BLD is `bo5`, everything else is `ao5`.
+- Defaults, as at WCA: 6x6 and 7x7 are `mo3`, 4BLD and 5BLD are `bo3`, 3BLD is `bo5`, FMC is `bo1`, everything else is `ao5`.
 - Averages are **rounded down** to hundredths (thousandths are simply dropped).
 - In an unfinished series, the average becomes DNF as soon as the outcome is certain (two DNF/DNS in ao5, one in mo3). Until then an unfinished series has no average.
 - With equal times in ao5, the first of the best and the last of the worst attempts are dropped. This does not change the average, only which attempts are shown in parentheses.
@@ -150,7 +150,7 @@ Deleting a meetup cascades to its events, series and attempts. A club with meetu
 
 - Times are stored as **integers in hundredths of a second**, never as floats. FMC results are move counts, and the FMC mean is in hundredths of a move.
 - The penalty is stored separately from the time (`none`, `plus2`, `dnf`, `dns`) and is not added to the stored value, so it can be removed later. FMC has no +2.
-- Display: `9.87`, `1:02.45`, `11.87 (+2)`, `DNF`, `DNS`.
+- Display: `9.87`, `1:02.45`, `1:05:23.45`, `11.87 (+2)`, `DNF`, `DNS`. An attempt is under three hours.
 
 ### Event table
 
@@ -193,7 +193,7 @@ Ties are ordered by name. Disqualified participants are not in the table. See `r
 
 - The organizer can edit any saved attempt and add the next one in order, including starting a series for a participant. Everything goes through `save_attempt`.
 - **Saving is automatic:** a cell saves on blur or Enter, and each cell shows its state (saving, saved, error with retry). Only actions that cannot simply be overwritten by the next edit ask for confirmation: finishing a meetup and disqualification.
-- Cell input is a single line: digits are a time (`1234` → 12.34, `10234` → 1:02.34), `+` means +2, `d` means DNF, `dns` means DNS.
+- Cell input is a single line: digits are a time (`1234` → 12.34, `10234` → 1:02.34, `1052345` → 1:05:23.45), `+` means +2, `d` means DNF, `dns` means DNS.
 - **Attempt history** (`attempt_history`): every creation and change of an attempt adds an entry, and entries are never changed. A corrected attempt is marked in tables; everyone sees the original value, but only organizers see the full history.
 - Only the **last** attempt of a series can be erased (a gap in the middle would break the order), and only if the organizer entered it. An attempt submitted by the participant can only be corrected.
 - The entry table rows are sorted by name, not by place, so they do not jump while typing.

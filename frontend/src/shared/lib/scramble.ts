@@ -8,3 +8,23 @@ export async function randomScramble(eventId: string): Promise<string> {
   const { randomScrambleForEvent } = await import('cubing/scramble')
   return (await randomScrambleForEvent(eventId)).toString()
 }
+
+/**
+ * Scramble lines for display and printing. The server stores a scramble in one line;
+ * a megaminx scramble is split as usual: a line ends with U or U' (7 lines).
+ * Other events are one line.
+ */
+export function scrambleLines(eventId: string, scramble: string): string[] {
+  const moves = scramble.split(/\s+/).filter(Boolean)
+  if (eventId !== 'minx') {
+    return [moves.join(' ')]
+  }
+  const lines: string[][] = [[]]
+  for (const move of moves) {
+    lines[lines.length - 1]!.push(move)
+    if (move === 'U' || move === "U'") {
+      lines.push([])
+    }
+  }
+  return lines.filter((line) => line.length > 0).map((line) => line.join(' '))
+}

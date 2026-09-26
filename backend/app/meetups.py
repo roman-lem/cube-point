@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from .errors import ApiError
-from .events import EVENTS
+from .events import EVENT_ORDER, EVENTS
 from .extensions import db
 from .forms import collapse_spaces, get_list, get_str, json_body, raise_if_errors
 from .models import (
@@ -30,7 +30,7 @@ from .scoring import AVERAGE_FORMATS, event_table
 
 meetups = Blueprint("meetups", __name__)
 
-MAX_SCRAMBLE_LENGTH = 500
+MAX_SCRAMBLE_LENGTH = 1000
 TIME_RE = re.compile(r"\d{2}:\d{2}")
 
 
@@ -173,7 +173,8 @@ def create_meetup(club_id):
         join_token=new_join_token(),
         created_by=current_user.id,
     )
-    for event_id, series_format, scrambles in events:
+    # Until the meetup is reloaded, the events stay in the order of appending.
+    for event_id, series_format, scrambles in sorted(events, key=lambda e: EVENT_ORDER[e[0]]):
         meetup.events.append(MeetupEvent(
             event_id=event_id,
             format=series_format,

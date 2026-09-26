@@ -1,30 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { PrintEvent } from '@/entities/meetup'
-import { FORMAT_NAMES, eventName } from '@/shared/lib'
+import { FORMAT_NAMES, eventName, scrambleLines } from '@/shared/lib'
+import { LONG_SCRAMBLE } from '../model/layout'
 
-// An A5 participant score sheet: all meetup scrambles (except FMC) and fields for attempts.
+// A page of an A5 participant score sheet: meetup scrambles (except FMC) and fields
+// for attempts. A long sheet has several pages, the split is in model/layout.ts.
 // The layout is fixed for now. If a sheet layout is needed (logo, custom blocks,
 // scramble placement), it is convenient to pass it here as a separate layout object.
-const { title, subtitle, events } = defineProps<{
+const { title, subtitle, events, rowHeight, page = 1, pages = 1 } = defineProps<{
   title: string
   subtitle: string
   events: PrintEvent[]
+  /** Minimum row height, mm. */
+  rowHeight: number
+  page?: number
+  pages?: number
 }>()
-
-// The more rows, the lower they are, so that all events fit on A5.
-const rowHeight = computed(() => {
-  const rows = events.reduce((sum, e) => sum + e.scrambles.length, 0)
-  return rows <= 15 ? '8mm' : rows <= 20 ? '6.8mm' : '5.6mm'
-})
 </script>
 
 <template>
-  <article class="scramble-blank" :style="{ '--row-height': rowHeight }">
+  <article class="scramble-blank" :style="{ '--row-height': `${rowHeight}mm` }">
     <header class="scramble-blank__header">
       <div>
         <p class="scramble-blank__title">{{ title }}</p>
-        <p class="scramble-blank__subtitle">{{ subtitle }}</p>
+        <p class="scramble-blank__subtitle">
+          {{ subtitle }}<template v-if="pages > 1"> · лист {{ page }} из {{ pages }}</template>
+        </p>
       </div>
       <p class="scramble-blank__name">Имя</p>
     </header>
@@ -37,7 +38,16 @@ const rowHeight = computed(() => {
       <ol class="scramble-blank__rows">
         <li v-for="(scramble, index) in event.scrambles" :key="index" class="scramble-blank__row">
           <span class="scramble-blank__number">{{ index + 1 }}</span>
-          <span class="scramble-blank__scramble">{{ scramble }}</span>
+          <span
+            :class="[
+              'scramble-blank__scramble',
+              { 'scramble-blank__scramble--small': scramble.length > LONG_SCRAMBLE },
+            ]"
+          >
+            <span v-for="(line, n) in scrambleLines(event.event_id, scramble)" :key="n" class="scramble-blank__line">
+              {{ line }}
+            </span>
+          </span>
           <span class="scramble-blank__field" />
         </li>
       </ol>
@@ -100,6 +110,7 @@ const rowHeight = computed(() => {
 .scramble-blank__row {
   display: flex;
   align-items: center;
+  padding: 0.7mm 0;
   gap: 2mm;
   min-height: var(--row-height);
   border-bottom: 0.2mm solid var(--color-border);
@@ -115,6 +126,14 @@ const rowHeight = computed(() => {
   font-family: var(--font-mono);
   font-size: 7.5pt;
   overflow-wrap: anywhere;
+}
+
+.scramble-blank__scramble--small {
+  font-size: 6.5pt;
+}
+
+.scramble-blank__line {
+  display: block;
 }
 
 .scramble-blank__field {

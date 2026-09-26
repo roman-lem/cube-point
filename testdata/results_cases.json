@@ -1,6 +1,16 @@
 {
   "calcSeries": [
     {
+      "name": "mo3: average over an hour is rounded down (370000.33 -> 370000)",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 360000, "penalty": "none"},
+        {"value": 370000, "penalty": "none"},
+        {"value": 380001, "penalty": "none"}
+      ],
+      "expected": {"best": 360000, "average": 370000, "counting": [true, true, true]}
+    },
+    {
       "name": "ao5: regular series",
       "format": "ao5", "resultType": "time",
       "attempts": [
@@ -413,6 +423,13 @@
   ],
 
   "formatResult": [
+    {"value": 359999, "resultType": "time", "isAverage": false, "expected": "59:59.99"},
+    {"value": 360000, "resultType": "time", "isAverage": false, "expected": "1:00:00.00"},
+    {"value": 142567, "resultType": "time", "isAverage": false, "expected": "23:45.67"},
+    {"value": 392345, "resultType": "time", "isAverage": false, "expected": "1:05:23.45"},
+    {"value": 392345, "resultType": "time", "isAverage": true, "expected": "1:05:23.45"},
+    {"value": 366005, "resultType": "time", "isAverage": false, "expected": "1:01:00.05"},
+    {"value": 1079999, "resultType": "time", "isAverage": false, "expected": "2:59:59.99"},
     {"value": 987, "resultType": "time", "isAverage": false, "expected": "9.87"},
     {"value": 5, "resultType": "time", "isAverage": false, "expected": "0.05"},
     {"value": 100, "resultType": "time", "isAverage": false, "expected": "1.00"},
@@ -434,6 +451,9 @@
   ],
 
   "formatAttempt": [
+    {"attempt": {"value": 359900, "penalty": "plus2"}, "resultType": "time", "expected": "1:00:01.00 (+2)"},
+    {"attempt": {"value": 392345, "penalty": "none"}, "resultType": "time", "expected": "1:05:23.45"},
+    {"attempt": {"value": 392345, "penalty": "dnf"}, "resultType": "time", "expected": "DNF"},
     {"attempt": {"value": 987, "penalty": "none"}, "resultType": "time", "expected": "9.87"},
     {"attempt": {"value": 987, "penalty": "plus2"}, "resultType": "time", "expected": "11.87 (+2)"},
     {"attempt": {"value": 5850, "penalty": "plus2"}, "resultType": "time", "expected": "1:00.50 (+2)"},
@@ -480,5 +500,47 @@
 
   "rollingAveragesErrors": [
     {"name": "window of one attempt", "n": 1, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}]}
+  ],
+  "parseTimeInput": [
+    {"text": "9.87", "expected": 987},
+    {"text": "9,87", "expected": 987},
+    {"text": "12.3", "expected": 1230},
+    {"text": "12", "expected": 12},
+    {"text": " 11.02 ", "expected": 1102},
+    {"text": "75.5", "expected": 7550},
+    {"text": "1:02.45", "expected": 6245},
+    {"text": "1:02", "expected": 6200},
+    {"text": "23:45.67", "expected": 142567},
+    {"text": "75:00.00", "expected": 450000},
+    {"text": "1:05:23.45", "expected": 392345},
+    {"text": "1:05:23", "expected": 392300},
+    {"text": "2:59:59.99", "expected": 1079999},
+    {"text": "987", "expected": 987},
+    {"text": "5", "expected": 5},
+    {"text": "10245", "expected": 6245},
+    {"text": "234567", "expected": 142567},
+    {"text": "595999", "expected": 359999},
+    {"text": "1000000", "expected": 360000},
+    {"text": "1052345", "expected": 392345},
+    {"text": "2595999", "expected": 1079999},
+    {"text": "", "expected": null},
+    {"text": "abc", "expected": null},
+    {"text": "0", "expected": null},
+    {"text": "0.00", "expected": null},
+    {"text": "9.876", "expected": null},
+    {"text": "-5", "expected": null},
+    {"text": "1.2.3", "expected": null},
+    {"text": "1:75.00", "expected": null},
+    {"text": "1:5.00", "expected": null},
+    {"text": "17500", "expected": null},
+    {"text": "1:60:00.00", "expected": null},
+    {"text": "1:5:00.00", "expected": null},
+    {"text": "1:02:60.00", "expected": null},
+    {"text": "3:00:00.00", "expected": null},
+    {"text": "3000000", "expected": null},
+    {"text": "1605000", "expected": null},
+    {"text": "1026000", "expected": null},
+    {"text": "180:00.00", "expected": null},
+    {"text": "12345678", "expected": null}
   ]
 }

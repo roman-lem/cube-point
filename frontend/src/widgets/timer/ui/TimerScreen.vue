@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { computed, ref, toRef } from 'vue'
-import { formatAttempt, formatResult, parseTimeInput } from '@/shared/lib'
+import { formatAttempt, formatResult, parseTimeInput, scrambleLines } from '@/shared/lib'
 import { AppButton, AppIcon } from '@/shared/ui'
 import type { SuggestedPenalty } from '../model/machine'
 import { inspectionCountdown, useTimer, type StoppedSolve } from '../model/useTimer'
@@ -22,8 +22,10 @@ export interface TimerResult {
 // so the page can keep it across a reload.
 const pending = defineModel<TimerResult | null>('pending', { default: null })
 
-const { mode, scramble, saving = false, last = null } = defineProps<{
+const { mode, eventId, scramble, saving = false, last = null } = defineProps<{
   mode: 'training' | 'series'
+  /** Megaminx scrambles are shown line by line. */
+  eventId: string
   /** null: the scramble is still being generated or loaded. */
   scramble: string | null
   /** Scramble block title: «Тренировка», «Попытка 3 из 5». */
@@ -65,6 +67,18 @@ function finish(solve: StoppedSolve) {
     emit('solved', result)
   }
 }
+
+// Long scrambles (big cubes, megaminx) get a smaller font, and the block
+// has a height limit with scrolling, so that the touch area stays large.
+const lines = computed(() => (scramble === null ? null : scrambleLines(eventId, scramble)))
+const scrambleSize = computed(() => {
+  if (eventId === 'minx') return 'lines'
+  const length = scramble?.length ?? 0
+  return length > 200 ? 'small' : length > 80 ? 'medium' : 'large'
+})
+
+/** Times from 1:00:00.00 do not fit the display at the full size. */
+const isLong = (text: string) => text.length > 8
 
 const phase = computed(() => state.value.phase)
 const isRunning = computed(() => phase.value === 'running')
@@ -178,7 +192,12 @@ defineExpose({ reset: timer.reset })
             <AppIcon name="refresh" :size="20" />
           </button>
         </div>
-        <p class="timer__scramble-text">{{ scramble ?? 'Генерируем скрамбл…' }}</p>
+        <div :class="['timer__scramble-text', `timer__scramble-text--${scrambleSize}`]">
+          <template v-if="lines">
+            <span v-for="(line, index) in lines" :key="index" class="timer__scramble-line">{{ line }}</span>
+          </template>
+          <template v-else>Генерируем скрамбл…</template>
+        </div>
       </div>
 
       <div class="timer__controls">
@@ -214,7 +233,15 @@ defineExpose({ reset: timer.reset })
         <AppIcon name="check" :size="20" />
         Время зафиксировано
       </p>
-      <p :class="['timer__display', { 'timer__display--dnf': pending.penalty === 'dnf' }]">
+      <p
+        :class="[
+          'timer__display',
+          {
+            'timer__display--dnf': pending.penalty === 'dnf',
+            'timer__display--long': isLong(formatAttempt(pending, 'time')),
+          },
+        ]"
+      >
         {{ formatAttempt(pending, 'time') }}
       </p>
       <p v-if="penaltyNote" class="timer__penalty-note">{{ penaltyNote }}</p>
@@ -271,6 +298,7 @@ defineExpose({ reset: timer.reset })
           'timer__display',
           {
             'timer__display--dnf': mode === 'training' && phase === 'stopped' && last?.penalty === 'dnf',
+            'timer__display--long': isLong(display),
           },
         ]"
         aria-live="off"
@@ -333,11 +361,47 @@ defineExpose({ reset: timer.reset })
 }
 
 .timer__scramble-text {
+  position: relative;
+  /* With the timer zone (at least 260px) everything fits a phone screen without page scroll. */
+  max-height: 25dvh;
   margin-top: var(--space-1);
+  overflow-y: auto;
   font-family: var(--font-mono);
   font-size: 17px;
   line-height: 1.5;
   word-spacing: 0.15em;
+  overscroll-behavior: contain;
+  /* A shadow at the bottom while there is more text below: the first layer
+     scrolls with the text and covers the shadow at the end. */
+  background:
+    linear-gradient(transparent, var(--color-surface) 70%) center bottom / 100% 24px no-repeat local,
+    linear-gradient(transparent, var(--color-border)) center bottom / 100% 12px no-repeat scroll;
+}
+
+.timer__scramble-text--medium {
+  font-size: 15px;
+}
+
+.timer__scramble-text--small {
+  font-size: 13px;
+  line-height: 1.45;
+  word-spacing: 0.05em;
+}
+
+.timer__scramble-line {
+  display: block;
+}
+
+/* Megaminx: seven lines of the same length, the font is fitted to the block width
+   so that a line does not wrap. */
+.timer__scramble-text--lines {
+  container-type: inline-size;
+  word-spacing: 0;
+}
+
+.timer__scramble-text--lines .timer__scramble-line {
+  font-size: min(15px, 100cqi / 26);
+  white-space: pre;
 }
 
 .timer__icon-button {
@@ -435,6 +499,10 @@ defineExpose({ reset: timer.reset })
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   letter-spacing: -0.02em;
+}
+
+.timer__display--long {
+  font-size: clamp(40px, 13vw, 72px);
 }
 
 .timer__zone--holding .timer__display {

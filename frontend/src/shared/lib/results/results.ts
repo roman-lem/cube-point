@@ -41,6 +41,9 @@ const RESULT_TYPES: ResultType[] = ['time', 'moves']
 
 const PLUS_TWO = 200 // +2 seconds in hundredths
 
+/** Time limit: less than three hours. Mirror of MAX_VALUE in backend/app/series.py. */
+export const MAX_TIME = 1_080_000
+
 /** Final value of an attempt: with the +2 penalty, or DNF. */
 export function attemptValue(attempt: Attempt, resultType: ResultType): number {
   checkAttempt(attempt, resultType)
@@ -137,7 +140,7 @@ export function rollingAverages(
   )
 }
 
-/** Result for display: 9.87, 1:02.45, 28, 28.33, DNF, —. */
+/** Result for display: 9.87, 1:02.45, 1:05:23.45, 28, 28.33, DNF, —. */
 export function formatResult(
   value: number | null,
   resultType: ResultType,
@@ -245,10 +248,13 @@ function mean(values: number[], resultType: ResultType): number {
 }
 
 function formatTime(centiseconds: number): string {
-  const minutes = Math.floor(centiseconds / 6000)
-  const rest = centiseconds % 6000
-  const seconds = Math.floor(rest / 100)
-  const hundredths = rest % 100
+  const hours = Math.floor(centiseconds / 360000)
+  const minutes = Math.floor((centiseconds % 360000) / 6000)
+  const seconds = Math.floor((centiseconds % 6000) / 100)
+  const hundredths = centiseconds % 100
+  if (hours > 0) {
+    return `${hours}:${pad2(minutes)}:${pad2(seconds)}.${pad2(hundredths)}`
+  }
   if (minutes > 0) {
     return `${minutes}:${pad2(seconds)}.${pad2(hundredths)}`
   }

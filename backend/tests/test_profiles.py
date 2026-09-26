@@ -1,5 +1,7 @@
 """Public pages: club records, member list and member profile."""
 
+from datetime import date, timedelta
+
 import pytest
 
 from app import profiles
@@ -69,6 +71,46 @@ def test_club_records_are_public(world, clients, meetup_id):
     assert single["user"] == {"id": anna, "display_name": "Иван Петров", "has_profile": True}
     assert single["meetup"]["id"] == meetup_id
     assert records["333"]["average"]["value"] == 1200
+
+
+def big_cubes_meetup(world, org, clients):
+    """A live meetup with 6x6 in mo3 and 4BLD, 5BLD in bo3, anna and boris are approved."""
+    response = org.post(f"/api/clubs/{world['club_id']}/meetups", json={
+        "date": (date.today() + timedelta(days=3)).isoformat(),
+        "starts_at": "18:00",
+        "place": "Антикафе «Куб»",
+        "events": [
+            {"event_id": "666", "format": "mo3", "scrambles": ["3Rw2 Uw"] * 3},
+            {"event_id": "444bf", "format": "bo3", "scrambles": ["Rw U z' y2"] * 3},
+            {"event_id": "555bf", "format": "bo3", "scrambles": ["Rw U 3Fw' 3Uw2"] * 3},
+        ],
+    })
+    assert response.status_code == 201, response.get_json()
+    meetup = response.get_json()["meetup"]
+    for login in ("anna", "boris"):
+        clients[login].post(f"/api/join/{meetup['join_token']}")
+        org.post(f"/api/meetups/{meetup['id']}/requests/{user_id_of(world, login)}/approve")
+    assert org.post(f"/api/meetups/{meetup['id']}/start").status_code == 200
+    return meetup["id"]
+
+
+def test_new_events_follow_record_rules(world, org, clients):
+    anna = user_id_of(world, "anna")
+    meetup_id = big_cubes_meetup(world, org, clients)
+    solve(clients["anna"], meetup_id, [12000, 11000, 13000], event_id="666")
+    solve(clients["anna"], meetup_id, [None, 60000, 65000], event_id="444bf")
+    # More than an hour: 1:05:23.45.
+    solve(clients["anna"], meetup_id, [392345, None, None], event_id="555bf")
+
+    records = club_records(clients["anna"], world)
+    assert list(records) == ["666", "444bf", "555bf"]
+    assert records["666"]["single"]["value"] == 11000
+    assert records["666"]["average"]["value"] == 12000
+    assert records["444bf"]["single"]["value"] == 60000
+    assert records["444bf"]["average"] is None
+    assert records["555bf"]["single"]["value"] == 392345
+    assert records["555bf"]["average"] is None
+    assert personal_records(clients["anna"], anna)["666"]["average"]["value"] == 12000
 
 
 def test_best_of_formats_have_no_average(world, clients, meetup_id):

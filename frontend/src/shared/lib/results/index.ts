@@ -1,6 +1,7 @@
 export {
   ATTEMPTS_COUNT,
   DNF,
+  MAX_TIME,
   attemptValue,
   averageOf,
   calcSeries,

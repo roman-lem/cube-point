@@ -22,11 +22,14 @@ const form = reactive({
   address: '',
 })
 
+// Events selected by default: the most common at club meetups.
+const DEFAULT_SELECTED: EventId[] = ['333', '222', '333oh', 'pyram']
+
 // All events as a list; the selected ones go into the meetup in the same order.
 const events = reactive(
   EVENT_IDS.map((eventId) => ({
     eventId,
-    selected: eventId !== '333fm' && eventId !== '333bf',
+    selected: DEFAULT_SELECTED.includes(eventId),
     format: EVENTS[eventId].defaultFormat as SeriesFormat,
   })),
 )

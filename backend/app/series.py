@@ -26,8 +26,8 @@ from .scoring import VersionConflict, event_table, save_attempt, serialize_attem
 
 series_bp = Blueprint("series", __name__)
 
-# Less than an hour in hundredths of a second.
-MAX_VALUE = 360_000
+# Less than three hours in hundredths of a second: no meetup lasts longer.
+MAX_VALUE = 1_080_000
 # A participant does not set DNS: it comes from meetup finish or the organizer.
 PARTICIPANT_PENALTIES = {p.value for p in (Penalty.NONE, Penalty.PLUS2, Penalty.DNF)}
 

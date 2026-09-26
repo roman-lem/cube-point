@@ -110,7 +110,7 @@ def rolling_averages(attempts, n, result_type):
 
 
 def format_result(value, result_type, is_average=False):
-    """Result for display: 9.87, 1:02.45, 28, 28.33, DNF, —."""
+    """Result for display: 9.87, 1:02.45, 1:05:23.45, 28, 28.33, DNF, —."""
     if result_type not in RESULT_TYPES:
         raise ValueError(f"Неизвестный тип результата: {result_type}")
     if value is None:
@@ -190,8 +190,11 @@ def _mean(values, result_type):
 
 
 def _format_time(centiseconds):
-    minutes, rest = divmod(centiseconds, 6000)
+    hours, rest = divmod(centiseconds, 360_000)
+    minutes, rest = divmod(rest, 6000)
     seconds, hundredths = divmod(rest, 100)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}.{hundredths:02d}"
     if minutes:
         return f"{minutes}:{seconds:02d}.{hundredths:02d}"
     return f"{seconds}.{hundredths:02d}"

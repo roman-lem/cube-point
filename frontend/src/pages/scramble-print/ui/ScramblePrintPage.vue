@@ -4,11 +4,12 @@ import { fetchMeetup, fetchPrintScrambles, type MeetupPageData, type PrintEvent 
 import { ApiError } from '@/shared/api'
 import { formatDate, plural } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, PageHeader } from '@/shared/ui'
+import { layoutBlank } from '../model/layout'
 import ScrambleBlank from './ScrambleBlank.vue'
 
-// Printing score sheets with scrambles: an A5 sheet per participant, two per A4 page.
-// Scrambles are the same for everyone, so the sheets are identical. FMC is not printed:
-// its scramble is given out only after the attempt starts.
+// Printing score sheets with scrambles: a sheet per participant of one or more
+// A5 pages, two pages per A4. Scrambles are the same for everyone, so the sheets
+// are identical. FMC is not printed: its scramble is given out only after the attempt starts.
 const { meetupId } = defineProps<{ meetupId: number }>()
 
 const MAX_BLANKS = 200
@@ -39,12 +40,15 @@ watch(() => meetupId, load, { immediate: true })
 const safeBlanks = computed(() =>
   Math.min(Math.max(Math.floor(Number(blanks.value)) || 1, 1), MAX_BLANKS),
 )
-/** A4 pages with two sheets each. */
-const sheets = computed(() =>
-  Array.from({ length: Math.ceil(safeBlanks.value / 2) }, (_, i) =>
-    Math.min(2, safeBlanks.value - i * 2),
-  ),
-)
+/** A5 pages of one sheet. */
+const blankPages = computed(() => layoutBlank(events.value))
+/** A4 pages with two A5 pages each: the sheets go one after another, page by page. */
+const sheets = computed(() => {
+  const all = Array.from({ length: safeBlanks.value }, () =>
+    blankPages.value.map((blankPage, index) => ({ ...blankPage, number: index + 1 })),
+  ).flat()
+  return Array.from({ length: Math.ceil(all.length / 2) }, (_, i) => all.slice(i * 2, i * 2 + 2))
+})
 
 const title = computed(() => page.value?.meetup.club.name ?? '')
 const subtitle = computed(() => {
@@ -80,7 +84,11 @@ function print() {
         </label>
         <p class="page__muted">
           {{ plural(sheets.length, ['лист', 'листа', 'листов']) }} A4, альбомная ориентация,
-          по два бланка A5 — разрежьте лист пополам.
+          по две страницы A5 — разрежьте лист пополам.
+          <template v-if="blankPages.length > 1">
+            Скрамблы не помещаются на одну страницу, в бланке
+            {{ plural(blankPages.length, ['страница', 'страницы', 'страниц']) }}.
+          </template>
           <template v-if="hasFmc">FMC на бланках нет: его скрамбл выдаётся после старта попытки.</template>
         </p>
         <AppButton :disabled="events.length === 0" @click="print">
@@ -92,13 +100,16 @@ function print() {
     </div>
 
     <div v-if="page && events.length" class="scramble-print__sheets">
-      <div v-for="(count, index) in sheets" :key="index" class="scramble-print__sheet">
+      <div v-for="(sheet, index) in sheets" :key="index" class="scramble-print__sheet">
         <ScrambleBlank
-          v-for="n in count"
+          v-for="(blankPage, n) in sheet"
           :key="n"
           :title="title"
           :subtitle="subtitle"
-          :events="events"
+          :events="blankPage.events"
+          :row-height="blankPage.rowHeight"
+          :page="blankPage.number"
+          :pages="blankPages.length"
         />
       </div>
     </div>

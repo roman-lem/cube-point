@@ -93,12 +93,12 @@ def test_guest_cannot_create_meetup(world):
 
 @pytest.mark.parametrize("events, field", [
     ([], "events"),
-    ([{"event_id": "444", "format": "ao5", "scrambles": ["R"] * 5}], "events.0.event_id"),
+    ([{"event_id": "333mbf", "format": "bo1", "scrambles": ["R"]}], "events.0.event_id"),
     ([{"event_id": "333", "format": "ao7", "scrambles": ["R"] * 5}], "events.0.format"),
     ([{"event_id": "333", "format": "ao5", "scrambles": ["R"] * 4}], "events.0.scrambles"),
     ([{"event_id": "333", "format": "mo3", "scrambles": ["R"] * 5}], "events.0.scrambles"),
     ([{"event_id": "333", "format": "bo1", "scrambles": ["  "]}], "events.0.scrambles"),
-    ([{"event_id": "333", "format": "bo1", "scrambles": ["R " * 300]}], "events.0.scrambles"),
+    ([{"event_id": "333", "format": "bo1", "scrambles": ["R " * 501]}], "events.0.scrambles"),
     (
         [{"event_id": "222", "format": "bo1", "scrambles": ["R"]}] * 2,
         "events.1.event_id",
@@ -111,6 +111,27 @@ def test_create_meetup_checks_events(world, org, events, field):
 
     assert response.status_code == 422
     assert list(error(response)["fields"]) == [field]
+
+
+def test_meetup_events_are_in_wca_order(world, org):
+    # A 7x7 scramble can be about 500 characters long.
+    long_scramble = " ".join(["3Rw2"] * 100)
+    events = [
+        {"event_id": "555bf", "format": "bo3", "scrambles": ["Rw"] * 3},
+        {"event_id": "777", "format": "mo3", "scrambles": [long_scramble] * 3},
+        {"event_id": "minx", "format": "bo1", "scrambles": ["R++ D-- U R-- D++ U'"]},
+        {"event_id": "333", "format": "bo1", "scrambles": ["R"]},
+    ]
+    response = org.post(
+        f"/api/clubs/{world['club_id']}/meetups", json=meetup_data(events=events),
+    )
+    assert response.status_code == 201
+    created = response.get_json()["meetup"]["events"]
+    assert [e["event_id"] for e in created] == ["333", "777", "minx", "555bf"]
+
+    meetup_id = response.get_json()["meetup"]["id"]
+    page = org.get(f"/api/meetups/{meetup_id}").get_json()["meetup"]
+    assert [e["event_id"] for e in page["events"]] == ["333", "777", "minx", "555bf"]
 
 
 @pytest.mark.parametrize("overrides, field", [

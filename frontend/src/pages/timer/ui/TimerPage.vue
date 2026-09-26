@@ -312,6 +312,7 @@ const seriesResult = computed(() => {
         ref="timerScreen"
         v-model:pending="pending"
         mode="series"
+        :event-id="series.event_id"
         :scramble="series.next_attempt.scramble"
         :scramble-title="`Серия · попытка ${series.next_attempt.number} из ${attemptsCount}`"
         :saving="saving"
@@ -335,6 +336,7 @@ const seriesResult = computed(() => {
     <TimerScreen
       v-else
       mode="training"
+      :event-id="eventId"
       :scramble="trainingScramble"
       scramble-title="Тренировка"
       can-refresh

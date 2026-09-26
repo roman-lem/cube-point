@@ -107,7 +107,7 @@ def test_scramble_number_is_unique_in_event(session):
 
 def test_unknown_event_is_rejected():
     with pytest.raises(ValueError):
-        MeetupEvent(event_id="444", format=Format.AO5)
+        MeetupEvent(event_id="333mbf", format=Format.BO1)
 
 
 def test_login_is_stored_lowercase_and_unique(session):

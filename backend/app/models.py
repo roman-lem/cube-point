@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from flask_login import UserMixin
 from sqlalchemy.orm import validates
 
-from .events import EVENTS
+from .events import EVENT_ORDER, EVENTS
 from .extensions import db
 
 
@@ -244,7 +244,7 @@ class Meetup(db.Model):
 
     club = db.relationship("Club")
     events = db.relationship(
-        "MeetupEvent", back_populates="meetup", order_by="MeetupEvent.id",
+        "MeetupEvent", back_populates="meetup", order_by=lambda: _events_order(),
         cascade="all, delete-orphan", passive_deletes=True,
     )
     participants = db.relationship(
@@ -302,6 +302,14 @@ class MeetupEvent(db.Model):
         if event_id not in EVENTS:
             raise ValueError(f"Неизвестная дисциплина: {event_id}")
         return event_id
+
+
+def _events_order():
+    """Meetup events in the WCA order, whatever order they were created in."""
+    return [
+        db.case(EVENT_ORDER, value=MeetupEvent.event_id, else_=len(EVENT_ORDER)),
+        MeetupEvent.id,
+    ]
 
 
 class Scramble(db.Model):

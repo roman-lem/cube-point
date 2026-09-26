@@ -252,7 +252,7 @@ def test_attempt_is_saved_with_penalty_and_submitter(world, clients, meetup_id):
 
 @pytest.mark.parametrize("value, penalty", [
     (1000, "dns"), (0, "none"), (-5, "none"), (None, "none"), (1.5, "none"),
-    (True, "none"), (360_000, "none"), (1000, "bad"),
+    (True, "none"), (1_080_000, "none"), (1000, "bad"),
 ])
 def test_invalid_attempt(clients, meetup_id, value, penalty):
     series = start(clients["anna"], meetup_id).get_json()["series"]
@@ -260,6 +260,15 @@ def test_invalid_attempt(clients, meetup_id, value, penalty):
     response = submit(clients["anna"], series, value, penalty)
 
     assert response.status_code == 422
+
+
+def test_attempt_longer_than_an_hour(clients, meetup_id):
+    series = start(clients["anna"], meetup_id).get_json()["series"]
+
+    response = submit(clients["anna"], series, 1_079_999)
+
+    assert response.status_code == 201
+    assert response.get_json()["series"]["best"] == 1_079_999
 
 
 def test_dnf_without_time(clients, meetup_id):
