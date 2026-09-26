@@ -66,7 +66,7 @@ def test_club_records_are_public(world, clients, meetup_id):
     assert list(records) == ["333", "222"]
     single = records["333"]["single"]
     assert single["value"] == 1000
-    assert single["user"] == {"id": anna, "display_name": "Иван Петров"}
+    assert single["user"] == {"id": anna, "display_name": "Иван Петров", "has_profile": True}
     assert single["meetup"]["id"] == meetup_id
     assert records["333"]["average"]["value"] == 1200
 

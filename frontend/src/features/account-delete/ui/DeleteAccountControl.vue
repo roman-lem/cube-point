@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useUserStore } from '@/entities/user'
 import { ApiError } from '@/shared/api'
 import { AppButton, AppInput, ConfirmDialog, SettingRow } from '@/shared/ui'
@@ -7,18 +7,28 @@ import { deleteAccount } from '../api/deleteAccount'
 
 // Удаление своего аккаунта с подтверждением паролем. Логин, почта, пароль
 // и согласия уничтожаются, результаты остаются под именем «Удалённый участник».
+// Галочка «Оставить моё имя» оставляет имя в таблицах результатов и рекордов:
+// данное согласие на распространение не отзывается, профиля больше нет.
+// Галочки нет, если согласий текущей версии нет (страница /consent).
 // Последний организатор клуба сначала передаёт роль (restriction с сервера).
 const emit = defineEmits<{ deleted: [] }>()
 
 const userStore = useUserStore()
 const open = ref(false)
 const password = ref('')
+const keepName = ref(false)
 const passwordError = ref('')
 const error = ref('')
 const loading = ref(false)
 
+const canKeepName = computed(() => userStore.user?.consents_required === false)
+const resultsName = computed(() =>
+  keepName.value ? `под именем «${userStore.user?.display_name}»` : 'под именем «Удалённый участник»',
+)
+
 function openDialog() {
   password.value = ''
+  keepName.value = false
   passwordError.value = ''
   error.value = ''
   open.value = true
@@ -33,13 +43,15 @@ async function submit() {
   }
   loading.value = true
   try {
-    await deleteAccount(password.value)
+    await deleteAccount(password.value, canKeepName.value && keepName.value)
     open.value = false
     userStore.clear()
     emit('deleted')
   } catch (e) {
     if (e instanceof ApiError && e.fields.password) {
       passwordError.value = e.fields.password
+    } else if (e instanceof ApiError && e.fields.keep_name) {
+      error.value = e.fields.keep_name
     } else {
       error.value = e instanceof ApiError ? e.message : 'Не удалось удалить аккаунт'
     }
@@ -52,7 +64,7 @@ async function submit() {
 <template>
   <SettingRow
     title="Удалить аккаунт"
-    description="Логин, пароль, почта и согласия будут удалены. Результаты и рекорды останутся под именем «Удалённый участник»."
+    description="Логин, пароль, почта и согласия будут удалены. Результаты и рекорды останутся под именем «Удалённый участник» или, если захотите, под вашим именем."
     :restriction="userStore.user?.delete_restriction"
   >
     <AppButton
@@ -75,8 +87,18 @@ async function submit() {
     <form class="delete-account__form" @submit.prevent="submit">
       <p>
         Восстановить аккаунт будет нельзя. Вы выйдете из всех клубов и на всех устройствах.
-        Результаты встреч и рекорды останутся в таблицах под именем «Удалённый участник».
+        Результаты встреч и рекорды останутся в таблицах {{ resultsName }}.
       </p>
+      <div v-if="canKeepName">
+        <label class="delete-account__option">
+          <input v-model="keepName" type="checkbox" />
+          <span>Оставить моё имя в результатах и рекордах клубов</span>
+        </label>
+        <p class="delete-account__hint">
+          Имя останется в таблицах результатов и рекордов. Всё остальное — логин, почта,
+          пароль — будет удалено. Отозвать это согласие можно, написав разработчику
+        </p>
+      </div>
       <AppInput
         v-model="password"
         label="Пароль"
@@ -95,6 +117,28 @@ async function submit() {
   flex-direction: column;
   gap: var(--space-3);
   color: var(--color-text-primary);
+}
+
+.delete-account__option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.delete-account__option input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.delete-account__hint {
+  margin-top: var(--space-1);
+  padding-left: calc(20px + var(--space-3));
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
 }
 
 .delete-account__error {

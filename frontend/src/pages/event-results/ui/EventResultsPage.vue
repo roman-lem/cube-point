@@ -118,7 +118,9 @@ function progress(row: ResultsRow) {
           :expanded="expanded.has(row.user.id)"
           :place="row.place"
           :name="row.user.display_name"
-          :profile-to="{ name: 'user-profile', params: { userId: row.user.id } }"
+          :profile-to="row.user.has_profile
+            ? { name: 'user-profile', params: { userId: row.user.id } }
+            : undefined"
           :is-me="isMe(row)"
           :result-label="format"
           :progress="progress(row)"

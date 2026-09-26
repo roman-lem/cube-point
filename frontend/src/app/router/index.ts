@@ -3,6 +3,7 @@ import { fetchHomeClubId } from '@/entities/club'
 import { useUserStore } from '@/entities/user'
 import { AdminClubCreatePage } from '@/pages/admin-club-create'
 import { AdminClubsPage } from '@/pages/admin-clubs'
+import { AdminDeletedUsersPage } from '@/pages/admin-deleted-users'
 import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
@@ -245,6 +246,12 @@ export const router = createRouter({
       name: 'admin-club',
       component: AdminClubsPage,
       props: numberParams('clubId'),
+      meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
+    },
+    {
+      path: '/admin/deleted-users',
+      name: 'admin-deleted-users',
+      component: AdminDeletedUsersPage,
       meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
     },
 

@@ -91,9 +91,13 @@ const resultType = (eventId: string) => EVENTS[eventId as EventId]?.resultType ?
               </span>
             </div>
             <p class="club-records__who">
-              <RouterLink :to="{ name: 'user-profile', params: { userId: event[type]!.user.id } }">
+              <RouterLink
+                v-if="event[type]!.user.has_profile"
+                :to="{ name: 'user-profile', params: { userId: event[type]!.user.id } }"
+              >
                 {{ event[type]!.user.display_name }}
               </RouterLink>
+              <span v-else>{{ event[type]!.user.display_name }}</span>
               <RouterLink
                 class="club-records__date"
                 :to="{ name: 'meetup', params: { meetupId: event[type]!.meetup.id } }"

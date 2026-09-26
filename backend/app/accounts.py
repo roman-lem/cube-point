@@ -14,8 +14,8 @@ from .errors import ValidationError
 from .extensions import db
 from .forms import collapse_spaces, get_str, raise_if_errors
 from .models import (
-    DELETED_USER_NAME, Club, ClubMember, ClubRole, Disqualification, LoginFailure, User,
-    UserConsent, utcnow,
+    DELETED_USER_NAME, Club, ClubMember, ClubRole, ConsentType, Disqualification, LoginFailure,
+    User, UserConsent, utcnow,
 )
 
 # Причина дисквалификации удалённого участника: текст организатора мог
@@ -75,16 +75,33 @@ def delete_restriction(user):
     return None
 
 
-def delete_account(user):
+def publication_version(user):
+    """Версия последнего согласия на распространение или None, если его не давали."""
+    return db.session.scalar(
+        db.select(UserConsent.version)
+        .where(UserConsent.user_id == user.id, UserConsent.type == ConsentType.PUBLICATION)
+        .order_by(UserConsent.accepted_at.desc(), UserConsent.id.desc())
+        .limit(1)
+    )
+
+
+def delete_account(user, keep_name=False):
     """Удаление аккаунта: персональные данные уничтожаются, результаты остаются.
 
     Строка users остаётся, на неё ссылаются серии и рекорды: логин, почта,
     хеш пароля и согласия удаляются, имя заменяется на DELETED_USER_NAME.
+    С keep_name имя остаётся в результатах и рекордах: вместо согласий
+    остаётся одна запись DELETED_NAME с версией последнего согласия на
+    распространение (данное согласие не отзывается), проверка — в
+    auth.delete_own_account. Публичного профиля у такого аккаунта нет (User.has_profile).
     Человек выходит из всех клубов (вместе с членством удаляется причина
     блокировки), причины дисквалификаций стираются, а сами дисквалификации
     остаются, чтобы аннулированные результаты не вернулись в таблицы.
     Все сессии перестают действовать.
     """
+    version = publication_version(user) if keep_name else None
+    if keep_name and version is None:
+        raise ValueError("Нет согласия на распространение")
     db.session.execute(db.delete(LoginFailure).where(LoginFailure.login == user.login))
     db.session.execute(db.delete(ClubMember).where(ClubMember.user_id == user.id))
     db.session.execute(db.delete(UserConsent).where(UserConsent.user_id == user.id))
@@ -92,11 +109,14 @@ def delete_account(user):
         db.update(Disqualification).where(Disqualification.user_id == user.id)
         .values(reason=DELETED_REASON)
     )
+    if version is None:
+        user.display_name = DELETED_USER_NAME
+    else:
+        db.session.add(UserConsent(user_id=user.id, type=ConsentType.DELETED_NAME, version=version))
     user.login = None
     user.email = None
     user.email_verified = False
     user.password_hash = None
-    user.display_name = DELETED_USER_NAME
     user.is_admin = False
     user.must_change_password = False
     user.session_version += 1

@@ -20,6 +20,7 @@ from .models import (
     ParticipantStatus, Penalty, Series, SeriesStatus, utcnow,
 )
 from .permissions import get_or_404, require_not_banned
+from .profiles import public_user
 from .results import ATTEMPTS_COUNT
 from .scoring import VersionConflict, event_table, save_attempt, serialize_attempt
 
@@ -233,7 +234,7 @@ def event_results(meetup_id, event_id):
             attempts[attempt.attempt_number - 1] = serialize_attempt(attempt)
         rows.append({
             "place": row["place"],
-            "user": {"id": series.user.id, "display_name": series.user.display_name},
+            "user": public_user(series.user),
             "status": series.status.value,
             "attempts": attempts,
             "best": series.best,

@@ -13,7 +13,8 @@ export interface RecordMeetup {
 /** Рекорд клуба (GET /api/clubs/<id>/records). */
 export interface ClubRecord {
   value: number
-  user: { id: number; display_name: string }
+  /** has_profile — false у удалённого аккаунта с сохранённым именем: имя без ссылки. */
+  user: { id: number; display_name: string; has_profile: boolean }
   meetup: RecordMeetup
   achieved_at: string
 }

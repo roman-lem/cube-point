@@ -1,4 +1,6 @@
-"""Администрирование: клубы и их организаторы. Адреса /api/admin/…
+"""Администрирование: клубы и их организаторы, имена удалённых аккаунтов.
+
+Адреса /api/admin/…
 
 Только для администратора (users.is_admin). Правила — раздел «Роли» CLAUDE.md.
 Первый администратор появляется командой `flask make-admin LOGIN`.
@@ -18,7 +20,11 @@ from .clubs import text_error
 from .errors import ApiError, ValidationError
 from .extensions import db
 from .forms import collapse_spaces, get_str, json_body, raise_if_errors
-from .models import Club, ClubMember, ClubRole, Meetup, MeetupStatus, User
+from .meetups import iso_utc
+from .models import (
+    DELETED_USER_NAME, Club, ClubMember, ClubRole, ConsentType, Meetup, MeetupStatus, User,
+    UserConsent,
+)
 from .permissions import is_last_organizer
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -191,6 +197,49 @@ def search_users():
         .limit(USER_SEARCH_LIMIT)
     )
     return {"users": [serialize_user(user) for user in users]}
+
+
+# Удалённые аккаунты с сохранённым именем (accounts.delete_account)
+
+def kept_names():
+    """Запрос (пользователь, согласие DELETED_NAME) удалённых аккаунтов с сохранённым именем."""
+    return (
+        db.select(User, UserConsent)
+        .join(UserConsent, UserConsent.user_id == User.id)
+        .where(User.deleted_at.is_not(None), UserConsent.type == ConsentType.DELETED_NAME)
+    )
+
+
+@admin.get("/deleted-users")
+def search_deleted_users():
+    """Удалённые аккаунты с сохранённым именем, ?q= — часть имени.
+
+    Фильтр в Python: SQLite сравнивает без учёта регистра только латиницу,
+    а таких аккаунтов единицы.
+    """
+    query = collapse_spaces(request.args.get("q", "")).casefold()
+    rows = db.session.execute(kept_names().order_by(User.display_name, User.id)).all()
+    return {"users": [
+        {
+            "id": user.id,
+            "display_name": user.display_name,
+            "deleted_at": iso_utc(user.deleted_at),
+            "consent_version": consent.version,
+        }
+        for user, consent in rows if query in user.display_name.casefold()
+    ]}
+
+
+@admin.post("/deleted-users/<int:user_id>/anonymize")
+def anonymize_user(user_id):
+    """Отзыв согласия на имя: имя заменяется на «Удалённый участник»."""
+    row = db.session.execute(kept_names().where(User.id == user_id)).first()
+    if row is None:
+        raise ApiError(404, "not_found", "Удалённый участник с сохранённым именем не найден")
+    db.session.delete(row.UserConsent)
+    row.User.display_name = DELETED_USER_NAME
+    db.session.commit()
+    return "", 204
 
 
 @click.command("make-admin")

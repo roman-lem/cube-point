@@ -46,8 +46,9 @@ const passwordChanged = ref(false)
         <p class="settings__hint">После смены пароля вход на других устройствах будет сброшен</p>
       </section>
 
-      <AppCard v-if="userStore.user.is_admin">
+      <AppCard v-if="userStore.user.is_admin" class="settings__admin">
         <RouterLink :to="{ name: 'admin-clubs' }">Администрирование</RouterLink>
+        <RouterLink :to="{ name: 'admin-deleted-users' }">Имена удалённых аккаунтов</RouterLink>
       </AppCard>
 
       <LogoutButton @done="router.replace({ name: 'home' })" />
@@ -63,6 +64,12 @@ const passwordChanged = ref(false)
 </template>
 
 <style scoped>
+.settings__admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .settings__fields {
   display: flex;
   flex-direction: column;

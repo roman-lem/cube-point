@@ -1,12 +1,12 @@
-"""Администрирование: клубы, организаторы и команда flask make-admin."""
+"""Администрирование: клубы, организаторы, имена удалённых аккаунтов и flask make-admin."""
 
 import pytest
 from werkzeug.security import check_password_hash
 
 from app.extensions import db
-from app.models import Club, ClubMember, ClubRole, User
+from app.models import DELETED_USER_NAME, Club, ClubMember, ClubRole, ConsentType, User, UserConsent
 
-from .helpers import MEMBER, ORGANIZER, client_for, create_club, create_user, error
+from .helpers import MEMBER, ORGANIZER, PASSWORD, client_for, create_club, create_user, error
 
 
 @pytest.fixture
@@ -53,6 +53,8 @@ def admin_requests(club_id):
         ("post", f"/api/admin/clubs/{club_id}/organizers", {"login": "member"}),
         ("delete", f"/api/admin/clubs/{club_id}/organizers/1", None),
         ("get", "/api/admin/users?q=me", None),
+        ("get", "/api/admin/deleted-users", None),
+        ("post", "/api/admin/deleted-users/1/anonymize", None),
     ]
 
 
@@ -171,6 +173,68 @@ def test_search_users_by_login(app, admin):
     response = admin.get("/api/admin/users?q=M")
 
     assert [u["login"] for u in response.get_json()["users"]] == ["admin", "member"]
+
+
+# Имена удалённых аккаунтов
+
+def delete_account(app, login, name, keep_name):
+    uid = user_id(app, login)
+    with app.app_context():
+        db.session.get(User, uid).display_name = name
+        db.session.commit()
+    response = client_for(app, login).post(
+        "/api/auth/delete-account", json={"password": PASSWORD, "keep_name": keep_name},
+    )
+    assert response.status_code == 204
+    return uid
+
+
+def deleted_users(admin, query=""):
+    response = admin.get(f"/api/admin/deleted-users?q={query}")
+    assert response.status_code == 200
+    return [(u["id"], u["display_name"]) for u in response.get_json()["users"]]
+
+
+def test_search_deleted_users_with_kept_name(app, admin):
+    anna = delete_account(app, "member", "Анна Смирнова", keep_name=True)
+    create_user(app, "boris")
+    delete_account(app, "boris", "Борис", keep_name=False)
+
+    assert deleted_users(admin) == [(anna, "Анна Смирнова")]
+    # Без учёта регистра, в том числе кириллица.
+    assert deleted_users(admin, "СМИР") == [(anna, "Анна Смирнова")]
+    assert deleted_users(admin, "Борис") == []
+
+
+def test_anonymize_deleted_user(app, admin):
+    anna = delete_account(app, "member", "Анна Смирнова", keep_name=True)
+
+    response = admin.post(f"/api/admin/deleted-users/{anna}/anonymize")
+
+    assert response.status_code == 204
+    with app.app_context():
+        assert db.session.get(User, anna).display_name == DELETED_USER_NAME
+        assert db.session.scalars(
+            db.select(UserConsent).where(UserConsent.user_id == anna)
+        ).all() == []
+    assert deleted_users(admin) == []
+    # Обезличенный аккаунт — как обычный удалённый, профиль снова открыт.
+    assert app.test_client().get(f"/api/users/{anna}").status_code == 200
+
+
+def test_anonymize_only_deleted_with_kept_name(app, admin):
+    member = user_id(app, "member")
+    create_user(app, "boris")
+    boris = delete_account(app, "boris", "Борис", keep_name=False)
+
+    for target in (member, boris, 999):
+        response = admin.post(f"/api/admin/deleted-users/{target}/anonymize")
+        assert response.status_code == 404
+    with app.app_context():
+        assert db.session.get(User, member).display_name == "Иван Петров"
+        assert db.session.scalars(
+            db.select(UserConsent.type).where(UserConsent.user_id == member)
+        ).all() == [ConsentType.PROCESSING, ConsentType.PUBLICATION]
 
 
 # flask make-admin

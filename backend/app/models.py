@@ -78,6 +78,9 @@ CLUB_COLORS = ("blue", "sky", "teal", "amber", "orange", "rose", "slate", "brown
 class ConsentType(enum.StrEnum):
     PROCESSING = "processing"    # согласие на обработку персональных данных
     PUBLICATION = "publication"  # согласие на распространение (публикацию)
+    # Удалённый аккаунт оставил имя в результатах и рекордах: согласия на обработку
+    # и распространение, данные раньше, не отозваны для отображаемого имени.
+    DELETED_NAME = "deleted_name"
 
 
 class RecordType(enum.StrEnum):
@@ -130,6 +133,15 @@ class User(UserMixin, db.Model):
     def _lower_login(self, key, login):
         return login.lower() if login is not None else None
 
+    @property
+    def has_profile(self):
+        """Есть ли публичный профиль: нет у удалённого аккаунта с сохранённым именем.
+
+        Согласие, данное при удалении, — только на имя в таблицах результатов
+        и рекордов, а не на профиль со всеми встречами.
+        """
+        return self.deleted_at is None or self.display_name == DELETED_USER_NAME
+
     def get_id(self):
         # Версия сессии в идентификаторе: при её увеличении все сессии
         # и remember-куки пользователя перестают действовать (см. auth.load_user).
@@ -141,6 +153,8 @@ class UserConsent(db.Model):
 
     Записи только добавляются (новая версия текста — новая запись),
     удаляются вместе с аккаунтом. Текущие версии — consents.CONSENT_VERSIONS.
+    Исключение — DELETED_NAME: остаётся после удаления аккаунта, пока
+    администратор не обезличит его (admin.anonymize_user).
     """
 
     __tablename__ = "user_consents"

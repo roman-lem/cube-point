@@ -1,9 +1,11 @@
 """Удаление аккаунта: персональные данные уничтожаются, результаты и рекорды остаются."""
 
 from app.accounts import DELETED_REASON
+from app.consents import CONSENT_VERSIONS
 from app.extensions import db
 from app.models import (
-    DELETED_USER_NAME, ClubMember, Disqualification, LoginFailure, Series, User, UserConsent,
+    DELETED_USER_NAME, ClubMember, ConsentType, Disqualification, LoginFailure, Series, User,
+    UserConsent,
 )
 
 from .helpers import ORGANIZER, PASSWORD, client_for, create_user, error
@@ -13,8 +15,10 @@ from .test_series import (  # noqa: F401 — фикстуры
 )
 
 
-def delete_account(client, password=PASSWORD):
-    return client.post("/api/auth/delete-account", json={"password": password})
+def delete_account(client, password=PASSWORD, keep_name=False):
+    return client.post(
+        "/api/auth/delete-account", json={"password": password, "keep_name": keep_name},
+    )
 
 
 def me(client):
@@ -91,7 +95,7 @@ def test_results_and_records_stay_with_deleted_name(world, clients, meetup_id):
                                  .where(Series.user_id == anna)) == 1
     assert records(world)["single"] == (anna, 1000)
     row = results(guest, meetup_id)[0]
-    assert row["user"] == {"id": anna, "display_name": DELETED_USER_NAME}
+    assert row["user"] == {"id": anna, "display_name": DELETED_USER_NAME, "has_profile": True}
     assert club_records(guest, world)["333"]["single"]["user"]["display_name"] == DELETED_USER_NAME
     # Публичный профиль остаётся, но без клубов: человек вышел из них.
     assert profile(guest, anna)["user"]["display_name"] == DELETED_USER_NAME
@@ -157,3 +161,91 @@ def test_account_without_consents_can_be_deleted(world):
     assert me(client)["consents_required"] is True
 
     assert delete_account(client).status_code == 204
+
+
+# Удаление с сохранённым именем
+
+def consents_of(world, user_id):
+    with world["app"].app_context():
+        return [
+            (c.type, c.version)
+            for c in db.session.scalars(db.select(UserConsent).where(UserConsent.user_id == user_id))
+        ]
+
+
+def test_deletion_without_keep_name_leaves_no_consents(world, clients):
+    anna = user_id_of(world, "anna")
+
+    delete_account(clients["anna"], keep_name=False)
+
+    assert get_user(world, anna).display_name == DELETED_USER_NAME
+    assert consents_of(world, anna) == []
+
+
+def test_deletion_with_keep_name_keeps_only_name(world, clients):
+    anna = user_id_of(world, "anna")
+    with world["app"].app_context():
+        user = db.session.get(User, anna)
+        user.display_name = "Анна Смирнова"
+        user.email = "anna@example.com"
+        db.session.commit()
+
+    response = delete_account(clients["anna"], keep_name=True)
+
+    assert response.status_code == 204
+    user = get_user(world, anna)
+    assert user.display_name == "Анна Смирнова"
+    assert user.login is None
+    assert user.email is None
+    assert user.password_hash is None
+    assert user.deleted_at is not None
+    # Остальные согласия удалены, осталась одна запись: согласие на распространение
+    # не отозвано для имени, версия — та, что давал человек.
+    assert consents_of(world, anna) == [
+        (ConsentType.DELETED_NAME, CONSENT_VERSIONS[ConsentType.PUBLICATION]),
+    ]
+    assert me(clients["anna"]) is None
+
+
+def test_keep_name_requires_publication_consent(world):
+    user_id = create_user(world["app"], "newbie")
+    with world["app"].app_context():
+        db.session.execute(db.delete(UserConsent).where(UserConsent.user_id == user_id))
+        db.session.commit()
+
+    response = delete_account(client_for(world["app"], "newbie"), keep_name=True)
+
+    assert response.status_code == 422
+    assert error(response)["fields"] == {"keep_name": "Вы не давали согласия на публикацию имени"}
+    assert get_user(world, user_id).login == "newbie"
+
+
+def test_kept_name_is_shown_without_profile(world, clients, meetup_id):
+    anna = user_id_of(world, "anna")
+    solve(clients["anna"], meetup_id, [1000, 1100, 1200, 1300, 1400])
+    guest = world["app"].test_client()
+
+    delete_account(clients["anna"], keep_name=True)
+
+    row = results(guest, meetup_id)[0]
+    assert row["user"] == {"id": anna, "display_name": "Иван Петров", "has_profile": False}
+    single = club_records(guest, world)["333"]["single"]
+    assert single["user"] == {"id": anna, "display_name": "Иван Петров", "has_profile": False}
+    assert guest.get(f"/api/users/{anna}").status_code == 404
+    assert guest.get(f"/api/users/{anna}/meetups").status_code == 404
+
+
+def test_login_of_kept_name_account_is_free(world, clients):
+    anna = user_id_of(world, "anna")
+    delete_account(clients["anna"], keep_name=True)
+
+    response = world["app"].test_client().post("/api/auth/register", json={
+        "display_name": "Новая Анна",
+        "login": "Anna",
+        "password": PASSWORD,
+        "consents": {t.value: v for t, v in CONSENT_VERSIONS.items()},
+    })
+
+    assert response.status_code == 201, response.get_json()
+    assert response.get_json()["user"]["id"] != anna
+    assert get_user(world, anna).display_name == "Иван Петров"

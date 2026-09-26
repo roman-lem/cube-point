@@ -4,7 +4,7 @@ from flask_wtf.csrf import generate_csrf
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ..accounts import delete_account, delete_restriction
+from ..accounts import delete_account, delete_restriction, publication_version
 from ..consents import consent_errors, consents_required, record_consents
 from ..errors import ApiError, ValidationError
 from ..extensions import db
@@ -219,7 +219,11 @@ def accept_consents():
 @auth.post("/delete-account")
 @login_required
 def delete_own_account():
-    password = get_str(json_body(), "password")
+    data = json_body()
+    password = get_str(data, "password")
+    # Оставить имя в результатах и рекордах: согласие на распространение,
+    # данное раньше, не отзывается (accounts.delete_account).
+    keep_name = data.get("keep_name") is True
     user = current_user._get_current_object()
 
     if not password:
@@ -229,8 +233,10 @@ def delete_own_account():
     restriction = delete_restriction(user)
     if restriction:
         raise ApiError(409, "delete_restricted", restriction)
+    if keep_name and publication_version(user) is None:
+        raise ValidationError({"keep_name": "Вы не давали согласия на публикацию имени"})
 
-    delete_account(user)
+    delete_account(user, keep_name=keep_name)
     db.session.commit()
     logout_user()
     session.pop("remember", None)

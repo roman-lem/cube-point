@@ -2,7 +2,8 @@
 
 Адреса: /api/clubs/<id>/records, /api/users/<id>, /api/users/<id>/meetups.
 Открыты всем, в том числе гостям, поэтому о человеке отдаются только id и имя,
-без логина. Правила — раздел «Рекорды» CLAUDE.md.
+без логина. Правила — раздел «Рекорды» CLAUDE.md. У удалённого аккаунта
+с сохранённым именем профиля нет (User.has_profile).
 
 Результаты встреч, где человека дисквалифицировали, в профиле не показываются
 и в PB не учитываются. Блокировка в клубе на профиль не влияет: прошлые
@@ -12,6 +13,7 @@
 from flask import Blueprint, request
 from sqlalchemy.orm import selectinload
 
+from .errors import ApiError
 from .events import EVENTS
 from .extensions import db
 from .meetups import iso_utc
@@ -29,7 +31,16 @@ PAGE_SIZE = 10
 
 
 def public_user(user):
-    return {"id": user.id, "display_name": user.display_name}
+    # has_profile — можно ли вести на профиль (User.has_profile).
+    return {"id": user.id, "display_name": user.display_name, "has_profile": user.has_profile}
+
+
+def get_profile_user(user_id):
+    """Пользователь с публичным профилем, иначе 404."""
+    user = get_or_404(User, user_id, "Участник не найден")
+    if not user.has_profile:
+        raise ApiError(404, "not_found", "Участник не найден")
+    return user
 
 
 def serialize_meetup_ref(meetup):
@@ -106,7 +117,7 @@ def personal_bests(user_id):
 @profiles.get("/users/<int:user_id>")
 def user_profile(user_id):
     """Имя, клубы, число встреч и личные рекорды (PB) по дисциплинам."""
-    user = get_or_404(User, user_id, "Участник не найден")
+    user = get_profile_user(user_id)
     clubs = db.session.scalars(
         db.select(Club).join(ClubMember)
         .where(ClubMember.user_id == user.id, ClubMember.banned_at.is_(None))
@@ -143,7 +154,7 @@ def user_meetups(user_id):
 
     ?offset= — сколько встреч уже загружено. Отметки PB и LR — только актуальные рекорды.
     """
-    user = get_or_404(User, user_id, "Участник не найден")
+    user = get_profile_user(user_id)
     offset = max(request.args.get("offset", 0, type=int), 0)
     meetups = db.session.scalars(
         db.select(Meetup)

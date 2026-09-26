@@ -54,7 +54,8 @@ export interface MySeries {
 export interface ResultsRow {
   /** null — без места: все попытки DNF или серия не закончена. */
   place: number | null
-  user: { id: number; display_name: string }
+  /** has_profile — false у удалённого аккаунта с сохранённым именем: имя без ссылки. */
+  user: { id: number; display_name: string; has_profile: boolean }
   status: SeriesStatus
   /** По ячейке на каждую попытку формата, несобранные — null. */
   attempts: (SeriesAttempt | null)[]
