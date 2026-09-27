@@ -52,15 +52,22 @@ def me():
 
 @auth.get("/home-club")
 def home_club():
-    """The club the site root leads a logged-in user to: the club of their latest meetup.
+    """The club the site root and the club tabs lead a logged-in user to.
 
-    Separate from /me because it changes while the app is open: an organizer
-    approves the first request and the user joins the club.
+    ?last= is the club the user last opened themselves (remembered in the browser):
+    it wins while the user is still a member there. Otherwise the club of their
+    latest meetup. Separate from /me because it changes while the app is open:
+    an organizer approves the first request and the user joins the club.
     """
     if not current_user.is_authenticated:
         return {"club_id": None}
-    # Only clubs the user is currently a member of.
-    member_of = db.select(ClubMember.club_id).where(ClubMember.user_id == current_user.id)
+    # Only clubs the user is currently a member of and not banned in.
+    member_of = db.select(ClubMember.club_id).where(
+        ClubMember.user_id == current_user.id, ClubMember.banned_at.is_(None),
+    )
+    last = request.args.get("last", type=int)
+    if last is not None and db.session.scalar(member_of.where(ClubMember.club_id == last)):
+        return {"club_id": last}
     club_id = db.session.scalar(
         db.select(Meetup.club_id)
         .join(MeetupParticipant, MeetupParticipant.meetup_id == Meetup.id)
@@ -76,8 +83,7 @@ def home_club():
         # No meetups yet (an organizer appointed by the administrator, or an account
         # created by an organizer): the club the user joined most recently.
         club_id = db.session.scalar(
-            db.select(ClubMember.club_id)
-            .where(ClubMember.user_id == current_user.id)
+            member_of
             .order_by(ClubMember.joined_at.desc(), ClubMember.club_id.desc())
             .limit(1)
         )

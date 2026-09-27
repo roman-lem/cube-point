@@ -8,10 +8,12 @@ import { ApiError } from '@/shared/api'
 import { pluralForm } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, PageHeader } from '@/shared/ui'
 import MeetupHistoryCard from './MeetupHistoryCard.vue'
+import MyClubs from './MyClubs.vue'
 import PersonalRecordsTable from './PersonalRecordsTable.vue'
 
 // A member's public profile: PB across all clubs and meetup history
-// with loading of older ones. One's own profile is the "Profile" tab, with a "Settings" button.
+// with loading of older ones. One's own profile is the "Profile" tab, with a "Settings" button
+// and "My clubs".
 const { userId } = defineProps<{ userId: number }>()
 
 const userStore = useUserStore()
@@ -117,6 +119,9 @@ const best333 = computed(
           </div>
         </dl>
       </AppCard>
+
+      <!-- Only in one's own profile, not in the public one. -->
+      <MyClubs v-if="isMe" />
 
       <section class="page__section">
         <h2 class="page__section-title">Личные рекорды</h2>

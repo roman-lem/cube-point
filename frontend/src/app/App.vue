@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useCurrentClubStore } from '@/entities/club'
+import { useUserStore } from '@/entities/user'
 import { AppFooter } from '@/widgets/app-footer'
 import { LandingHeader } from '@/widgets/landing-header'
 import { AppNavigation } from '@/widgets/navigation'
@@ -8,6 +10,18 @@ import { useTimerStore } from '@/widgets/timer'
 
 const route = useRoute()
 const timerStore = useTimerStore()
+const userStore = useUserStore()
+const clubStore = useCurrentClubStore()
+// The club tabs depend on who is logged in: tell the store once the user is known.
+watch(
+  () => (userStore.loaded ? (userStore.user?.id ?? null) : undefined),
+  (id) => {
+    if (id !== undefined) {
+      clubStore.setUserId(id)
+    }
+  },
+  { immediate: true },
+)
 // The timer and FMC use the whole screen as a touch area, so there is no footer.
 const showFooter = computed(() => !route.meta.bare && route.meta.tab !== 'timer')
 </script>

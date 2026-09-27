@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 import { useCurrentClubStore } from '@/entities/club'
 import { useUserStore } from '@/entities/user'
@@ -14,8 +14,6 @@ const userStore = useUserStore()
 const clubStore = useCurrentClubStore()
 const isDesktop = useMediaQuery('(min-width: 768px)')
 
-onMounted(() => clubStore.load())
-
 interface NavItem {
   tab: NonNullable<typeof route.meta.tab>
   label: string
@@ -25,7 +23,7 @@ interface NavItem {
 
 const items = computed<NavItem[]>(() => {
   const clubId = clubStore.clubId
-  // While the club is unknown, the club tabs lead home: it picks the club itself.
+  // While the club is unknown or there is none, the club tabs lead home: it picks the club itself.
   const clubRoute = (name: string): RouteLocationRaw =>
     clubId ? { name, params: { clubId } } : { name: 'home' }
 

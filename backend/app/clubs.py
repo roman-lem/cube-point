@@ -63,7 +63,10 @@ def list_clubs():
             "name": club.name,
             "city": club.city,
             "logo_color": club.logo_color,
-            "my_role": membership.role.value if membership else None,
+            # A banned member is not counted as a member ("My clubs" in the profile).
+            "my_role": (
+                membership.role.value if membership and not membership.banned_at else None
+            ),
             "live_meetup_id": live.get(club.id),
             "member_count": member_counts.get(club.id, 0),
             "meetup_count": meetup_count,

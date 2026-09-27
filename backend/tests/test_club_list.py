@@ -57,8 +57,9 @@ def join(app, club_id, user_id, joined_at=None):
         db.session.commit()
 
 
-def home_club(client):
-    response = client.get("/api/auth/home-club")
+def home_club(client, last=None):
+    query = {} if last is None else {"last": last}
+    response = client.get("/api/auth/home-club", query_string=query)
     assert response.status_code == 200
     return response.get_json()["club_id"]
 
@@ -124,3 +125,47 @@ def test_home_club_without_meetups_is_last_joined(app, clubs):
     join(app, clubs["ekb"], user_id, joined_at=utcnow() + timedelta(minutes=1))
 
     assert home_club(client_for(app, "org")) == clubs["ekb"]
+
+
+def test_my_role_is_hidden_in_clubs_user_is_banned_in(app, clubs):
+    user_id = create_user(app, "ivan", MEMBER, clubs["tyumen"])
+    create_user(app, "petr", MEMBER, clubs["omsk"], banned=True)
+    join(app, clubs["omsk"], user_id)
+
+    def roles(login):
+        body = client_for(app, login).get("/api/clubs").get_json()
+        return {c["id"]: c["my_role"] for c in body["clubs"]}
+
+    assert roles("ivan") == {clubs["tyumen"]: "member", clubs["omsk"]: "member", clubs["ekb"]: None}
+    assert roles("petr") == {clubs["tyumen"]: None, clubs["omsk"]: None, clubs["ekb"]: None}
+
+
+def test_home_club_is_last_opened_club(app, clubs):
+    user_id = create_user(app, "ivan", MEMBER, clubs["tyumen"])
+    join(app, clubs["omsk"], user_id)
+    approve(app, add_meetup(app, clubs["omsk"], date(2026, 9, 5)), user_id)
+
+    assert home_club(client_for(app, "ivan"), last=clubs["tyumen"]) == clubs["tyumen"]
+
+
+def test_home_club_ignores_last_club_user_is_not_in(app, clubs):
+    user_id = create_user(app, "ivan", MEMBER, clubs["tyumen"])
+    approve(app, add_meetup(app, clubs["tyumen"], date(2026, 9, 5)), user_id)
+    client = client_for(app, "ivan")
+
+    # A club the user only looked at, and a club that no longer exists.
+    assert home_club(client, last=clubs["omsk"]) == clubs["tyumen"]
+    assert home_club(client, last=999) == clubs["tyumen"]
+
+
+def test_home_club_skips_clubs_user_is_banned_in(app, clubs):
+    user_id = create_user(app, "ivan", MEMBER, clubs["omsk"], banned=True)
+    join(app, clubs["tyumen"], user_id, joined_at=utcnow() - timedelta(days=1))
+    approve(app, add_meetup(app, clubs["tyumen"], date(2026, 9, 1)), user_id)
+    approve(app, add_meetup(app, clubs["omsk"], date(2026, 9, 5)), user_id)
+    create_user(app, "petr", MEMBER, clubs["omsk"], banned=True)
+
+    # Banned in the remembered club and in the club of the latest meetup.
+    assert home_club(client_for(app, "ivan"), last=clubs["omsk"]) == clubs["tyumen"]
+    # Banned in the only club: there is no club to lead to.
+    assert home_club(client_for(app, "petr"), last=clubs["omsk"]) is None

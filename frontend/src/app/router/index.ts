@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import { fetchHomeClubId } from '@/entities/club'
+import { fetchHomeClubId, useCurrentClubStore } from '@/entities/club'
 import { useUserStore } from '@/entities/user'
 import { AdminClubCreatePage } from '@/pages/admin-club-create'
 import { AdminClubsPage } from '@/pages/admin-clubs'
@@ -61,8 +61,8 @@ export const router = createRouter({
     return savedPosition ?? false
   },
   routes: [
-    // Site root: a logged-in user with a club goes to the club of their latest meetup,
-    // guests and users without a club get the landing.
+    // Site root: a logged-in user with a club goes to the last club they opened
+    // (or the club of their latest meetup), guests and users without a club get the landing.
     {
       path: '/',
       name: 'home',
@@ -73,13 +73,14 @@ export const router = createRouter({
           return true
         }
         try {
-          const clubId = await fetchHomeClubId()
+          const clubId = await fetchHomeClubId(useCurrentClubStore().rememberedId)
           return clubId ? { name: 'club', params: { clubId } } : true
         } catch {
           return true
         }
       },
     },
+    // All clubs: open to everyone, a logged-in user is not redirected anywhere.
     { path: '/clubs', name: 'clubs', component: ClubsPage, meta: { layout: 'landing' } },
     { path: '/login', name: 'login', component: AuthPage, meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: AuthPage, meta: { guestOnly: true } },
