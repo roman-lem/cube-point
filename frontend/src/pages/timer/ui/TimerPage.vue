@@ -156,6 +156,7 @@ function readPending(key: string): TimerResult | null {
   }
 }
 
+// Synchronously: leaving the screen mid-solve sets the attempt right before the navigation.
 watch(pending, (value) => {
   try {
     if (!pendingKey.value) return
@@ -167,7 +168,7 @@ watch(pending, (value) => {
   } catch {
     // Storage is unavailable (private mode): the attempt just will not survive a reload.
   }
-})
+}, { flush: 'sync' })
 
 async function loadSeries() {
   series.value = null
@@ -312,6 +313,7 @@ const seriesResult = computed(() => {
         ref="timerScreen"
         v-model:pending="pending"
         mode="series"
+        :owner="`series:${series.id}:${series.next_attempt.number}`"
         :event-id="series.event_id"
         :scramble="series.next_attempt.scramble"
         :scramble-title="`Серия · попытка ${series.next_attempt.number} из ${attemptsCount}`"
@@ -336,6 +338,7 @@ const seriesResult = computed(() => {
     <TimerScreen
       v-else
       mode="training"
+      :owner="`training:${eventId}`"
       :event-id="eventId"
       :scramble="trainingScramble"
       scramble-title="Тренировка"

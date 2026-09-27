@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { useLocalStorage, useMediaQuery } from '@vueuse/core'
-import { computed, ref, toRef } from 'vue'
+import { useEventListener, useLocalStorage, useMediaQuery } from '@vueuse/core'
+import { computed, ref, toRef, watch } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { formatAttempt, formatResult, parseTimeInput, scrambleLines } from '@/shared/lib'
-import { AppButton, AppIcon } from '@/shared/ui'
-import type { SuggestedPenalty } from '../model/machine'
+import { AppButton, AppIcon, ConfirmDialog } from '@/shared/ui'
+import { isFocused, type SuggestedPenalty } from '../model/machine'
+import { timerNow } from '../model/saved'
 import { inspectionCountdown, useTimer, type StoppedSolve } from '../model/useTimer'
 
 /** Solve result: time without the penalty and the penalty. DNF may have a time. */
@@ -20,10 +22,16 @@ export interface TimerResult {
 // series: after a solve the participant picks OK / +2 / DNF and presses
 // "Save attempt" (save). The unsaved result is v-model:pending,
 // so the page can keep it across a reload.
+//
+// The timer state is in the timer store (owner is whose solve it is), so it survives
+// leaving the screen and a reload. During inspection and a solve only the timer
+// is on the screen; leaving requires confirmation.
 const pending = defineModel<TimerResult | null>('pending', { default: null })
 
-const { mode, eventId, scramble, saving = false, last = null } = defineProps<{
+const { mode, owner, eventId, scramble, saving = false, last = null } = defineProps<{
   mode: 'training' | 'series'
+  /** Whose solve it is: `training:<event_id>` or `series:<series_id>:<attempt>`. */
+  owner: string
   /** Megaminx scrambles are shown line by line. */
   eventId: string
   /** null: the scramble is still being generated or loaded. */
@@ -52,9 +60,14 @@ const enabled = computed(
   () => !manual.value && scramble !== null && !saving && pending.value === null,
 )
 
+// Leave confirmation: the navigation waits for the answer.
+const leaveOpen = ref(false)
+
 const timer = useTimer({
+  owner: toRef(() => owner),
   inspection: toRef(inspection),
   enabled,
+  blocked: leaveOpen,
   onStop: finish,
 })
 const { state, elapsed, inspectionElapsed, onZonePointerDown } = timer
@@ -81,7 +94,9 @@ const scrambleSize = computed(() => {
 const isLong = (text: string) => text.length > 8
 
 const phase = computed(() => state.value.phase)
-const isRunning = computed(() => phase.value === 'running')
+/** Inspection or a solve: only the timer is on the screen. */
+const focused = computed(() => isFocused(state.value))
+/** Inspection or a solve: only the timer is on the screen. */
 
 const display = computed(() => {
   const inspecting = inspectionElapsed.value !== null
@@ -170,12 +185,68 @@ const penaltyNote = computed(() => {
   }
 })
 
+// Leaving during inspection or a solve
+
+let leaveAnswer: ((leave: boolean) => void) | null = null
+/** The moment of the leave attempt: the solve is stopped at it, not at the answer. */
+let leaveMoment = 0
+
+function confirmLeave() {
+  if (!focused.value) {
+    return true
+  }
+  // A repeated "back" while the dialog is open: the previous navigation is not waited for.
+  leaveAnswer?.(false)
+  leaveMoment = timerNow()
+  // The finger or the space can not be released into the timer while the dialog is open.
+  timer.cancel()
+  leaveOpen.value = true
+  return new Promise<boolean>((resolve) => {
+    leaveAnswer = resolve
+  })
+}
+
+// training: the solve is dropped. series: the stopped solve (or DNF without a time if it
+// had not started: the scramble has been seen) becomes an unsaved attempt, the page
+// keeps it, and the participant picks OK / +2 / DNF on returning to the series.
+function interrupt() {
+  if (mode === 'series') {
+    pending.value = timer.abort(leaveMoment) ?? { value: null, penalty: 'dnf' }
+  } else {
+    timer.reset()
+  }
+  answerLeave(true)
+}
+
+function answerLeave(leave: boolean) {
+  leaveOpen.value = false
+  leaveAnswer?.(leave)
+  leaveAnswer = null
+}
+
+// Esc and the backdrop close the dialog: stay on the screen.
+watch(leaveOpen, (open) => {
+  if (!open) {
+    answerLeave(false)
+  }
+})
+
+onBeforeRouteLeave(confirmLeave)
+onBeforeRouteUpdate(confirmLeave)
+
+// A reload or leaving the site: the browser asks itself.
+useEventListener(window, 'beforeunload', (event: BeforeUnloadEvent) => {
+  if (focused.value) {
+    event.preventDefault()
+  }
+})
+
 defineExpose({ reset: timer.reset })
 </script>
 
 <template>
-  <section :class="['timer', { 'timer--running': isRunning }]">
-    <div class="timer__top">
+  <section class="timer">
+    <div v-show="!focused" class="timer__top">
       <slot name="header" />
 
       <div class="timer__scramble">
@@ -310,9 +381,24 @@ defineExpose({ reset: timer.reset })
       </p>
     </div>
 
-    <div v-if="$slots.last" class="timer__last">
+    <div v-if="$slots.last" v-show="!focused" class="timer__last">
       <slot name="last" />
     </div>
+
+    <ConfirmDialog
+      v-model:open="leaveOpen"
+      title="Идёт сборка. Прервать?"
+      confirm-label="Прервать"
+      cancel-label="Продолжить"
+      danger
+      @confirm="interrupt"
+    >
+      {{
+        mode === 'series'
+          ? 'Таймер остановится. Вернувшись к серии, выберите OK, +2 или DNF и сохраните попытку.'
+          : 'Сборка не попадёт в тренировочную сессию.'
+      }}
+    </ConfirmDialog>
   </section>
 </template>
 
@@ -329,12 +415,6 @@ defineExpose({ reset: timer.reset })
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-/* Nothing distracts during a solve, but the layout does not jump. */
-.timer--running .timer__top,
-.timer--running .timer__last {
-  visibility: hidden;
 }
 
 .timer__scramble {

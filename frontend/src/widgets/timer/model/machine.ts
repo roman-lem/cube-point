@@ -5,6 +5,9 @@
 //   └─(with inspection) press ──▶ inspection ──press──▶ holding …
 // Releasing in holding too early goes back (to idle or inspection).
 // From stopped a new press starts the next solve, as from idle.
+// cancel (the tab went to the background while held): holding and ready go back,
+// as on an early release. abort (leaving the screen): running stops with the time
+// at that moment, inspection, holding and ready go to idle.
 
 /** How long to hold the finger or space until ready. */
 export const HOLD_MS = 300
@@ -29,7 +32,7 @@ export interface TimerState {
 }
 
 export interface TimerEvent {
-  type: 'press' | 'release' | 'tick'
+  type: 'press' | 'release' | 'tick' | 'cancel' | 'abort'
   now: number
 }
 
@@ -69,8 +72,7 @@ export function transition(
         return { ...state, phase: 'holding', holdStart: now }
       }
       if (phase === 'running') {
-        // Hundredths: thousandths are dropped, as in result calculation.
-        return { ...state, phase: 'stopped', result: Math.floor((now - state.solveStart) / 10) }
+        return stop(state, now)
       }
       return state
 
@@ -89,10 +91,42 @@ export function transition(
       }
       return state
 
+    case 'cancel':
+      if (phase === 'holding' || phase === 'ready') {
+        return { ...state, phase: state.inspectionStart === null ? 'idle' : 'inspection' }
+      }
+      return state
+
     case 'tick':
       if (phase === 'holding' && now - state.holdStart >= HOLD_MS) {
         return { ...state, phase: 'ready' }
       }
       return state
+
+    case 'abort':
+      if (phase === 'running') {
+        return stop(state, now)
+      }
+      if (phase === 'inspection' || phase === 'holding' || phase === 'ready') {
+        return initialState()
+      }
+      return state
   }
+}
+
+function stop(state: TimerState, now: number): TimerState {
+  // Hundredths: thousandths are dropped, as in result calculation.
+  return { ...state, phase: 'stopped', result: Math.floor((now - state.solveStart) / 10) }
+}
+
+/**
+ * Inspection or solve in progress: only the timer stays on the screen.
+ * Holding without inspection does not count, so that a short press does not make the screen blink.
+ */
+export function isFocused(state: TimerState): boolean {
+  const { phase } = state
+  if (phase === 'inspection' || phase === 'running') {
+    return true
+  }
+  return (phase === 'holding' || phase === 'ready') && state.inspectionStart !== null
 }

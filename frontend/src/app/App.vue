@@ -4,8 +4,10 @@ import { useRoute } from 'vue-router'
 import { AppFooter } from '@/widgets/app-footer'
 import { LandingHeader } from '@/widgets/landing-header'
 import { AppNavigation } from '@/widgets/navigation'
+import { useTimerStore } from '@/widgets/timer'
 
 const route = useRoute()
+const timerStore = useTimerStore()
 // The timer and FMC use the whole screen as a touch area, so there is no footer.
 const showFooter = computed(() => !route.meta.bare && route.meta.tab !== 'timer')
 </script>
@@ -14,7 +16,8 @@ const showFooter = computed(() => !route.meta.bare && route.meta.tab !== 'timer'
   <div class="app">
     <!-- The landing has its own header, print pages have no navigation. -->
     <LandingHeader v-if="route.meta.layout === 'landing'" />
-    <AppNavigation v-else-if="!route.meta.bare" />
+    <!-- During inspection and a solve only the timer is on the screen. -->
+    <AppNavigation v-else-if="!route.meta.bare && !timerStore.focused" />
     <RouterView />
     <AppFooter v-if="showFooter" :beta-note="route.meta.layout === 'landing'" />
   </div>
