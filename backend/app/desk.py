@@ -319,7 +319,7 @@ def list_candidates(meetup_id):
 def add_participant(meetup_id):
     """Adds a participant as already approved.
 
-    {"user_id"} is a club member; {"display_name", "login"} is a new account
+    {"user_id"} is a member of the meetup's club; {"display_name", "login"} is a new account
     with a temporary password. The password is returned once and not stored anywhere else.
     """
     meetup = get_organizer_meetup(meetup_id)
@@ -327,9 +327,15 @@ def add_participant(meetup_id):
     password = None
 
     if "user_id" in data:
-        user = db.session.get(User, data["user_id"]) if is_int(data["user_id"]) else None
-        if user is None:
-            raise ApiError(404, "not_found", "Пользователь не найден")
+        # Only a member of the meetup's club: the organizer has no access to other users,
+        # and the response must not reveal whether an id outside the club exists.
+        membership = (
+            db.session.get(ClubMember, (meetup.club_id, data["user_id"]))
+            if is_int(data["user_id"]) else None
+        )
+        if membership is None:
+            raise ApiError(404, "not_found", "Участник клуба не найден")
+        user = membership.user
         if is_banned(meetup.club_id, user):
             raise ApiError(409, "banned", "Участник заблокирован в клубе")
     else:

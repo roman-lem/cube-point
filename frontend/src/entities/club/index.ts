@@ -8,7 +8,7 @@ export type {
   AdminClub, AdminClubSummary, UserRef,
   Club, ClubLink, ClubPageData, ClubRole, ClubSummary, LinkType, LogoColor,
   ClubMemberCard, ClubMembersList, ClubMemberSummary, MemberEventResult, MemberFilter,
-  MemberMeetup, Restriction,
+  MemberMeetup, OrganizerPledge, Restriction,
 } from './model/types'
 export { default as ClubCard } from './ui/ClubCard.vue'
 export { default as ClubLinks } from './ui/ClubLinks.vue'

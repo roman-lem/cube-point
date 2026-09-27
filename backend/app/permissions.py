@@ -5,6 +5,7 @@ from flask_login import current_user
 from .errors import ApiError
 from .extensions import db
 from .models import ClubMember, ClubRole
+from .pledge import PLEDGE_TEXT, PLEDGE_VERSION, pledge_accepted
 
 
 def get_or_404(model, object_id, message="Не найдено"):
@@ -34,8 +35,21 @@ def is_banned(club_id, user=None):
 
 
 def is_organizer(club_id):
+    """The organizer role, whether or not the pledge is accepted."""
     membership = get_membership(club_id)
     return membership is not None and membership.role == ClubRole.ORGANIZER
+
+
+def is_active_organizer(club_id):
+    """An organizer who has accepted the pledge: only they get the organizer tools and data."""
+    return is_organizer(club_id) and pledge_accepted(club_id, current_user)
+
+
+def pending_pledge(club_id):
+    """The pledge to show to an organizer who has not accepted it yet, otherwise None."""
+    if is_organizer(club_id) and not pledge_accepted(club_id, current_user):
+        return {"version": PLEDGE_VERSION, "text": PLEDGE_TEXT}
+    return None
 
 
 def require_organizer(club_id):
@@ -43,14 +57,18 @@ def require_organizer(club_id):
         raise ApiError(401, "unauthorized", "Нужно войти")
     if not is_organizer(club_id):
         raise ApiError(403, "forbidden", "Это может только организатор клуба")
+    if not pledge_accepted(club_id, current_user):
+        raise ApiError(
+            403, "pledge_required", "Сначала примите обязательство организатора на странице клуба",
+        )
 
 
 def require_club_manager(club_id):
     """Managing club members: a club organizer or the administrator."""
     if not current_user.is_authenticated:
         raise ApiError(401, "unauthorized", "Нужно войти")
-    if not (current_user.is_admin or is_organizer(club_id)):
-        raise ApiError(403, "forbidden", "Это может только организатор клуба")
+    if not current_user.is_admin:
+        require_organizer(club_id)
 
 
 def require_not_banned(club_id):

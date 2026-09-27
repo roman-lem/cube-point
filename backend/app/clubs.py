@@ -3,13 +3,18 @@
 from urllib.parse import urlsplit
 
 from flask import Blueprint
+from flask_login import current_user
 
+from .errors import ApiError
 from .extensions import db
 from .forms import collapse_spaces, get_list, get_str, json_body, raise_if_errors
 from .models import (
     CLUB_COLORS, Club, ClubLink, ClubMember, LinkType, Meetup, MeetupStatus,
 )
-from .permissions import get_membership, get_or_404, is_banned, my_role, require_organizer
+from .permissions import (
+    get_membership, get_or_404, is_banned, is_organizer, my_role, pending_pledge, require_organizer,
+)
+from .pledge import PLEDGE_VERSION, pledge_accepted, record_pledge
 
 clubs = Blueprint("clubs", __name__, url_prefix="/clubs")
 
@@ -74,7 +79,29 @@ def list_clubs():
 @clubs.get("/<int:club_id>")
 def get_club(club_id):
     club = get_or_404(Club, club_id, "Клуб не найден")
-    return {"club": serialize_club(club), "my_role": my_role(club.id), "banned": is_banned(club.id)}
+    return {
+        "club": serialize_club(club),
+        "my_role": my_role(club.id),
+        "banned": is_banned(club.id),
+        # Organizer tools stay closed until the pledge is accepted (pledge.py).
+        "pledge": pending_pledge(club.id),
+    }
+
+
+@clubs.post("/<int:club_id>/organizer-pledge")
+def accept_pledge(club_id):
+    """The organizer accepts the pledge. Request body: {"version"} of the text displayed."""
+    club = get_or_404(Club, club_id, "Клуб не найден")
+    if not current_user.is_authenticated:
+        raise ApiError(401, "unauthorized", "Нужно войти")
+    if not is_organizer(club.id):
+        raise ApiError(403, "forbidden", "Это может только организатор клуба")
+    if json_body().get("version") != PLEDGE_VERSION:
+        raise ApiError(409, "pledge_outdated", "Текст обязательства обновился, обновите страницу")
+    if not pledge_accepted(club.id, current_user):
+        record_pledge(club.id, current_user)
+        db.session.commit()
+    return "", 204
 
 
 @clubs.patch("/<int:club_id>")

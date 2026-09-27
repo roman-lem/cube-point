@@ -63,6 +63,8 @@ export interface MeetupPageData {
   /** Role in the meetup's club (entities do not import each other, hence no ClubRole). */
   my_role: 'member' | 'organizer' | null
   my_request: { status: RequestStatus } | null
+  /** An organizer without the accepted pledge: their organizer tools are closed. Otherwise null. */
+  pledge: { version: string; text: string } | null
 }
 
 /** A meetup from an invitation link, for the banner on the login page. */

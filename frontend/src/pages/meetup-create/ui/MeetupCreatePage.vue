@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { fetchClub, type ClubPageData } from '@/entities/club'
 import type { Meetup } from '@/entities/meetup'
 import { MeetupCreateForm } from '@/features/meetup-create'
+import { PledgeRequiredCard } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
 import { AppCard, PageHeader } from '@/shared/ui'
 
@@ -33,6 +34,7 @@ function onCreated(meetup: Meetup) {
     <AppCard v-else-if="data && data.my_role !== 'organizer'">
       Создавать встречи может только организатор клуба
     </AppCard>
+    <PledgeRequiredCard v-else-if="data?.pledge" :club-id="clubId" />
     <MeetupCreateForm
       v-else-if="data"
       :club-id="clubId"

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useCurrentClubStore } from '@/entities/club'
 import { fetchMeetup, type Meetup, type MeetupPageData } from '@/entities/meetup'
+import { PledgeRequiredCard } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
 import { formatDate } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
@@ -48,6 +49,7 @@ function onUpdate(meetup: Meetup) {
     <AppCard v-else-if="data && data.my_role !== 'organizer'">
       Панель встречи доступна только организатору клуба
     </AppCard>
+    <PledgeRequiredCard v-else-if="data?.pledge" :club-id="data.meetup.club.id" />
     <MeetupPanel v-else-if="data" :meetup="data.meetup" @update="onUpdate" @refresh="load" />
   </main>
 </template>

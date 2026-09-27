@@ -40,11 +40,19 @@ export interface ClubSummary {
   last_meetup_date: string | null
 }
 
+/** The organizer pledge text to accept (backend/app/pledge.py). */
+export interface OrganizerPledge {
+  version: string
+  text: string
+}
+
 /** Club page GET /api/clubs/:id. */
 export interface ClubPageData {
   club: Club
   my_role: ClubRole | null
   banned: boolean
+  /** An organizer without the accepted pledge: their organizer tools are closed. Otherwise null. */
+  pledge: OrganizerPledge | null
 }
 
 /** A user in administration: an organizer or one found by login. */

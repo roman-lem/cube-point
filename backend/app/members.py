@@ -20,7 +20,7 @@ from .models import (
     Club, ClubMember, ClubRecord, ClubRole, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
     ParticipantStatus, Series, User, utcnow,
 )
-from .permissions import get_or_404, is_last_organizer, is_organizer, require_club_manager
+from .permissions import get_or_404, is_active_organizer, is_last_organizer, require_club_manager
 from .scoring import event_table
 
 members = Blueprint("members", __name__)
@@ -36,7 +36,8 @@ def get_member(club_id, user_id):
 
 
 def can_manage(club_id):
-    return current_user.is_authenticated and (current_user.is_admin or is_organizer(club_id))
+    """The administrator or an organizer who has accepted the pledge: they see logins and banned members."""
+    return current_user.is_authenticated and (current_user.is_admin or is_active_organizer(club_id))
 
 
 def meetups_counts(club_id):
@@ -164,25 +165,29 @@ def restrictions(membership):
     next to the disabled button.
     """
     return {
-        "reset_password": reset_password_restriction(membership.user),
+        "reset_password": reset_password_restriction(membership),
         "organizer": organizer_restriction(membership),
         "ban": ban_restriction(membership),
     }
 
 
-def reset_password_restriction(user):
+def reset_password_restriction(membership):
+    user = membership.user
     if user.id == current_user.id:
         return "Свой пароль меняется в профиле"
     if current_user.is_admin:
         return None
     if user.is_admin:
         return "Пароль администратора сбрасывает администратор"
+    if membership.role == ClubRole.ORGANIZER:
+        return "Пароль организатора сбрасывает администратор"
     # An organizer of any club, not just this one: otherwise an organizer of one club
-    # could log in as an organizer of another.
+    # could log in as an organizer of another. The reason does not name the role:
+    # the organizer of this club must not learn about the member's role in another club.
     if db.session.scalar(db.select(ClubMember.user_id).where(
         ClubMember.user_id == user.id, ClubMember.role == ClubRole.ORGANIZER,
     ).limit(1)):
-        return "Пароль организатора сбрасывает администратор"
+        return "Пароль этого участника сбрасывает администратор"
     return None
 
 
@@ -299,7 +304,7 @@ def get_member_card(club_id, user_id):
 def reset_member_password(club_id, user_id):
     """Temporary password, shown once. All of the member's sessions end."""
     membership = get_managed_member(club_id, user_id)
-    require_allowed(reset_password_restriction(membership.user))
+    require_allowed(reset_password_restriction(membership))
     password = reset_password(membership.user)
     # If the member was locked out by login throttling, the new password works right away.
     throttle.clear_failures(membership.user.login)

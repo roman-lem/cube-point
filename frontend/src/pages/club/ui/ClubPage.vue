@@ -4,6 +4,7 @@ import {
   ClubLinks, ClubLogo, fetchClub, useCurrentClubStore, type ClubPageData,
 } from '@/entities/club'
 import { fetchClubMeetups, MeetupCard, type MeetupSummary } from '@/entities/meetup'
+import { OrganizerPledgeDialog } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
 import { AppCard, AppIcon } from '@/shared/ui'
 
@@ -28,7 +29,8 @@ watch(
   { immediate: true },
 )
 
-const isOrganizer = computed(() => data.value?.my_role === 'organizer')
+// Organizer tools open only after the organizer pledge is accepted.
+const isOrganizer = computed(() => data.value?.my_role === 'organizer' && !data.value.pledge)
 // The server returns meetups newest first; upcoming ones are shown in date order.
 const upcoming = computed(() => meetups.value.filter((m) => m.status !== 'finished').reverse())
 const past = computed(() => meetups.value.filter((m) => m.status === 'finished'))
@@ -48,6 +50,13 @@ const meetupRoute = (meetup: MeetupSummary) => ({
     <AppCard v-if="error">{{ error }}</AppCard>
 
     <template v-else-if="data">
+      <OrganizerPledgeDialog
+        v-if="data.pledge"
+        :club-id="clubId"
+        :pledge="data.pledge"
+        @accepted="data.pledge = null"
+      />
+
       <header class="club-page__header">
         <div class="club-page__title-row">
           <ClubLogo :name="data.club.name" :color="data.club.logo_color" />

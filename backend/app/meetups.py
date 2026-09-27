@@ -23,7 +23,8 @@ from .models import (
     ParticipantStatus, Scramble, Series, utcnow,
 )
 from .permissions import (
-    get_membership, get_or_404, is_banned, is_organizer, my_role, require_organizer,
+    get_membership, get_or_404, is_active_organizer, is_banned, is_organizer, my_role,
+    pending_pledge, require_organizer,
 )
 from .results import ATTEMPTS_COUNT, DNF
 from .scoring import AVERAGE_FORMATS, event_table
@@ -97,7 +98,7 @@ def serialize_meetup(meetup):
         for event in meetup.events
     ]
     # The join link is for organizers only and only while it is valid.
-    if is_organizer(meetup.club_id) and meetup.status != MeetupStatus.FINISHED:
+    if is_active_organizer(meetup.club_id) and meetup.status != MeetupStatus.FINISHED:
         result["join_token"] = meetup.join_token
         result["join_url"] = join_url(meetup.join_token)
     return result
@@ -279,6 +280,7 @@ def get_meetup_page(meetup_id):
         "meetup": result,
         "my_role": my_role(meetup.club_id),
         "my_request": my_request,
+        "pledge": pending_pledge(meetup.club_id),
     }
 
 

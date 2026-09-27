@@ -167,6 +167,25 @@ class UserConsent(db.Model):
     accepted_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
 
+class OrganizerPledge(db.Model):
+    """An organizer's pledge in a club: which text version and when it was accepted.
+
+    Entries are only added. They stay when the role is removed or the account is
+    deleted (evidence of the pledge) and go together with the club.
+    Current text and version: pledge.PLEDGE_TEXT, pledge.PLEDGE_VERSION.
+    """
+
+    __tablename__ = "organizer_pledges"
+
+    id = db.Column(db.Integer, primary_key=True)
+    club_id = db.Column(
+        db.Integer, db.ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
+    user_id = db.Column(db.Integer, user_fk("CASCADE"), nullable=False, index=True)
+    version = db.Column(db.String(32), nullable=False)
+    accepted_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+
 class Club(db.Model):
     __tablename__ = "clubs"
 

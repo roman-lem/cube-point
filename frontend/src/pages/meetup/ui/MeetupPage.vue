@@ -3,6 +3,7 @@ import { useIntervalFn } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useCurrentClubStore } from '@/entities/club'
 import { EventCard, fetchMeetup, MeetupHeader, type MeetupPageData } from '@/entities/meetup'
+import { OrganizerPledgeDialog } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
 import { EVENTS, type EventId } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
@@ -29,7 +30,8 @@ async function load() {
 watch(() => meetupId, load, { immediate: true })
 
 const requestStatus = computed(() => data.value?.my_request?.status ?? null)
-const isOrganizer = computed(() => data.value?.my_role === 'organizer')
+// Organizer tools open only after the organizer pledge is accepted.
+const isOrganizer = computed(() => data.value?.my_role === 'organizer' && !data.value.pledge)
 
 useIntervalFn(() => {
   if (requestStatus.value === 'pending' || data.value?.meetup.status === 'live') {
@@ -93,6 +95,14 @@ const participation = computed(() => {
     <AppCard v-if="error">{{ error }}</AppCard>
 
     <template v-else-if="data">
+      <!-- Stays mounted across auto-refreshes, so "Later" is not undone by the next refresh. -->
+      <OrganizerPledgeDialog
+        v-if="data.pledge"
+        :club-id="data.meetup.club.id"
+        :pledge="data.pledge"
+        @accepted="load"
+      />
+
       <MeetupHeader :meetup="data.meetup" />
 
       <RouterLink

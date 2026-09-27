@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { fetchClub, useCurrentClubStore, type Club, type ClubPageData } from '@/entities/club'
 import { ClubSettingsForm } from '@/features/club-settings'
+import { PledgeRequiredCard } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
 import { AppCard, PageHeader } from '@/shared/ui'
 
@@ -34,6 +35,7 @@ function onSaved(club: Club) {
     <AppCard v-else-if="data && data.my_role !== 'organizer'">
       Настройки клуба может менять только организатор
     </AppCard>
+    <PledgeRequiredCard v-else-if="data?.pledge" :club-id="clubId" />
     <ClubSettingsForm v-else-if="data" :club="data.club" @saved="onSaved" />
   </main>
 </template>
