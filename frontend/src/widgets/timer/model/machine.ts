@@ -1,5 +1,5 @@
 // Timer state machine: a pure transition function, time is passed in from outside
-// (performance.now() at the event), so it is easy to test.
+// (timerNow() at the event), so it is easy to test.
 //
 // idle ──press──▶ holding ──HOLD_MS──▶ ready ──release──▶ running ──press──▶ stopped
 //   └─(with inspection) press ──▶ inspection ──press──▶ holding …
@@ -117,6 +117,16 @@ export function transition(
 function stop(state: TimerState, now: number): TimerState {
   // Hundredths: thousandths are dropped, as in result calculation.
   return { ...state, phase: 'stopped', result: Math.floor((now - state.solveStart) / 10) }
+}
+
+/** Inspection time in ms at `now` for display; null for a solve without inspection. */
+export function inspectionElapsed(state: TimerState, now: number): number | null {
+  return state.inspectionStart === null ? null : Math.max(0, now - state.inspectionStart)
+}
+
+/** Current solve time in hundredths at `now` for display. */
+export function solveElapsed(state: TimerState, now: number): number {
+  return state.phase === 'running' ? Math.max(0, Math.floor((now - state.solveStart) / 10)) : 0
 }
 
 /**

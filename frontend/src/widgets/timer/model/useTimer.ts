@@ -5,11 +5,13 @@ import {
   HOLD_MS,
   INSPECTION_MS,
   initialState,
+  inspectionElapsed as inspectionElapsedAt,
+  solveElapsed,
   transition,
   type SuggestedPenalty,
   type TimerEvent,
 } from './machine'
-import { timerNow } from './saved'
+import { timerNow } from './clock'
 import { useTimerStore } from './store'
 
 export interface StoppedSolve {
@@ -79,7 +81,7 @@ export function useTimer(options: {
   // Clock for display.
   const clock = useRafFn(
     () => {
-      now.value = performance.now()
+      now.value = timerNow()
       if (!isActive.value) {
         clock.pause()
       }
@@ -150,14 +152,10 @@ export function useTimer(options: {
   })
 
   /** Inspection seconds for display: 15 … 1, then +2 and DNF. */
-  const inspectionElapsed = computed(() =>
-    state.value.inspectionStart === null ? null : now.value - state.value.inspectionStart,
-  )
+  const inspectionElapsed = computed(() => inspectionElapsedAt(state.value, now.value))
 
   /** Current solve time in hundredths. */
-  const elapsed = computed(() =>
-    state.value.phase === 'running' ? Math.floor((now.value - state.value.solveStart) / 10) : 0,
-  )
+  const elapsed = computed(() => solveElapsed(state.value, now.value))
 
   function reset() {
     state.value = initialState()

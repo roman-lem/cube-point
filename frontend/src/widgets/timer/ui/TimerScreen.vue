@@ -5,7 +5,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { formatAttempt, formatResult, parseTimeInput, scrambleLines } from '@/shared/lib'
 import { AppButton, AppIcon, ConfirmDialog } from '@/shared/ui'
 import { isFocused, type SuggestedPenalty } from '../model/machine'
-import { timerNow } from '../model/saved'
+import { timerNow } from '../model/clock'
 import { inspectionCountdown, useTimer, type StoppedSolve } from '../model/useTimer'
 
 /** Solve result: time without the penalty and the penalty. DNF may have a time. */

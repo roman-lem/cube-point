@@ -10,8 +10,11 @@ function running(): TimerState {
   return { ...initialState(), phase: 'running', holdStart: T - HOLD_MS, solveStart: T }
 }
 
+// The page is reloaded a second after the saved moments.
+const NOW = T + 1000
+
 function reload(owner: string, state: TimerState) {
-  return parseSavedTimer(serializeSavedTimer({ owner, state }))
+  return parseSavedTimer(serializeSavedTimer({ owner, state }), NOW)
 }
 
 function raw(state: unknown, fields: Record<string, unknown> = {}) {
@@ -52,7 +55,23 @@ describe('saved timer', () => {
   })
 
   it('does not carry extra fields', () => {
-    expect(parseSavedTimer(raw({ ...running(), extra: 1 }))!.state).toEqual(running())
+    expect(parseSavedTimer(raw({ ...running(), extra: 1 }), NOW)!.state).toEqual(running())
+  })
+
+  it.each([
+    ['a solve started in the future', { ...running(), solveStart: NOW + 60_000 }],
+    ['a solve older than an attempt can last', { ...running(), solveStart: NOW - 4 * 3600_000 }],
+    ['an inspection started in the future', { ...initialState(), phase: 'inspection', inspectionStart: NOW + 60_000 }],
+    ['an inspection from yesterday', { ...initialState(), phase: 'inspection', inspectionStart: NOW - 24 * 3600_000 }],
+    // Moments of performance.now() from another page load, not ms since 1970.
+    ['a start on another time scale', { ...running(), solveStart: 38_000 }],
+  ] as [string, TimerState][])('a broken start (%s) resets the timer to idle', (_name, state) => {
+    expect(reload('series:7:2', state)).toEqual({ owner: 'series:7:2', state: initialState() })
+  })
+
+  it('an old stopped solve keeps its result: its time does not run any more', () => {
+    const stopped: TimerState = { ...running(), phase: 'stopped', solveStart: NOW - 24 * 3600_000, result: 987 }
+    expect(reload('series:7:2', stopped)!.state).toEqual(stopped)
   })
 
   it.each([
@@ -66,6 +85,6 @@ describe('saved timer', () => {
     ['bad inspection start', raw({ ...running(), inspectionStart: 'soon' })],
     ['bad penalty', raw({ ...running(), inspectionPenalty: 'dns' })],
   ])('broken data (%s) gives nothing', (_name, data) => {
-    expect(parseSavedTimer(data)).toBeNull()
+    expect(parseSavedTimer(data, NOW)).toBeNull()
   })
 })
