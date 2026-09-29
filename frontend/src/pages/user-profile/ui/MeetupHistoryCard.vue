@@ -7,7 +7,8 @@ import { EVENTS, eventName, formatDate, movesWord, plural } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
 // A meetup in the profile history: results per event with attempts (in bo1 the attempt
-// is the result, so the attempt row is shown only if an organizer corrected it).
+// is the result, so the attempt row is shown only if an organizer corrected it
+// or there is an FMC solution to show).
 // AttemptSeries marks attempts corrected by an organizer; PB and LR marks are
 // shown only for current records.
 const { meetup, showClub = false } = defineProps<{
@@ -65,7 +66,7 @@ const resultType = (result: ProfileEventResult) => EVENTS[result.event_id]?.resu
         <RecordBadge v-for="mark in result.marks.single" :key="mark" :mark="mark" />
       </p>
       <AttemptSeries
-        v-if="result.format !== 'bo1' || result.attempts[0]?.edited"
+        v-if="result.format !== 'bo1' || result.attempts[0]?.edited || result.attempts[0]?.solution"
         :attempts="result.attempts"
         :format="result.format"
         :result-type="resultType(result)"

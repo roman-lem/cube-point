@@ -77,18 +77,7 @@ EVENT_POPULARITY = {"222": 0.75, "pyram": 0.5}
 @with_appcontext
 def seed_command(reset):
     """Fill the DB with demo data."""
-    if not current_app.config["ALLOW_SEED"]:
-        raise click.ClickException("Seeding is disabled. Set ALLOW_SEED=1 to enable it.")
-    missing = set(db.metadata.tables) - set(inspect(db.engine).get_table_names())
-    if missing:
-        raise click.ClickException(
-            f"Missing tables: {', '.join(sorted(missing))}. Run `flask db upgrade` first."
-        )
-    if reset:
-        for table in reversed(db.metadata.sorted_tables):
-            db.session.execute(table.delete())
-    elif db.session.query(User).first():
-        raise click.ClickException("The database is not empty. Run `flask seed --reset`.")
+    prepare_db(reset, "seed")
 
     rng = random.Random(2026)
     now = utcnow().replace(second=0, microsecond=0)
@@ -135,6 +124,22 @@ def seed_command(reset):
 
     db.session.commit()
     _print_summary(admin)
+
+
+def prepare_db(reset, command):
+    """Checks shared by `flask seed` and `flask seed-demo`; with reset, wipes the DB."""
+    if not current_app.config["ALLOW_SEED"]:
+        raise click.ClickException("Seeding is disabled. Set ALLOW_SEED=1 to enable it.")
+    missing = set(db.metadata.tables) - set(inspect(db.engine).get_table_names())
+    if missing:
+        raise click.ClickException(
+            f"Missing tables: {', '.join(sorted(missing))}. Run `flask db upgrade` first."
+        )
+    if reset:
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+    elif db.session.query(User).first():
+        raise click.ClickException(f"The database is not empty. Run `flask {command} --reset`.")
 
 
 def _create_users(now):

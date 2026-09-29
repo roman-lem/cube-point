@@ -8,14 +8,15 @@ by an organizer. Rules: "Records", "Organizer desk"
 and "Concurrent edits" in docs/ARCHITECTURE.md.
 """
 
+from flask_login import current_user
 from sqlalchemy.orm import attributes, selectinload
 
 from .errors import ApiError
 from .events import EVENTS
 from .extensions import db
 from .models import (
-    Attempt, AttemptHistory, ClubRecord, Disqualification, Format, Meetup, MeetupEvent, Penalty,
-    RecordType, Series, SeriesStatus, utcnow,
+    Attempt, AttemptHistory, ClubRecord, Disqualification, Format, Meetup, MeetupEvent,
+    MeetupStatus, Penalty, RecordType, Series, SeriesStatus, utcnow,
 )
 from .results import ATTEMPTS_COUNT, DNF, PLUS_TWO, calc_series
 
@@ -149,13 +150,28 @@ def attempt_dict(attempt):
     return {"value": attempt.value, "penalty": attempt.penalty.value}
 
 
-def serialize_attempt(attempt):
+def solution_visible(series):
+    """Whether the current user may see the FMC solutions of the series.
+
+    While the meetup is not finished, only the series owner sees them, so nobody
+    can peek, organizers included. After the meetup is finished they are public.
+    The only exception is the meetup finish dialog (desk.finish_summary).
+    """
+    if series.meetup_event.meetup.status == MeetupStatus.FINISHED:
+        return True
+    return current_user.is_authenticated and current_user.id == series.user_id
+
+
+def serialize_attempt(attempt, show_solution=False):
     """Attempt for tables: a corrected one gets a mark and the original value.
 
     Corrected means more than one history entry. The original value
     is visible to everyone, the full history (who and when) only to organizers.
+    show_solution adds the FMC solution text (see solution_visible).
     """
     item = attempt_dict(attempt)
+    if show_solution and attempt.solution is not None:
+        item["solution"] = attempt.solution
     if len(attempt.history) > 1:
         original = attempt.history[0]
         item["edited"] = True

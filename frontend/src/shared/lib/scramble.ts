@@ -28,3 +28,11 @@ export function scrambleLines(eventId: string, scramble: string): string[] {
   }
   return lines.filter((line) => line.length > 0).map((line) => line.join(' '))
 }
+
+/**
+ * Pieces of a scramble line between which it can wrap. A Square-1 line wraps
+ * only right after "/", so a piece is "(1, -3) /"; other events wrap between moves.
+ */
+export function scramblePieces(eventId: string, line: string): string[] {
+  return line.split(eventId === 'sq1' ? /(?<=\/)\s+/ : /\s+/).filter(Boolean)
+}

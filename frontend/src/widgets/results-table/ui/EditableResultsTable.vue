@@ -3,8 +3,8 @@ import { computed, nextTick, ref } from 'vue'
 import type { DeskAttempt, DeskEvent, DeskRow } from '@/entities/meetup'
 import { RecordBadge } from '@/entities/record'
 import {
-  AttemptHistoryDialog, attemptToText, parseAttemptText, sameAttempt, SaveIndicator, toggleDnf,
-  togglePlus2, type AttemptSaving,
+  AttemptHistoryDialog, attemptToText, canRestore, fmcDnf, parseAttemptText, sameAttempt,
+  SaveIndicator, toggleDnf, togglePlus2, type AttemptSaving,
 } from '@/features/attempt-edit'
 import {
   ATTEMPTS_COUNT, EVENTS, calcSeries, formatAttempt, formatResult, type Attempt, type EventId,
@@ -16,6 +16,8 @@ import { AppIcon } from '@/shared/ui'
 // A cell saves itself on blur and on Enter. Delete, Backspace or an empty
 // cell erase the attempt, only the last one in the series (a mistaken entry). A corner in a cell
 // means the attempt was corrected; tapping shows its history and restoring the original result.
+// FMC cells are not typed into: the organizer does not set moves, the result can only be
+// replaced with DNF ("DNF" button or "d") and brought back with "Restore original".
 const { event, saving } = defineProps<{
   event: DeskEvent
   saving: AttemptSaving
@@ -26,6 +28,7 @@ const { event, saving } = defineProps<{
 const count = computed(() => ATTEMPTS_COUNT[event.format])
 const resultType = computed(() => EVENTS[event.event_id as EventId]?.resultType ?? 'time')
 const hasAverage = computed(() => event.format === 'ao5' || event.format === 'mo3')
+const isFmc = computed(() => resultType.value === 'moves')
 const columns = computed(() => Array.from({ length: count.value }, (_, i) => i))
 
 const active = ref({ row: 0, col: 0 })
@@ -44,9 +47,25 @@ function doneCount(row: DeskRow) {
   return attemptsOf(row).filter(Boolean).length
 }
 
-/** Entered attempts can be edited and the next one in order entered. */
+/** Entered attempts can be edited and the next one in order entered. Not in FMC. */
 function isEditable(row: DeskRow, col: number) {
-  return col <= doneCount(row)
+  return !isFmc.value && col <= doneCount(row)
+}
+
+/** FMC cell with a result: no typing, only the DNF and restore actions. */
+function hasFmcActions(row: DeskRow, col: number) {
+  return isFmc.value && attemptsOf(row)[col] != null
+}
+
+function setFmcDnf(row: DeskRow, col: number) {
+  const next = fmcDnf(attemptsOf(row)[col] ?? null)
+  if (next) {
+    save(row, col, next)
+  }
+}
+
+function restore(row: DeskRow, col: number) {
+  void saving.restore(event.event_id, row.user, col + 1)
 }
 
 function cellTexts(row: DeskRow) {
@@ -149,7 +168,7 @@ function commit() {
 
 /** Erases the attempt if there is one. The server will not erase a non-last one and will explain why. */
 function clear(row: DeskRow, col: number) {
-  if (attemptsOf(row)[col]) {
+  if (!isFmc.value && attemptsOf(row)[col]) {
     save(row, col, null)
   }
 }
@@ -197,7 +216,12 @@ function onTableKey(e: KeyboardEvent) {
   } else if (e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В') {
     // "в" is the same key in the Russian layout.
     e.preventDefault()
-    applyPenalty(toggleDnf)
+    const row = activeRow()
+    if (isFmc.value && row) {
+      setFmcDnf(row, active.value.col)
+    } else {
+      applyPenalty(toggleDnf)
+    }
   } else if (/^[\d.,:]$/.test(e.key)) {
     e.preventDefault()
     startEdit(e.key)
@@ -284,7 +308,7 @@ function onInputBlur() {
                 'results-table__cell',
                 {
                   'results-table__cell--active': isActive(rowIndex, col),
-                  'results-table__cell--locked': !isEditable(row, col),
+                  'results-table__cell--locked': !isEditable(row, col) && !hasFmcActions(row, col),
                   'results-table__cell--dnf': ['dnf', 'dns'].includes(attemptsOf(row)[col]?.penalty ?? ''),
                   'results-table__cell--error':
                     saving.stateOf(event.event_id, row.user.id, col + 1)?.status === 'error',
@@ -305,6 +329,28 @@ function onInputBlur() {
                 @blur="onInputBlur"
               />
               <span v-else class="results-table__value">{{ cellTexts(row)[col] }}</span>
+              <template v-if="hasFmcActions(row, col)">
+                <button
+                  v-if="fmcDnf(attemptsOf(row)[col] ?? null)"
+                  type="button"
+                  class="results-table__action"
+                  :aria-label="`Попытка ${col + 1}: заменить на DNF`"
+                  @mousedown.stop
+                  @click="setFmcDnf(row, col)"
+                >
+                  DNF
+                </button>
+                <button
+                  v-else-if="canRestore(attemptsOf(row)[col] ?? null)"
+                  type="button"
+                  class="results-table__action"
+                  :aria-label="`Попытка ${col + 1}: вернуть исходный результат`"
+                  @mousedown.stop
+                  @click="restore(row, col)"
+                >
+                  Вернуть исходный
+                </button>
+              </template>
               <button
                 v-if="attemptsOf(row)[col]?.edited"
                 type="button"
@@ -349,7 +395,12 @@ function onInputBlur() {
       :time-zone="timeZone"
     />
 
-    <p class="results-table__hint">
+    <p v-if="isFmc" class="results-table__hint">
+      Результаты FMC сдают участники. Организатор может только заменить результат на DNF
+      (кнопка или «d») и вернуть исходный; уголок в ячейке — история правок.
+      Все изменения сохраняются автоматически.
+    </p>
+    <p v-else class="results-table__hint">
       Стрелки и Enter — переход по ячейкам, цифры — время (1234 → 12.34, 10234 → 1:02.34),
       «+» — +2, «d» — DNF, Delete — стереть последнюю попытку, Esc — отмена. Попытку,
       которую сдал сам участник, можно исправить, но не стереть; уголок в ячейке — история правок.
@@ -496,6 +547,18 @@ tbody tr:last-child td {
   padding: 0;
   background: linear-gradient(135deg, var(--color-primary) 50%, transparent 50%);
   border: none;
+  cursor: pointer;
+}
+
+.results-table__action {
+  margin-left: var(--space-2);
+  padding: 2px var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-badge);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-label);
   cursor: pointer;
 }
 

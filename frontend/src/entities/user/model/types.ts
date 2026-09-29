@@ -46,6 +46,8 @@ export interface UserProfile {
 export interface ProfileAttempt extends Attempt {
   edited?: boolean
   original?: Attempt
+  /** FMC solution: of a finished meetup, or the person's own. */
+  solution?: string
 }
 
 /** A result in a meetup event. Marks are current records only. */

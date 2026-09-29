@@ -141,7 +141,9 @@ function showHistory(number: number) {
           :state="saving.stateOf(event.event_id, userId, number)"
           :solution="row?.series?.attempts[number - 1]?.solution"
           :edited="row?.series?.attempts[number - 1]?.edited"
+          :original="row?.series?.attempts[number - 1]?.original"
           @save="saving.save(event.event_id, participant.user, number, $event)"
+          @restore="saving.restore(event.event_id, participant.user, number)"
           @history="showHistory(number)"
         />
         <AttemptHistoryDialog

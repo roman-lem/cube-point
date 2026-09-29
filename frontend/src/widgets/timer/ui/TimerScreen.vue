@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { useEventListener, useLocalStorage, useMediaQuery } from '@vueuse/core'
-import { computed, ref, toRef, watch } from 'vue'
+import { useEventListener, useLocalStorage, useMediaQuery, useResizeObserver } from '@vueuse/core'
+import { computed, nextTick, ref, toRef, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
-import { formatAttempt, formatResult, parseTimeInput, scrambleLines } from '@/shared/lib'
+import {
+  formatAttempt,
+  formatResult,
+  parseTimeInput,
+  scrambleLines,
+  scramblePieces,
+  useScreenWakeLock,
+} from '@/shared/lib'
 import { AppButton, AppIcon, ConfirmDialog } from '@/shared/ui'
 import { isFocused, type SuggestedPenalty } from '../model/machine'
 import { timerNow } from '../model/clock'
@@ -56,8 +63,11 @@ const inspection = useLocalStorage('timer-inspection', false)
 const manual = useLocalStorage('timer-manual', false)
 const isTouch = useMediaQuery('(pointer: coarse)')
 
+// Expanded long scramble: the timer zone is gone, so that a touch does not start a solve by mistake.
+const expanded = ref(false)
+
 const enabled = computed(
-  () => !manual.value && scramble !== null && !saving && pending.value === null,
+  () => !manual.value && !expanded.value && scramble !== null && !saving && pending.value === null,
 )
 
 // Leave confirmation: the navigation waits for the answer.
@@ -83,11 +93,37 @@ function finish(solve: StoppedSolve) {
 
 // Long scrambles (big cubes, megaminx) get a smaller font, and the block
 // has a height limit with scrolling, so that the touch area stays large.
-const lines = computed(() => (scramble === null ? null : scrambleLines(eventId, scramble)))
+// If the scramble does not fit, it can be expanded to be read whole.
+// Each line is split into pieces that are not broken (Square-1 wraps only after "/").
+const lines = computed(() =>
+  scramble === null
+    ? null
+    : scrambleLines(eventId, scramble).map((line) => scramblePieces(eventId, line)),
+)
 const scrambleSize = computed(() => {
   if (eventId === 'minx') return 'lines'
   const length = scramble?.length ?? 0
   return length > 200 ? 'small' : length > 80 ? 'medium' : 'large'
+})
+
+const scrambleText = ref<HTMLElement>()
+/** The collapsed scramble does not fit its block: it can be expanded. */
+const overflows = ref(false)
+
+function measure() {
+  const element = scrambleText.value
+  // The expanded block has no height limit: keep what was measured when collapsed.
+  if (element && !expanded.value) {
+    overflows.value = element.scrollHeight > element.clientHeight + 1
+  }
+}
+
+useResizeObserver(scrambleText, measure)
+// A new scramble starts collapsed.
+watch(() => scramble, async () => {
+  expanded.value = false
+  await nextTick()
+  measure()
 })
 
 /** Times from 1:00:00.00 do not fit the display at the full size. */
@@ -96,7 +132,9 @@ const isLong = (text: string) => text.length > 8
 const phase = computed(() => state.value.phase)
 /** Inspection or a solve: only the timer is on the screen. */
 const focused = computed(() => isFocused(state.value))
-/** Inspection or a solve: only the timer is on the screen. */
+
+// The screen does not dim during inspection and a solve.
+useScreenWakeLock(focused)
 
 const display = computed(() => {
   const inspecting = inspectionElapsed.value !== null
@@ -263,12 +301,33 @@ defineExpose({ reset: timer.reset })
             <AppIcon name="refresh" :size="20" />
           </button>
         </div>
-        <div :class="['timer__scramble-text', `timer__scramble-text--${scrambleSize}`]">
+        <div
+          ref="scrambleText"
+          :class="[
+            'timer__scramble-text',
+            `timer__scramble-text--${scrambleSize}`,
+            { 'timer__scramble-text--expanded': expanded },
+          ]"
+        >
           <template v-if="lines">
-            <span v-for="(line, index) in lines" :key="index" class="timer__scramble-line">{{ line }}</span>
+            <span v-for="(line, index) in lines" :key="index" class="timer__scramble-line">
+              <template v-for="(piece, n) in line" :key="n">
+                <span class="timer__scramble-piece">{{ piece }}</span>{{ ' ' }}
+              </template>
+            </span>
           </template>
           <template v-else>Генерируем скрамбл…</template>
         </div>
+        <button
+          v-if="overflows"
+          type="button"
+          class="timer__expand"
+          :aria-expanded="expanded"
+          @click="expanded = !expanded"
+        >
+          <AppIcon :name="expanded ? 'expand-less' : 'expand-more'" :size="20" />
+          {{ expanded ? 'Свернуть скрамбл' : 'Развернуть скрамбл' }}
+        </button>
       </div>
 
       <div class="timer__controls">
@@ -357,6 +416,8 @@ defineExpose({ reset: timer.reset })
         {{ mode === 'series' ? 'Далее' : 'Записать' }}
       </AppButton>
     </form>
+
+    <p v-else-if="expanded" class="timer__collapsed">Чтобы начать, сверните скрамбл</p>
 
     <div
       v-else
@@ -468,8 +529,44 @@ defineExpose({ reset: timer.reset })
   word-spacing: 0.05em;
 }
 
+.timer__scramble-text--expanded {
+  max-height: none;
+}
+
 .timer__scramble-line {
   display: block;
+}
+
+/* A move, or a Square-1 piece "(1, -3) /": the line wraps only between pieces. */
+.timer__scramble-piece {
+  white-space: nowrap;
+}
+
+.timer__expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 36px;
+  margin-top: var(--space-2);
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  cursor: pointer;
+}
+
+.timer__collapsed {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+  text-align: center;
 }
 
 /* Megaminx: seven lines of the same length, the font is fitted to the block width

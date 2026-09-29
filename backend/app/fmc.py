@@ -126,7 +126,7 @@ def freeze(series_id):
     """First submission step: freezes the solution text and the submission time.
 
     Freezing after the deadline (bad network) still records the text, but
-    the attempt is saved as DNF right away; the organizer can remove it.
+    the attempt is saved as DNF right away, and the DNF stays.
     """
     series = get_my_fmc_series(series_id)
     data = json_body()

@@ -36,10 +36,11 @@ pip install -r requirements-dev.txt
 
 flask --app wsgi db upgrade                 # create the database (backend/instance/cubing.db)
 ALLOW_SEED=1 flask --app wsgi seed          # optional: demo club, users and meetups
+ALLOW_SEED=1 flask --app wsgi seed-demo     # or: three clubs for showing the service
 flask --app wsgi run
 ```
 
-The demo data includes an administrator `admin` and club members such as `a.smirnov` (organizer) and `d.kozlov`, all with the password `password`. To make your own administrator, run `flask --app wsgi make-admin LOGIN`.
+The demo data includes an administrator `admin` and club members such as `a.smirnov` (organizer) and `d.kozlov`, all with the password `password`. `flask seed` is full of edge cases for development; `flask seed-demo` fills an ordinary club life for demonstrations: three clubs, finished meetups and a live one in the main club, the same logins with the password `demo2026` (`d.kozlov` is in all three clubs). To make your own administrator, run `flask --app wsgi make-admin LOGIN`.
 
 On Windows, set the variable separately: `set ALLOW_SEED=1` (cmd) or `$env:ALLOW_SEED=1` (PowerShell).
 
@@ -73,7 +74,7 @@ docker compose exec backend flask make-admin LOGIN
 | `SECRET_KEY` | `dev-secret-key` (development only) | Flask secret key. Required by Docker Compose. |
 | `SECURE_COOKIES` | `1` in Docker Compose, off otherwise | Send cookies over HTTPS only. Set `0` when opening the Docker build over plain http from a device other than localhost. |
 | `REGISTRATION_OPEN` | `1` | `0` closes registration. Login and organizer-created accounts keep working. |
-| `ALLOW_SEED` | off | `1` allows `flask seed`, which wipes the database and fills it with demo data. Never set it in production. |
+| `ALLOW_SEED` | off | `1` allows `flask seed` and `flask seed-demo`, which wipe the database and fills it with demo data. Never set it in production. |
 | `DATABASE_URL` | `sqlite:///cubing.db` | SQLAlchemy database URL. A relative SQLite path is resolved against `backend/instance/`. |
 | `SITE_URL` | `http://localhost:5173` | Site address; meetup links and QR codes are built from it. In production it is `https://DOMAIN`. |
 

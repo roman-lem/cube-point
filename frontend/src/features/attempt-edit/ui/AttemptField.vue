@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { formatAttempt, type Attempt, type ResultType } from '@/shared/lib'
 import {
-  attemptToText, parseAttemptText, sameAttempt, toggleDnf, togglePlus2,
+  attemptToText, canRestore, fmcDnf, parseAttemptText, sameAttempt, toggleDnf, togglePlus2,
 } from '../model/attemptText'
 import { INVALID_INPUT_MESSAGE, type CellState } from '../model/useAttemptSaving'
 import SaveIndicator from './SaveIndicator.vue'
@@ -10,8 +10,9 @@ import SaveIndicator from './SaveIndicator.vue'
 // Attempt field for manual entry on a phone.
 // Saves itself: on blur, on Enter and on the +2 / DNF buttons.
 // An empty field erases the attempt (the server allows erasing only the last one and only
-// one entered by the organizer).
-const { attempt, resultType, disabled = false, state } = defineProps<{
+// one entered by the organizer). FMC has no input: the organizer does not set moves,
+// the result can only be replaced with DNF and brought back with "Restore original".
+const { attempt, resultType, disabled = false, state, edited = false, original } = defineProps<{
   number: number
   attempt: Attempt | null
   resultType: ResultType
@@ -22,8 +23,14 @@ const { attempt, resultType, disabled = false, state } = defineProps<{
   solution?: string
   /** The attempt was corrected: a link to the edit history. */
   edited?: boolean
+  /** Original result of a corrected attempt. */
+  original?: Attempt
 }>()
-const emit = defineEmits<{ save: [attempt: Attempt | null]; history: [] }>()
+const emit = defineEmits<{ save: [attempt: Attempt | null]; history: []; restore: [] }>()
+
+const isFmc = computed(() => resultType === 'moves')
+const fmcDnfAttempt = computed(() => fmcDnf(attempt))
+const restorable = computed(() => canRestore(attempt && { ...attempt, edited, original }))
 
 const text = ref('')
 const focused = ref(false)
@@ -51,6 +58,9 @@ const hint = computed(() => {
   }
   if (state?.status === 'saving') {
     return 'Сохраняется…'
+  }
+  if (isFmc.value && !attempt) {
+    return 'Попытку FMC сдаёт участник'
   }
   if (disabled) {
     return 'Сначала предыдущие попытки'
@@ -97,7 +107,26 @@ function applyPenalty(next: Attempt | null) {
       </button>
       <SaveIndicator class="attempt-field__state" :state="state" />
     </div>
-    <div class="attempt-field__row">
+    <div v-if="isFmc" class="attempt-field__row">
+      <p class="attempt-field__value">{{ attemptToText(attempt, resultType) || '—' }}</p>
+      <button
+        v-if="fmcDnfAttempt"
+        type="button"
+        class="attempt-field__penalty attempt-field__penalty--dnf"
+        @click="emit('save', fmcDnfAttempt)"
+      >
+        DNF
+      </button>
+      <button
+        v-else-if="restorable"
+        type="button"
+        class="attempt-field__restore"
+        @click="emit('restore')"
+      >
+        Вернуть исходный
+      </button>
+    </div>
+    <div v-else class="attempt-field__row">
       <input
         :id="`attempt-${number}`"
         v-model="text"
@@ -202,6 +231,26 @@ function applyPenalty(next: Attempt | null) {
   font-family: var(--font-mono);
   font-size: var(--font-size-time-large);
   font-variant-numeric: tabular-nums;
+}
+
+.attempt-field__value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-time-large);
+  font-variant-numeric: tabular-nums;
+}
+
+.attempt-field__restore {
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  font-weight: var(--font-weight-label);
+  cursor: pointer;
 }
 
 .attempt-field__input:focus {

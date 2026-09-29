@@ -22,6 +22,7 @@ import {
   formatDate,
   parseSolution,
   preloadSolutionCheck,
+  useScreenWakeLock,
 } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon, ConfirmDialog, PageHeader } from '@/shared/ui'
 import { FmcKeyboard } from '@/widgets/fmc-keyboard'
@@ -98,6 +99,9 @@ const stage = computed<Stage>(() => {
 watch(stage, (value) => {
   if (value === 'solving') preloadSolutionCheck()
 }, { immediate: true })
+
+// The screen does not dim while the solving screen is open.
+useScreenWakeLock(computed(() => stage.value === 'solving'))
 
 const canSolve = computed(
   () =>

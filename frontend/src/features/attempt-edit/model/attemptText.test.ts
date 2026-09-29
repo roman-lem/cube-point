@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Attempt } from '@/shared/lib'
-import { attemptToText, parseAttemptText, toggleDnf, togglePlus2 } from './attemptText'
+import {
+  attemptToText, canRestore, fmcDnf, parseAttemptText, toggleDnf, togglePlus2,
+} from './attemptText'
 
 describe('parseAttemptText', () => {
   it.each<[string, Attempt]>([
@@ -67,5 +69,28 @@ describe('penalties by keys', () => {
     expect(toggleDnf({ value: 1000, penalty: 'dnf' })).toEqual({ value: 1000, penalty: 'none' })
     expect(toggleDnf(null)).toEqual({ value: null, penalty: 'dnf' })
     expect(toggleDnf({ value: null, penalty: 'dnf' })).toBeNull()
+  })
+})
+
+describe('fmcDnf', () => {
+  it('replaces a result with DNF keeping the moves', () => {
+    expect(fmcDnf({ value: 28, penalty: 'none' })).toEqual({ value: 28, penalty: 'dnf' })
+  })
+
+  it('does nothing for DNF, DNS and an empty attempt', () => {
+    expect(fmcDnf({ value: 28, penalty: 'dnf' })).toBeNull()
+    expect(fmcDnf({ value: null, penalty: 'dns' })).toBeNull()
+    expect(fmcDnf(null)).toBeNull()
+  })
+})
+
+describe('canRestore', () => {
+  const original: Attempt = { value: 28, penalty: 'none' }
+
+  it('only for a corrected attempt that differs from the original', () => {
+    expect(canRestore({ value: 28, penalty: 'dnf', edited: true, original })).toBe(true)
+    expect(canRestore({ value: 28, penalty: 'none', edited: true, original })).toBe(false)
+    expect(canRestore({ value: 28, penalty: 'none' })).toBe(false)
+    expect(canRestore(null)).toBe(false)
   })
 })

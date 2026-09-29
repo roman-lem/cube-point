@@ -11,7 +11,7 @@ import type { SeriesAttempt } from '../model/types'
 
 // Series attempts in a row: ones dropped in ao5 in parentheses, ones not yet done empty.
 // An attempt corrected by an organizer has a corner mark; tapping it shows the
-// original value under the row.
+// original value under the row. FMC solutions, if the server sent them, are listed below.
 const { attempts, format, resultType = 'time' } = defineProps<{
   attempts: (SeriesAttempt | null)[]
   format: SeriesFormat
@@ -38,6 +38,10 @@ const cells = computed(() => {
     }
   })
 })
+
+const solutions = computed(() =>
+  attempts.flatMap((attempt, i) => (attempt?.solution ? [{ number: i + 1, text: attempt.solution }] : [])),
+)
 
 /** Index (zero-based) of the attempt whose original value is shown. */
 const shown = ref<number | null>(null)
@@ -74,6 +78,12 @@ function toggle(i: number) {
       Попытку {{ shown! + 1 }} исправил организатор, исходно:
       <span class="attempt-series__original-value">{{ shownOriginal }}</span>
     </p>
+    <dl v-if="solutions.length" class="attempt-series__solutions">
+      <div v-for="solution in solutions" :key="solution.number" class="attempt-series__solution">
+        <dt>{{ ATTEMPTS_COUNT[format] > 1 ? `Решение ${solution.number}` : 'Решение' }}</dt>
+        <dd class="attempt-series__solution-moves">{{ solution.text }}</dd>
+      </div>
+    </dl>
   </div>
 </template>
 
@@ -137,6 +147,24 @@ function toggle(i: number) {
 .attempt-series__original {
   color: var(--color-text-secondary);
   font-size: var(--font-size-label);
+}
+
+.attempt-series__solutions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-label);
+}
+
+.attempt-series__solution dt {
+  color: var(--color-text-secondary);
+}
+
+.attempt-series__solution-moves {
+  margin: 0;
+  font-family: var(--font-mono);
+  word-spacing: 0.2em;
 }
 
 .attempt-series__original-value {

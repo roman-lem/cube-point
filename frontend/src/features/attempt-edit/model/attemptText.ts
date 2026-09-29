@@ -79,3 +79,16 @@ export function toggleDnf(attempt: Attempt | null): Attempt | null {
   }
   return { value: attempt?.value ?? null, penalty: 'dnf' }
 }
+
+/**
+ * FMC: the organizer does not enter moves, only replaces a result with DNF
+ * (the moves stay, so the original result can be restored). null: nothing to replace.
+ */
+export function fmcDnf(attempt: Attempt | null): Attempt | null {
+  return attempt?.penalty === 'none' ? { value: attempt.value, penalty: 'dnf' } : null
+}
+
+/** The attempt differs from its original result: "Restore original" makes sense. */
+export function canRestore(attempt: (Attempt & { edited?: boolean; original?: Attempt }) | null) {
+  return Boolean(attempt?.edited && attempt.original && !sameAttempt(attempt, attempt.original))
+}

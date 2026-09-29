@@ -116,7 +116,8 @@ def test_register_reports_all_invalid_fields(client):
     response = client.post("/api/auth/register", json={})
 
     assert set(error(response)["fields"]) == {
-        "display_name", "login", "password", "consent_processing", "consent_publication",
+        "display_name", "login", "password",
+        "consent_processing", "consent_publication", "consent_age",
     }
 
 
@@ -128,31 +129,39 @@ def consent_rows(app, login="ivan_petrov"):
         return [(c.type.value, c.version, c.accepted_at) for c in user.consents]
 
 
-def test_register_saves_both_consents_with_version_and_date(client, app):
+def test_register_saves_consents_with_version_and_date(client, app):
     register(client)
 
     rows = consent_rows(app)
+    assert {t for t, _, _ in rows} == {"processing", "publication", "age"}
     assert {(t, v) for t, v, _ in rows} == set(CONSENTS.items())
     assert all(accepted_at is not None for _, _, accepted_at in rows)
     assert me(client)["consents_required"] is False
 
 
-@pytest.mark.parametrize("missing", ["processing", "publication"])
-def test_register_requires_each_consent(client, app, missing):
+@pytest.mark.parametrize("missing,message", [
+    ("processing", "Нужно ваше согласие"),
+    ("publication", "Нужно ваше согласие"),
+    ("age", "Нужно подтверждение"),
+])
+def test_register_requires_each_consent(client, app, missing, message):
     consents = {**CONSENTS, missing: None}
 
     response = register(client, consents=consents)
 
     assert response.status_code == 422
-    assert error(response)["fields"] == {f"consent_{missing}": "Нужно ваше согласие"}
+    assert error(response)["fields"] == {f"consent_{missing}": message}
+    with app.app_context():
+        assert db.session.scalar(db.select(User).where(User.login == "ivan_petrov")) is None
 
 
-def test_register_rejects_outdated_consent_version(client):
-    response = register(client, consents={**CONSENTS, "publication": "2000-01-01"})
+@pytest.mark.parametrize("consent", ["publication", "age"])
+def test_register_rejects_outdated_consent_version(client, consent):
+    response = register(client, consents={**CONSENTS, consent: "2000-01-01"})
 
     assert response.status_code == 422
     assert error(response)["fields"] == {
-        "consent_publication": "Текст согласия обновился, обновите страницу",
+        f"consent_{consent}": "Текст согласия обновился, обновите страницу",
     }
 
 
@@ -176,7 +185,7 @@ def test_account_without_consents_must_accept_them(client, app):
 
     missing = client.post("/api/auth/consents", json={"consents": {"processing": CONSENTS["processing"]}})
     assert missing.status_code == 422
-    assert list(error(missing)["fields"]) == ["consent_publication"]
+    assert set(error(missing)["fields"]) == {"consent_publication", "consent_age"}
 
     response = client.post("/api/auth/consents", json={"consents": CONSENTS})
     assert response.status_code == 200
@@ -197,7 +206,22 @@ def test_new_consent_version_is_asked_again(client, app, monkeypatch):
     new_consents = {t.value: v for t, v in new_versions.items()}
     assert client.post("/api/auth/consents", json={"consents": new_consents}).status_code == 200
     # Earlier entries stay: the consent log is append-only.
-    assert len(consent_rows(app)) == 4
+    assert len(consent_rows(app)) == 6
+    assert client.get("/api/clubs").status_code == 200
+
+
+def test_user_without_age_confirmation_is_asked(client, app):
+    """Users registered before the age confirmation give it on the consent page."""
+    register(client)
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.login == "ivan_petrov"))
+        for consent in [c for c in user.consents if c.type.value == "age"]:
+            db.session.delete(consent)
+        db.session.commit()
+
+    assert me(client)["consents_required"] is True
+    assert error(client.get("/api/clubs"))["code"] == "consents_required"
+    assert client.post("/api/auth/consents", json={"consents": CONSENTS}).status_code == 200
     assert client.get("/api/clubs").status_code == 200
 
 

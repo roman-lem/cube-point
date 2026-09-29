@@ -79,6 +79,8 @@ CLUB_COLORS = ("blue", "sky", "teal", "amber", "orange", "rose", "slate", "brown
 class ConsentType(enum.StrEnum):
     PROCESSING = "processing"    # consent to personal data processing
     PUBLICATION = "publication"  # consent to publication
+    # Age confirmation: 14 or older, or the consents are given by a legal representative.
+    AGE = "age"
     # A deleted account kept its name in results and records: the processing and
     # publication consents given earlier are not withdrawn for the display name.
     DELETED_NAME = "deleted_name"

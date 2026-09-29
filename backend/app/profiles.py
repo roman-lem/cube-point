@@ -23,7 +23,7 @@ from .models import (
 )
 from .permissions import get_or_404
 from .results import ATTEMPTS_COUNT
-from .scoring import best_result, not_disqualified, serialize_attempt
+from .scoring import best_result, not_disqualified, serialize_attempt, solution_visible
 
 profiles = Blueprint("profiles", __name__)
 
@@ -196,9 +196,10 @@ def user_meetups(user_id):
     events = {meetup.id: [] for meetup in meetups}
     for series in series_list:
         meetup_event = series.meetup_event
+        show_solution = solution_visible(series)
         attempts = [None] * ATTEMPTS_COUNT[meetup_event.format.value]
         for attempt in series.attempts:
-            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt)
+            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt, show_solution)
         events[meetup_event.meetup_id].append({
             "event_id": meetup_event.event_id,
             "format": meetup_event.format.value,

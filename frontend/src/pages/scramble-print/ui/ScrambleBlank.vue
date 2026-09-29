@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PrintEvent } from '@/entities/meetup'
-import { FORMAT_NAMES, eventName, scrambleLines } from '@/shared/lib'
+import { FORMAT_NAMES, eventName, scrambleLines, scramblePieces } from '@/shared/lib'
 import { LONG_SCRAMBLE } from '../model/layout'
 
 // A page of an A5 participant score sheet: meetup scrambles (except FMC) and fields
@@ -45,7 +45,9 @@ const { title, subtitle, events, rowHeight, page = 1, pages = 1 } = defineProps<
             ]"
           >
             <span v-for="(line, n) in scrambleLines(event.event_id, scramble)" :key="n" class="scramble-blank__line">
-              {{ line }}
+              <template v-for="(piece, k) in scramblePieces(event.event_id, line)" :key="k">
+                <span class="scramble-blank__piece">{{ piece }}</span>{{ ' ' }}
+              </template>
             </span>
           </span>
           <span class="scramble-blank__field" />
@@ -134,6 +136,11 @@ const { title, subtitle, events, rowHeight, page = 1, pages = 1 } = defineProps<
 
 .scramble-blank__line {
   display: block;
+}
+
+/* A move, or a Square-1 piece "(1, -3) /": the line wraps only between pieces. */
+.scramble-blank__piece {
+  white-space: nowrap;
 }
 
 .scramble-blank__field {

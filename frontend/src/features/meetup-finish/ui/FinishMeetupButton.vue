@@ -57,7 +57,7 @@ async function check(item: UnresolvedFmc) {
   busyKey.value = itemKey(item)
   error.value = ''
   try {
-    const result = await checkSolution(item.scramble, item.solution)
+    const result = await checkSolution(item.scramble, item.solution ?? '')
     if ('moves' in result) {
       await resolveFmc(meetup.id, item, { value: result.moves, penalty: 'none' })
       resolved.value.push(`${item.user.display_name} — ${plural(result.moves, ['ход', 'хода', 'ходов'])}`)
@@ -163,7 +163,10 @@ async function finish() {
             <p class="finish-meetup__label">Скрамбл</p>
             <p class="finish-meetup__mono">{{ item.scramble }}</p>
             <p class="finish-meetup__label">Решение</p>
-            <p class="finish-meetup__mono">{{ item.solution || 'пусто' }}</p>
+            <p v-if="item.state === 'running'" class="finish-meetup__hidden">
+              Решение будет видно, когда время выйдет
+            </p>
+            <p v-else class="finish-meetup__mono">{{ item.solution || 'пусто' }}</p>
             <div class="finish-meetup__actions">
               <AppButton
                 v-if="item.state !== 'running'"
@@ -272,6 +275,11 @@ async function finish() {
 .finish-meetup__label {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
+}
+
+.finish-meetup__hidden {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
 }
 
 .finish-meetup__actions {

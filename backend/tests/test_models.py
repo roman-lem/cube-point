@@ -13,8 +13,9 @@ from sqlalchemy.orm.exc import StaleDataError
 from app import create_app
 from app.extensions import db
 from app.models import (
-    Attempt, Club, ClubMember, ClubRecord, Disqualification, Format, Meetup,
-    MeetupEvent, MeetupParticipant, Penalty, RecordType, Scramble, Series, User,
+    Attempt, Club, ClubMember, ClubRecord, ClubRole, Disqualification, Format, Meetup,
+    MeetupEvent, MeetupParticipant, MeetupStatus, OrganizerPledge, Penalty, RecordType,
+    Scramble, Series, User,
 )
 
 START = datetime(2026, 9, 5, 7, 0)
@@ -278,6 +279,31 @@ def test_seed_command(app, session):
             sa.select(sa.func.count()).select_from(Attempt).where(Attempt.penalty == penalty)
         ) > 0, penalty
     # The records cache is filled: single and average in all events with an average.
+    assert count(session, ClubRecord) > 0
+
+
+def test_seed_demo_command(app, session):
+    app.config["ALLOW_SEED"] = True
+    result = app.test_cli_runner().invoke(args=["seed-demo"])
+
+    assert result.exit_code == 0, result.output
+    assert count(session, Club) == 3
+    # The demo member is in every club, the organizers have accepted the pledge.
+    member = session.scalar(sa.select(User).where(User.login == "d.kozlov"))
+    assert session.scalar(
+        sa.select(sa.func.count()).select_from(ClubMember).where(ClubMember.user_id == member.id)
+    ) == 3
+    organizers = session.scalar(
+        sa.select(sa.func.count()).select_from(ClubMember)
+        .where(ClubMember.role == ClubRole.ORGANIZER)
+    )
+    assert count(session, OrganizerPledge) == organizers
+    # Only the main club has a live meetup, the rest are finished.
+    assert session.scalar(
+        sa.select(sa.func.count()).select_from(Meetup)
+        .where(Meetup.status == MeetupStatus.LIVE)
+    ) == 1
+    assert count(session, Disqualification) == 0
     assert count(session, ClubRecord) > 0
 
 

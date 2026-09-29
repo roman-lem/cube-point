@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useUserStore } from '@/entities/user'
 import { AppButton, FormError } from '@/shared/ui'
 import { acceptConsents } from '../api/authApi'
-import { missingConsents } from '../model/consents'
+import { emptyConsents, missingConsents } from '../model/consents'
 import { useFormErrors } from '@/shared/lib'
 import ConsentFields from './ConsentFields.vue'
 
@@ -13,7 +13,7 @@ const emit = defineEmits<{ success: [] }>()
 
 const userStore = useUserStore()
 const { fieldErrors, formError, clearErrors, showError } = useFormErrors()
-const consents = ref({ processing: false, publication: false })
+const consents = ref(emptyConsents())
 const loading = ref(false)
 
 async function submit() {

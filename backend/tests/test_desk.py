@@ -124,16 +124,17 @@ def test_invalid_organizer_attempt(world, org, meetup_id, value, penalty):
     assert response.status_code == 422
 
 
-def test_fmc_by_organizer(world, org, meetup_id):
+def test_organizer_does_not_add_fmc_attempts(world, org, meetup_id):
+    """FMC attempts come from the participant or the finish dialog (test_fmc_solutions.py)."""
     boris = user_id_of(world, "boris")
     assert put(org, meetup_id, boris, 1, 30, "plus2", event_id="333fm").status_code == 422
     assert put(org, meetup_id, boris, 1, 81, event_id="333fm").status_code == 422
 
-    response = put(org, meetup_id, boris, 1, 3, event_id="333fm", solution="F' U' R'")
-
-    assert response.status_code == 200
-    attempt = desk_row(response, boris)["series"]["attempts"][0]
-    assert attempt == {"value": 3, "penalty": "none", "solution": "F' U' R'"}
+    for value, penalty in ((3, "none"), (None, "dnf"), (None, "dns")):
+        response = put(org, meetup_id, boris, 1, value, penalty, event_id="333fm")
+        assert error(response)["code"] == "fmc_locked"
+    with world["app"].app_context():
+        assert db.session.scalar(db.select(Attempt)) is None
 
 
 def test_edit_updates_records(world, org, clients, meetup_id):
@@ -326,8 +327,13 @@ def test_unresolved_fmc_blocks_finish(world, org, clients, meetup_id):
     assert finish(org, meetup_id).status_code == 200
 
     rows = {r["user"]["id"]: r for r in results(org, meetup_id, "333fm")}
-    assert rows[user_id_of(world, "anna")]["attempts"] == [{"value": 3, "penalty": "none"}]
-    assert rows[user_id_of(world, "boris")]["attempts"] == [{"value": None, "penalty": "dnf"}]
+    # After finishing, the solutions are public.
+    assert rows[user_id_of(world, "anna")]["attempts"] == [
+        {"value": 3, "penalty": "none", "solution": "R' U' F'"},
+    ]
+    assert rows[user_id_of(world, "boris")]["attempts"] == [
+        {"value": None, "penalty": "dnf", "solution": "F' U'"},
+    ]
 
 
 def test_resolve_keeps_submission_time_and_solution(world, org, clients, meetup_id):
@@ -346,13 +352,17 @@ def test_resolve_keeps_submission_time_and_solution(world, org, clients, meetup_
 
 
 def test_running_fmc_can_only_be_dnf(world, org, clients, meetup_id):
-    start_fmc_attempt(world, clients["anna"], meetup_id)
+    series_id = start_fmc_attempt(world, clients["anna"], meetup_id)
     item = summary(org, meetup_id)["fmc"][0]
     assert item["state"] == "running"
+    # The draft of a running attempt is not shown: nobody peeks while the hour is on.
+    assert item["solution"] is None
 
     assert error(resolve(org, meetup_id, item, 2))["code"] == "fmc_running"
     assert resolve(org, meetup_id, item, None, "dnf").status_code == 204
     assert summary(org, meetup_id)["fmc"] == []
+    # The current draft is kept with the DNF.
+    assert saved_attempt(world, series_id, 1).solution == "F' U'"
 
 
 # Disqualification

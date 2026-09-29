@@ -8,6 +8,7 @@ from .admin import make_admin_command
 from .api import api
 from .backup import backup_db_command, restore_db_command
 from .config import Config
+from .demo_seed import seed_demo_command
 from .errors import register_error_handlers
 from .extensions import csrf, db, login_manager, migrate
 from .seed import seed_command
@@ -34,6 +35,7 @@ def create_app(test_config=None):
     register_error_handlers(app)
     app.register_blueprint(api)
     app.cli.add_command(seed_command)
+    app.cli.add_command(seed_demo_command)
     app.cli.add_command(make_admin_command)
     app.cli.add_command(backup_db_command)
     app.cli.add_command(restore_db_command)

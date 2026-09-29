@@ -235,7 +235,7 @@ def test_anonymize_only_deleted_with_kept_name(app, admin):
         assert db.session.get(User, member).display_name == "Иван Петров"
         assert db.session.scalars(
             db.select(UserConsent.type).where(UserConsent.user_id == member)
-        ).all() == [ConsentType.PROCESSING, ConsentType.PUBLICATION]
+        ).all() == [ConsentType.PROCESSING, ConsentType.PUBLICATION, ConsentType.AGE]
 
 
 # flask make-admin

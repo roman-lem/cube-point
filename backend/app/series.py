@@ -22,7 +22,9 @@ from .models import (
 from .permissions import get_or_404, require_not_banned
 from .profiles import public_user
 from .results import ATTEMPTS_COUNT
-from .scoring import VersionConflict, event_table, save_attempt, serialize_attempt
+from .scoring import (
+    VersionConflict, event_table, save_attempt, serialize_attempt, solution_visible,
+)
 
 series_bp = Blueprint("series", __name__)
 
@@ -49,10 +51,8 @@ def require_live(meetup):
 def serialize_attempts(series):
     result = []
     for a in series.attempts:
-        item = {"number": a.attempt_number, **serialize_attempt(a)}
-        if a.solution is not None:
-            item["solution"] = a.solution
-        result.append(item)
+        # Only the owner reads the series: their own solutions are always visible.
+        result.append({"number": a.attempt_number, **serialize_attempt(a, show_solution=True)})
     return result
 
 
@@ -229,9 +229,10 @@ def event_results(meetup_id, event_id):
     rows = []
     for row in event_table(meetup_event):
         series = row["series"]
+        show_solution = solution_visible(series)
         attempts = [None] * count
         for attempt in series.attempts:
-            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt)
+            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt, show_solution)
         rows.append({
             "place": row["place"],
             "user": public_user(series.user),
@@ -342,7 +343,7 @@ def my_live_series():
             }
         attempts = [None] * ATTEMPTS_COUNT[meetup_event.format.value]
         for attempt in series.attempts:
-            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt)
+            attempts[attempt.attempt_number - 1] = serialize_attempt(attempt, show_solution=True)
         meetups[meetup.id]["series"].append({
             "id": series.id,
             "event_id": meetup_event.event_id,

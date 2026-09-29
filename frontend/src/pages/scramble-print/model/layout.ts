@@ -1,5 +1,5 @@
 import type { PrintEvent } from '@/entities/meetup'
-import { scrambleLines } from '@/shared/lib'
+import { scrambleLines, scramblePieces } from '@/shared/lib'
 
 // Splitting a score sheet into A5 pages. All the page's scrambles must fit on it,
 // the heights are estimated from the fixed sheet layout in ScrambleBlank (in mm).
@@ -63,15 +63,15 @@ function pageHeight(events: PrintEvent[], rowHeight: number): number {
 function scrambleHeight(eventId: string, scramble: string): number {
   const font = scramble.length > LONG_SCRAMBLE ? SMALL : NORMAL
   const lines = scrambleLines(eventId, scramble)
-    .reduce((sum, line) => sum + wrappedLines(line, font.chars), 0)
+    .reduce((sum, line) => sum + wrappedLines(scramblePieces(eventId, line), font.chars), 0)
   return lines * font.lineHeight
 }
 
-/** Number of lines after wrapping by words. */
-function wrappedLines(text: string, width: number): number {
+/** Number of lines after wrapping between pieces (moves, or "(1, -3) /" in Square-1). */
+function wrappedLines(words: string[], width: number): number {
   let lines = 1
   let used = 0
-  for (const word of text.split(' ')) {
+  for (const word of words) {
     const needed = used === 0 ? word.length : used + 1 + word.length
     if (needed > width && used > 0) {
       lines++

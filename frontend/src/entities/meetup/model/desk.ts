@@ -2,6 +2,7 @@ import type { Attempt, SeriesFormat } from '@/shared/lib'
 
 /** An attempt in the entry table; FMC ones include the solution text. */
 export interface DeskAttempt extends Attempt {
+  /** FMC solution: other participants' only after the meetup is finished. */
   solution?: string
   /** The attempt was corrected: more than one history entry. */
   edited?: boolean

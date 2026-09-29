@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { FieldErrors } from '@/shared/api'
-import type { ConsentChoice } from '../model/consents'
+import { AGE_CONFIRMATION_TEXT, type ConsentChoice } from '../model/consents'
 
 // Two separate consents: to processing and to publication (Art. 10.1 of Russian
-// Federal Law 152-FZ requires the latter to be separate). The full texts are on the policy page
+// Federal Law 152-FZ requires the latter to be separate), and the age confirmation. The full texts are on the policy page
 // and the publication consent page. Links open in a new
 // tab so the filled-in form is not lost.
 const choice = defineModel<ConsentChoice>({ required: true })
@@ -40,6 +40,15 @@ defineProps<{ errors: FieldErrors }>()
       </label>
       <p v-if="errors.consent_publication" class="consent-fields__error">
         {{ errors.consent_publication }}
+      </p>
+    </div>
+    <div>
+      <label class="consent-fields__option">
+        <input v-model="choice.age" type="checkbox" />
+        <span>{{ AGE_CONFIRMATION_TEXT }}</span>
+      </label>
+      <p v-if="errors.consent_age" class="consent-fields__error">
+        {{ errors.consent_age }}
       </p>
     </div>
   </div>

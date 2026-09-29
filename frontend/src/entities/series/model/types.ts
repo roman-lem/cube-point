@@ -6,13 +6,16 @@ export type SeriesStatus = 'in_progress' | 'completed'
 export interface SeriesAttempt extends Attempt {
   edited?: boolean
   original?: Attempt
+  /**
+   * FMC solution. Other participants' solutions come only after the meetup is finished,
+   * the person's own always.
+   */
+  solution?: string
 }
 
 /** A saved attempt of a series. */
 export interface SavedAttempt extends SeriesAttempt {
   number: number
-  /** FMC solution. */
-  solution?: string
 }
 
 /** A started FMC attempt (timestamps are ISO in UTC). */

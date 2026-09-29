@@ -9,8 +9,11 @@ export interface UnresolvedFmc {
   attempt_number: number
   user: { id: number; display_name: string; login: string | null }
   scramble: string
-  /** The frozen solution or (if there was no submission) the last draft. */
-  solution: string
+  /**
+   * The frozen solution or (if there was no submission) the last draft.
+   * null while the hour is running: the draft is not shown, nobody peeks.
+   */
+  solution: string | null
   /** frozen: submission not confirmed, expired: the hour ran out, running: the hour is on. */
   state: 'frozen' | 'expired' | 'running'
   deadline: string
@@ -37,7 +40,7 @@ export function fetchFinishSummary(meetupId: number) {
 export function resolveFmc(meetupId: number, item: UnresolvedFmc, result: Attempt) {
   return http.post<void>(
     `${base(meetupId)}/fmc/${item.series_id}/${item.attempt_number}/resolve`,
-    { ...result, version: item.version, solution: item.solution },
+    { ...result, version: item.version, solution: item.solution ?? '' },
   )
 }
 

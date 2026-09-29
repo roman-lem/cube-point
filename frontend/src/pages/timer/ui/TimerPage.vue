@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useEventListener, useWakeLock } from '@vueuse/core'
+import { useEventListener } from '@vueuse/core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchActiveMeetups, type ActiveMeetup } from '@/entities/meetup'
@@ -258,23 +258,6 @@ useEventListener(window, 'beforeunload', (event: BeforeUnloadEvent) => {
     event.preventDefault()
   }
 })
-
-// The screen stays on while a series is in progress.
-const wakeLock = useWakeLock()
-watch(
-  () => isSeriesMode.value && series.value?.status === 'in_progress',
-  async (active) => {
-    try {
-      if (active) {
-        await wakeLock.request('screen')
-      } else {
-        await wakeLock.release()
-      }
-    } catch {
-      // Not supported or not allowed: no big deal.
-    }
-  },
-)
 
 const attemptsCount = computed(() => (series.value ? ATTEMPTS_COUNT[series.value.format] : 0))
 

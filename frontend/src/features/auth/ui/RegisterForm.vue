@@ -4,7 +4,7 @@ import { useUserStore } from '@/entities/user'
 import { ApiError } from '@/shared/api'
 import { AppButton, AppInput, FormError } from '@/shared/ui'
 import { fetchRegistrationOpen, register } from '../api/authApi'
-import { missingConsents } from '../model/consents'
+import { emptyConsents, missingConsents } from '../model/consents'
 import { useFormErrors } from '@/shared/lib'
 import ConsentFields from './ConsentFields.vue'
 
@@ -13,7 +13,7 @@ const emit = defineEmits<{ success: [] }>()
 const userStore = useUserStore()
 const { fieldErrors, formError, clearErrors, showError } = useFormErrors()
 const form = ref({ display_name: '', login: '', password: '', password_repeat: '' })
-const consents = ref({ processing: false, publication: false })
+const consents = ref(emptyConsents())
 const loading = ref(false)
 
 // Registration can be closed on the server (REGISTRATION_OPEN=0). If the status

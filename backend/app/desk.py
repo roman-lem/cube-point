@@ -14,7 +14,7 @@ from .accounts import create_account
 from .errors import ApiError
 from .events import is_fmc
 from .extensions import db
-from .fmc import MAX_MOVES, parse_solution
+from .fmc import MAX_MOVES
 from .forms import collapse_spaces, get_str, is_int, json_body, raise_if_errors
 from .meetups import approve, get_meetup, iso_utc, serialize_meetup
 from .models import (
@@ -25,6 +25,7 @@ from .permissions import is_banned, require_organizer
 from .results import ATTEMPTS_COUNT
 from .scoring import (
     VersionConflict, delete_attempt, event_table, recalc_records, save_attempt, serialize_attempt,
+    solution_visible,
 )
 from .series import fmc_deadline, get_meetup_event, parse_value
 
@@ -49,12 +50,11 @@ def serialize_user(user):
 # Desk data
 
 def serialize_desk_attempts(series, count):
+    # Other participants' FMC solutions are hidden from the organizer until the meetup is finished.
+    show_solution = solution_visible(series)
     attempts = [None] * count
     for attempt in series.attempts:
-        item = serialize_attempt(attempt)
-        if attempt.solution is not None:
-            item["solution"] = attempt.solution
-        attempts[attempt.attempt_number - 1] = item
+        attempts[attempt.attempt_number - 1] = serialize_attempt(attempt, show_solution)
     return attempts
 
 
@@ -158,16 +158,16 @@ def put_attempt(meetup_id, event_id, user_id, number):
     fmc = is_fmc(event_id)
     if fmc:
         value, penalty = parse_value(data, FMC_PENALTIES, max_value=MAX_MOVES + 1)
-        solution = parse_solution(data) if get_str(data, "solution") else None
     else:
         value, penalty = parse_value(data, TIME_PENALTIES)
-        solution = None
     if version is not None and not is_int(version):
         raise ApiError(422, "invalid_attempt", "Некорректные данные попытки")
 
     series = db.session.scalar(db.select(Series).where(
         Series.meetup_event_id == meetup_event.id, Series.user_id == user_id,
     ))
+    if fmc:
+        value = check_fmc_edit(series, number, value, penalty)
     try:
         if series is None:
             if version is not None:
@@ -181,7 +181,7 @@ def put_attempt(meetup_id, event_id, user_id, number):
                 409, "wrong_attempt_number", "Сначала введите предыдущие попытки",
                 extra={"event": desk_event(meetup, meetup_event)},
             )
-        save_attempt(series, number, value, penalty, version, current_user, solution=solution)
+        save_attempt(series, number, value, penalty, version, current_user)
         db.session.commit()
     except (VersionConflict, StaleDataError, IntegrityError):
         # IntegrityError: another request created the series for the participant concurrently.
@@ -190,6 +190,28 @@ def put_attempt(meetup_id, event_id, user_id, number):
         conflict.extra = {"event": desk_event(meetup, meetup_event)}
         raise conflict
     return {"event": desk_event(meetup, meetup_event)}
+
+
+def check_fmc_edit(series, number, value, penalty):
+    """The organizer does not set FMC move counts, only replaces a result with DNF.
+
+    The moves and the solution stay in the attempt, so "restore the original result"
+    brings them back. The organizer does not add FMC attempts either: they come from the
+    participant or from the finish dialog. Saving the unchanged result is allowed.
+    Returns the value to save.
+    """
+    attempts = series.attempts if series else []
+    attempt = next((a for a in attempts if a.attempt_number == number), None)
+    if attempt is None:
+        raise ApiError(
+            422, "fmc_locked", "Попытку FMC сдаёт участник, организатор может только поставить DNF",
+        )
+    if value not in (None, attempt.value) or penalty not in (Penalty.DNF, attempt.penalty):
+        raise ApiError(
+            422, "fmc_locked",
+            "Результат FMC можно только заменить на DNF или вернуть исходный",
+        )
+    return attempt.value
 
 
 @desk.delete(
@@ -202,6 +224,11 @@ def remove_attempt(meetup_id, event_id, user_id, number):
     """
     meetup = get_organizer_meetup(meetup_id)
     meetup_event = get_meetup_event(meetup, event_id)
+    if is_fmc(event_id):
+        # The organizer does not add FMC attempts, so an erased one could not be entered again.
+        raise ApiError(
+            422, "fmc_locked", "Результат FMC можно только заменить на DNF или вернуть исходный",
+        )
     version = json_body().get("version")
     if not is_int(version):
         raise ApiError(422, "invalid_attempt", "Некорректные данные попытки")
@@ -241,14 +268,18 @@ def find_attempt(meetup_event, user_id, number):
     "/meetups/<int:meetup_id>/events/<event_id>/participants/<int:user_id>/attempts/<int:number>/history"
 )
 def attempt_history(meetup_id, event_id, user_id, number):
-    """Attempt history: values in order, who set them and when. The first one is the original."""
+    """Attempt history: values in order, who set them and when. The first one is the original.
+
+    FMC solutions of other participants are hidden until the meetup is finished.
+    """
     meetup = get_organizer_meetup(meetup_id)
-    _, attempt = find_attempt(get_meetup_event(meetup, event_id), user_id, number)
+    series, attempt = find_attempt(get_meetup_event(meetup, event_id), user_id, number)
+    show_solution = solution_visible(series)
     return {"history": [
         {
             "value": entry.value,
             "penalty": entry.penalty.value,
-            "solution": entry.solution,
+            "solution": entry.solution if show_solution else None,
             "changed_by": None if entry.user is None else {
                 "id": entry.user.id, "display_name": entry.user.display_name,
             },
@@ -435,7 +466,11 @@ def unresolved_fmc(meetup):
 
 
 def fmc_state(fmc_attempt, now):
-    """frozen: submission frozen, expired: the hour ran out without submission, running: the hour is on."""
+    """frozen: submission frozen, expired: the hour ran out without submission, running: the hour is on.
+
+    The solution of a running attempt is its current draft: it is saved on DNF,
+    but not shown to the organizer, so nobody can peek while the hour is on.
+    """
     if fmc_attempt.frozen_at is not None:
         return "frozen", fmc_attempt.frozen_solution, fmc_attempt.frozen_at
     if now >= fmc_deadline(fmc_attempt):
@@ -470,9 +505,13 @@ def finish_summary(meetup_id):
             "attempts_count": count,
         })
 
+    # The only place where the organizer sees other participants' solutions during
+    # a meetup: without them frozen and expired attempts cannot be checked.
     fmc = []
     for series, fmc_attempt in unresolved_fmc(meetup):
         state, solution, _ = fmc_state(fmc_attempt, now)
+        if state == "running":
+            solution = None
         scramble = series.meetup_event.scrambles[fmc_attempt.attempt_number - 1]
         # These attempts will not become DNS: the organizer resolves them.
         dns_count -= 1
@@ -520,7 +559,8 @@ def resolve_fmc(meetup_id, series_id, number):
     state, solution, submitted_at = fmc_state(fmc_attempt, utcnow())
     if state == "running" and penalty != Penalty.DNF:
         raise ApiError(409, "fmc_running", "Время попытки ещё идёт")
-    if get_str(data, "solution") != (solution or ""):
+    # The organizer has not seen the draft of a running attempt, there is nothing to compare.
+    if state != "running" and get_str(data, "solution") != (solution or ""):
         raise ApiError(409, "solution_changed", "Решение успело измениться, данные обновлены")
     if not is_int(version):
         raise ApiError(422, "invalid_attempt", "Некорректные данные попытки")
