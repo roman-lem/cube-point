@@ -216,15 +216,22 @@ def require_allowed(reason):
         raise ApiError(409, "not_allowed", reason)
 
 
-def member_meetups(membership):
-    """Club meetups with the member's series, newest first, with their results."""
-    rows = db.session.scalars(
+def meetups_with_results(user_id, club_id=None):
+    """Meetups with the user's series, newest first, with their results.
+
+    Only the club's meetups if club_id is given (member card), otherwise all clubs
+    (administrator's user card): then every meetup names its club.
+    """
+    query = (
         db.select(Series)
         .join(MeetupEvent)
         .join(Meetup)
-        .where(Series.user_id == membership.user_id, Meetup.club_id == membership.club_id)
+        .where(Series.user_id == user_id)
         .order_by(Meetup.date.desc(), Meetup.starts_at.desc(), MeetupEvent.id)
-    ).all()
+    )
+    if club_id is not None:
+        query = query.where(Meetup.club_id == club_id)
+    rows = db.session.scalars(query).all()
 
     meetups = {}
     for series in rows:
@@ -245,6 +252,8 @@ def member_meetups(membership):
                 },
                 "events": [],
             }
+            if club_id is None:
+                meetups[meetup.id]["club"] = {"id": meetup.club.id, "name": meetup.club.name}
         # Place and record marks come from the event table. A disqualified user has none.
         row = next((r for r in event_table(meetup_event) if r["series"].id == series.id), None)
         meetups[meetup.id]["events"].append({
@@ -274,7 +283,7 @@ def live_meetup(membership):
 
 def member_card(membership):
     user = membership.user
-    meetups = member_meetups(membership)
+    meetups = meetups_with_results(membership.user_id, membership.club_id)
     return {
         "user": {"id": user.id, "display_name": user.display_name, "login": user.login},
         "role": membership.role.value,

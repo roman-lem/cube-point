@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useIntervalFn } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useCurrentClubStore } from '@/entities/club'
 import { EventCard, fetchMeetup, MeetupHeader, type MeetupPageData } from '@/entities/meetup'
+import { useUserStore } from '@/entities/user'
+import { DeleteMeetupControl } from '@/features/meetup-delete'
 import { OrganizerPledgeDialog } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
 import { EVENTS, type EventId } from '@/shared/lib'
@@ -14,7 +17,9 @@ const { meetupId } = defineProps<{ meetupId: number }>()
 // request status, results and leaders in the cards.
 const REFRESH_MS = 15_000
 
+const router = useRouter()
 const clubStore = useCurrentClubStore()
+const userStore = useUserStore()
 const data = ref<MeetupPageData | null>(null)
 const error = ref('')
 
@@ -28,6 +33,10 @@ async function load() {
 }
 
 watch(() => meetupId, load, { immediate: true })
+
+function onDeleted() {
+  router.replace({ name: 'club', params: { clubId: data.value!.meetup.club.id } })
+}
 
 const requestStatus = computed(() => data.value?.my_request?.status ?? null)
 // Organizer tools open only after the organizer pledge is accepted.
@@ -151,6 +160,13 @@ const participation = computed(() => {
           </template>
         </EventCard>
       </section>
+
+      <DeleteMeetupControl
+        v-if="userStore.user?.is_admin"
+        :meetup-id="meetupId"
+        :status="data.meetup.status"
+        @deleted="onDeleted"
+      />
     </template>
   </main>
 </template>

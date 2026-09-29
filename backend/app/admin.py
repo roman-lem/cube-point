@@ -1,4 +1,4 @@
-"""Administration: clubs and their organizers, names of deleted accounts.
+"""Administration: clubs and their organizers, users, meetup deletion, names of deleted accounts.
 
 Routes /api/admin/…
 
@@ -15,22 +15,29 @@ from flask_login import current_user
 from sqlalchemy import delete, func
 from werkzeug.security import generate_password_hash
 
+# auth before accounts: accounts and auth.routes import each other.
+from .auth import throttle
 from .auth.validation import login_error, name_error, normalize_login, password_error
+from .accounts import reset_password  # noqa: I001
 from .clubs import text_error
 from .errors import ApiError, ValidationError
 from .extensions import db
 from .forms import collapse_spaces, get_str, json_body, raise_if_errors
 from .meetups import iso_utc
+from .members import meetups_with_results
 from .models import (
     DELETED_USER_NAME, Attempt, Club, ClubMember, ClubRole, ConsentType, Meetup, MeetupEvent,
-    MeetupStatus, Series, User, UserConsent,
+    MeetupParticipant, MeetupStatus, Series, User, UserConsent,
 )
-from .permissions import is_last_organizer
+from .permissions import get_or_404, is_last_organizer
+from .scoring import recalc_records
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 
 DEFAULT_TIMEZONE = "Asia/Yekaterinburg"  # Tyumen time
 USER_SEARCH_LIMIT = 10
+USERS_PAGE_SIZE = 30
+USER_FILTERS = ("all", "admins", "organizers", "deleted")
 
 
 @admin.before_request
@@ -236,8 +243,8 @@ def remove_organizer(club_id, user_id):
     return {"club": club_details(club)}
 
 
-@admin.get("/users")
-def search_users():
+@admin.get("/users/lookup")
+def lookup_users():
     """User search by part of the login, to pick an organizer."""
     query = normalize_login(request.args.get("q", ""))
     if not query:
@@ -249,6 +256,219 @@ def search_users():
         .limit(USER_SEARCH_LIMIT)
     )
     return {"users": [serialize_user(user) for user in users]}
+
+
+# All users
+
+def kept_name_condition():
+    """A deleted account that kept its name in results (DELETED_NAME consent)."""
+    return User.deleted_at.is_not(None) & (
+        db.select(UserConsent.id)
+        .where(UserConsent.user_id == User.id, UserConsent.type == ConsentType.DELETED_NAME)
+        .exists()
+    )
+
+
+def filter_condition(name):
+    """Condition of a list filter.
+
+    "all" leaves out fully anonymized deleted accounts: they have no login,
+    email or name, they would only add identical DELETED_USER_NAME rows.
+    """
+    if name == "admins":
+        return User.is_admin.is_(True)
+    if name == "organizers":
+        return (
+            db.select(ClubMember.user_id)
+            .where(ClubMember.user_id == User.id, ClubMember.role == ClubRole.ORGANIZER)
+            .exists()
+        )
+    if name == "deleted":
+        return kept_name_condition()
+    return User.deleted_at.is_(None) | kept_name_condition()
+
+
+def user_clubs(user_ids):
+    """{user_id: [club with the role and the ban mark]}, clubs by name."""
+    clubs = {user_id: [] for user_id in user_ids}
+    rows = db.session.execute(
+        db.select(ClubMember, Club).join(Club)
+        .where(ClubMember.user_id.in_(user_ids))
+        .order_by(Club.name, Club.id)
+    ).all()
+    for membership, club in rows:
+        clubs[membership.user_id].append({
+            "id": club.id,
+            "name": club.name,
+            "role": membership.role.value,
+            "banned": membership.banned_at is not None,
+        })
+    return clubs
+
+
+def user_rows(users):
+    """List rows: account data and clubs with roles. Only the administrator gets the email."""
+    ids = [user.id for user in users]
+    clubs = user_clubs(ids)
+    kept = set(db.session.scalars(
+        db.select(User.id).where(User.id.in_(ids), kept_name_condition())
+    ))
+    return [
+        {
+            "id": user.id,
+            "display_name": user.display_name,
+            "login": user.login,
+            "email": user.email,
+            "created_at": iso_utc(user.created_at),
+            "deleted_at": iso_utc(user.deleted_at) if user.deleted_at else None,
+            "is_admin": user.is_admin,
+            "kept_name": user.id in kept,
+            "clubs": clubs[user.id],
+        }
+        for user in users
+    ]
+
+
+@admin.get("/users")
+def list_users():
+    """All users by name, USERS_PAGE_SIZE at a time.
+
+    ?q= is part of the name, login or email, ?filter= one of USER_FILTERS,
+    ?offset= how many are already loaded. The search is in Python, as in
+    search_deleted_users: SQLite compares case-insensitively only for Latin letters;
+    for a few hundred users this is enough.
+    """
+    query = collapse_spaces(request.args.get("q", "")).casefold()
+    name = request.args.get("filter", "all")
+    if name not in USER_FILTERS:
+        name = "all"
+    offset = max(request.args.get("offset", 0, type=int), 0)
+
+    rows = db.session.execute(
+        db.select(User.id, User.display_name, User.login, User.email)
+        .where(filter_condition(name))
+    ).all()
+    found = sorted(
+        (
+            row for row in rows
+            if any(query in (text or "").casefold() for text in row[1:])
+        ),
+        key=lambda row: (row.display_name.casefold(), row.id),
+    )
+    page_ids = [row.id for row in found[offset:offset + USERS_PAGE_SIZE]]
+    users = {user.id: user for user in db.session.scalars(
+        db.select(User).where(User.id.in_(page_ids))
+    )}
+    return {
+        "users": user_rows([users[user_id] for user_id in page_ids]),
+        "has_more": len(found) > offset + USERS_PAGE_SIZE,
+    }
+
+
+def latest_consents(user):
+    """The latest entry of every consent type: {type: {version, accepted_at}}."""
+    consents = {}
+    for consent in db.session.scalars(
+        db.select(UserConsent).where(UserConsent.user_id == user.id)
+        .order_by(UserConsent.accepted_at, UserConsent.id)
+    ):
+        consents[consent.type.value] = {
+            "version": consent.version,
+            "accepted_at": iso_utc(consent.accepted_at),
+        }
+    return consents
+
+
+def reset_password_restriction(user):
+    """Why the administrator cannot reset the password, or None."""
+    if user.id == current_user.id:
+        return "Свой пароль меняется в профиле"
+    if user.deleted_at is not None:
+        return "Аккаунт удалён"
+    return None
+
+
+@admin.get("/users/<int:user_id>")
+def get_user(user_id):
+    user = get_or_404(User, user_id, "Пользователь не найден")
+    return {"user": {
+        **user_rows([user])[0],
+        "consents": latest_consents(user),
+        "meetups": meetups_with_results(user.id),
+        "restrictions": {"reset_password": reset_password_restriction(user)},
+    }}
+
+
+@admin.post("/users/<int:user_id>/password-reset")
+def reset_user_password(user_id):
+    """Temporary password for anyone, organizers and administrators too; shown once.
+
+    All of the user's sessions end (accounts.reset_password).
+    """
+    user = get_or_404(User, user_id, "Пользователь не найден")
+    if reason := reset_password_restriction(user):
+        raise ApiError(403, "forbidden", reason)
+    password = reset_password(user)
+    # If the user was locked out by login throttling, the new password works right away.
+    throttle.clear_failures(user.login)
+    db.session.commit()
+    return {"temporary_password": password}
+
+
+# Meetup deletion
+
+def meetup_deletion(meetup):
+    """What deleting the meetup takes with it and why it cannot be deleted now (or None)."""
+    def count(query):
+        return db.session.scalar(db.select(func.count()).select_from(query.subquery()))
+
+    series = db.select(Series.id).join(MeetupEvent).where(MeetupEvent.meetup_id == meetup.id)
+    return {
+        "deletion": {
+            "requests": count(
+                db.select(MeetupParticipant.user_id)
+                .where(MeetupParticipant.meetup_id == meetup.id)
+            ),
+            "participants": count(
+                db.select(Series.user_id).join(MeetupEvent)
+                .where(MeetupEvent.meetup_id == meetup.id).distinct()
+            ),
+            "results": count(db.select(Attempt.id).where(Attempt.series_id.in_(series))),
+        },
+        "delete_restriction": (
+            "Идёт встреча — удалить её можно после завершения"
+            if meetup.status == MeetupStatus.LIVE else None
+        ),
+    }
+
+
+@admin.get("/meetups/<int:meetup_id>/deletion")
+def get_meetup_deletion(meetup_id):
+    return meetup_deletion(get_or_404(Meetup, meetup_id, "Встреча не найдена"))
+
+
+@admin.delete("/meetups/<int:meetup_id>")
+def delete_meetup(meetup_id):
+    """Deletes a planned or finished meetup with everything in it, in one transaction.
+
+    Events, scrambles, requests, series, attempts, their history, FMC attempts and
+    disqualifications go by ON DELETE CASCADE, and so do the club records held by
+    its series: the records of its events are then recalculated from the other meetups.
+    Personal bests are computed from results, so nothing else needs recalculating.
+    """
+    meetup = get_or_404(Meetup, meetup_id, "Встреча не найдена")
+    if reason := meetup_deletion(meetup)["delete_restriction"]:
+        raise ApiError(409, "meetup_live", reason)
+
+    club_id = meetup.club_id
+    event_ids = [meetup_event.event_id for meetup_event in meetup.events]
+    db.session.execute(delete(Meetup).where(Meetup.id == meetup.id))
+    # Loaded objects may be gone from the DB now: the recalculation reads it anew.
+    db.session.expire_all()
+    for event_id in event_ids:
+        recalc_records(club_id, event_id)
+    db.session.commit()
+    return "", 204
 
 
 # Deleted accounts that kept their name (accounts.delete_account)

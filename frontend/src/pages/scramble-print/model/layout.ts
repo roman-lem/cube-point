@@ -21,8 +21,8 @@ const EVENT_TITLE = 4.8 // title line and its margin
 const EVENT_GAP = 2.5
 const ROW_PADDING = 1.6
 // Scramble column width ≈ 102 mm; JetBrains Mono is 0.6 em wide.
-const NORMAL = { chars: 64, lineHeight: 3.18 } // 7.5pt
-const SMALL = { chars: 74, lineHeight: 2.75 } // 6.5pt
+const NORMAL = { chars: 74, lineHeight: 2.75 } // 6.5pt
+const SMALL = { chars: 87, lineHeight: 2.33 } // 5.5pt
 
 export function layoutBlank(events: PrintEvent[]): BlankPage[] {
   const pages: PrintEvent[][] = []

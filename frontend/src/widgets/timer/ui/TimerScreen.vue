@@ -283,7 +283,7 @@ defineExpose({ reset: timer.reset })
 </script>
 
 <template>
-  <section class="timer">
+  <section :class="['timer', `timer--${mode}`]">
     <div v-show="!focused" class="timer__top">
       <slot name="header" />
 
@@ -659,6 +659,11 @@ defineExpose({ reset: timer.reset })
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
+}
+
+/* In training the zone gives way on a short screen: the "Last" line must fit without scrolling. */
+.timer--training .timer__zone {
+  min-height: 180px;
 }
 
 .timer__zone {

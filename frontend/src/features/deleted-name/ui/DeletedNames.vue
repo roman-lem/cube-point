@@ -4,19 +4,15 @@ import { onMounted, ref } from 'vue'
 import { UserRow } from '@/entities/user'
 import { ApiError } from '@/shared/api'
 import { formatDate } from '@/shared/lib'
-import { AppCard, AppInput, ConfirmDialog } from '@/shared/ui'
-import { anonymizeDeletedUser, searchDeletedUsers, type DeletedUser } from '../api/deletedNamesApi'
+import { AppCard, AppInput } from '@/shared/ui'
+import { searchDeletedUsers, type DeletedUser } from '../api/deletedNamesApi'
+import AnonymizeButton from './AnonymizeButton.vue'
 
 // Deleted accounts that kept their name in results and records, and withdrawing that
 // consent at the person's request: the name is replaced with the deleted-user name.
 const query = ref('')
 const users = ref<DeletedUser[] | null>(null)
 const loadError = ref('')
-
-const target = ref<DeletedUser | null>(null)
-const confirmOpen = ref(false)
-const busy = ref(false)
-const anonymizeError = ref('')
 
 async function load() {
   try {
@@ -29,25 +25,6 @@ async function load() {
 
 onMounted(load)
 watchDebounced(query, load, { debounce: 300 })
-
-function askAnonymize(user: DeletedUser) {
-  target.value = user
-  anonymizeError.value = ''
-  confirmOpen.value = true
-}
-
-async function anonymize() {
-  busy.value = true
-  try {
-    await anonymizeDeletedUser(target.value!.id)
-    await load()
-  } catch (e) {
-    anonymizeError.value = e instanceof ApiError ? e.message : 'Не удалось обезличить'
-  } finally {
-    busy.value = false
-    confirmOpen.value = false
-  }
-}
 </script>
 
 <template>
@@ -66,28 +43,11 @@ async function anonymize() {
           :display-name="user.display_name"
           :details="`удалён ${formatDate(user.deleted_at.slice(0, 10))}`"
         >
-          <button type="button" class="deleted-names__action" @click="askAnonymize(user)">
-            Обезличить
-          </button>
+          <AnonymizeButton :user="user" @anonymized="load" />
         </UserRow>
       </li>
     </ul>
-    <p v-if="anonymizeError" class="deleted-names__error" role="alert">{{ anonymizeError }}</p>
   </AppCard>
-
-  <ConfirmDialog
-    v-model:open="confirmOpen"
-    title="Обезличить участника?"
-    confirm-label="Обезличить"
-    danger
-    :loading="busy"
-    @confirm="anonymize"
-  >
-    <p v-if="target">
-      Имя «{{ target.display_name }}» будет заменено на «Удалённый участник» во всех таблицах
-      результатов и рекордах, запись о согласии удалится. Отменить это нельзя.
-    </p>
-  </ConfirmDialog>
 </template>
 
 <style scoped>
@@ -117,18 +77,5 @@ async function anonymize() {
 
 .deleted-names__list li + li {
   border-top: 1px solid var(--color-border);
-}
-
-.deleted-names__action {
-  flex-shrink: 0;
-  min-height: var(--control-height);
-  padding: 0 var(--space-3);
-  background: none;
-  border: none;
-  border-radius: var(--radius-button);
-  color: var(--color-danger);
-  font: inherit;
-  font-weight: var(--font-weight-label);
-  cursor: pointer;
 }
 </style>

@@ -126,12 +126,12 @@ const { title, subtitle, events, rowHeight, page = 1, pages = 1 } = defineProps<
 .scramble-blank__scramble {
   flex: 1;
   font-family: var(--font-mono);
-  font-size: 7.5pt;
+  font-size: 6.5pt;
   overflow-wrap: anywhere;
 }
 
 .scramble-blank__scramble--small {
-  font-size: 6.5pt;
+  font-size: 5.5pt;
 }
 
 .scramble-blank__line {

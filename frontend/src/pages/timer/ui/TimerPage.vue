@@ -357,8 +357,8 @@ const seriesResult = computed(() => {
       </template>
       <template v-if="lastSolve" #last>
         <div class="timer-page__last">
-          <span class="page__muted">Последняя:</span>
-          <TimeValue :value="lastSolve.value" :penalty="lastSolve.penalty" size="large" />
+          <span class="page__muted timer-page__last-label">Последняя:</span>
+          <TimeValue :value="lastSolve.value" :penalty="lastSolve.penalty" />
           <TrainingSolveActions
             :penalty="lastSolve.penalty"
             @penalty="(penalty) => training.setPenalty(lastSolve!.at, penalty)"
@@ -395,12 +395,24 @@ const seriesResult = computed(() => {
   flex: 1;
 }
 
+/* One compact line: it must not push the touch zone off a phone screen. */
 .timer-page__last {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+/* On the narrowest phones the label is hidden visually, the time and buttons stay. */
+@media (max-width: 359px) {
+  .timer-page__last-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
 }
 
 .timer-page__notice {

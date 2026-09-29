@@ -150,7 +150,11 @@ function mainResult(result: MemberEventResult) {
       <h3 class="member-card__heading">Доступ</h3>
       <div class="member-card__rows">
         <OrganizerSwitch :club-id="clubId" :member="member" @changed="emit('changed', $event)" />
-        <PasswordResetButton :club-id="clubId" :member="member" />
+        <PasswordResetButton
+          :club-id="clubId"
+          :user="member.user"
+          :restriction="member.restrictions.reset_password"
+        />
       </div>
     </AppCard>
 

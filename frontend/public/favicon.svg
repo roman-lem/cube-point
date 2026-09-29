@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="1000" height="1000">
+<rect width="200" height="200" fill="#ffffff"/>
+<g transform="translate(30.00 6.20) scale(1.4)"><path d="M50 126 L18.17 69.92 C15.25 64.79 12.34 59.66 11.34 52.15 A39 39 0 1 1 88.66 52.15 C87.66 59.66 84.75 64.79 81.83 69.92 Z" fill="#2563EB"/>
+<polygon points="50.00,44.92 33.28,35.27 50.00,25.61 66.72,35.27" fill="#ffffff"/>
+<polygon points="48.20,48.04 31.48,38.38 31.48,57.70 48.20,67.35" fill="#ffffff"/>
+<polygon points="51.80,48.04 68.52,38.38 68.52,57.70 51.80,67.35" fill="#ffffff"/>
+</g></svg>

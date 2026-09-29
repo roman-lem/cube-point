@@ -4,6 +4,7 @@ import { useUserStore } from '@/entities/user'
 import { AdminClubCreatePage } from '@/pages/admin-club-create'
 import { AdminClubsPage } from '@/pages/admin-clubs'
 import { AdminDeletedUsersPage } from '@/pages/admin-deleted-users'
+import { AdminUsersPage } from '@/pages/admin-users'
 import { AuthPage } from '@/pages/auth'
 import { ChangePasswordPage } from '@/pages/change-password'
 import { ClubPage } from '@/pages/club'
@@ -247,6 +248,19 @@ export const router = createRouter({
       name: 'admin-club',
       component: AdminClubsPage,
       props: numberParams('clubId'),
+      meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: AdminUsersPage,
+      meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
+    },
+    {
+      path: '/admin/users/:userId(\\d+)',
+      name: 'admin-user',
+      component: AdminUsersPage,
+      props: numberParams('userId'),
       meta: { requiresAuth: true, requiresAdmin: true, tab: 'profile' },
     },
     {

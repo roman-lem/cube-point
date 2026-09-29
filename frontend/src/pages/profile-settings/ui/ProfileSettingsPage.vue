@@ -48,6 +48,7 @@ const passwordChanged = ref(false)
 
       <AppCard v-if="userStore.user.is_admin" class="settings__admin">
         <RouterLink :to="{ name: 'admin-clubs' }">Администрирование</RouterLink>
+        <RouterLink :to="{ name: 'admin-users' }">Пользователи</RouterLink>
         <RouterLink :to="{ name: 'admin-deleted-users' }">Имена удалённых аккаунтов</RouterLink>
       </AppCard>
 

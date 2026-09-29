@@ -15,6 +15,6 @@ export async function createClub(data: NewClub) {
 
 /** Users whose login contains query (up to 10). */
 export async function searchUsers(query: string) {
-  const url = `/api/admin/users?q=${encodeURIComponent(query)}`
+  const url = `/api/admin/users/lookup?q=${encodeURIComponent(query)}`
   return (await http.get<{ users: UserRef[] }>(url)).users
 }

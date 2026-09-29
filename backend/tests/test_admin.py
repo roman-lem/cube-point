@@ -53,7 +53,7 @@ def admin_requests(club_id):
         ("post", f"/api/admin/clubs/{club_id}/organizers", {"login": "member"}),
         ("delete", f"/api/admin/clubs/{club_id}/organizers/1", None),
         ("delete", f"/api/admin/clubs/{club_id}", {"name": "Tyumen | Speedcubing"}),
-        ("get", "/api/admin/users?q=me", None),
+        ("get", "/api/admin/users/lookup?q=me", None),
         ("get", "/api/admin/deleted-users", None),
         ("post", "/api/admin/deleted-users/1/anonymize", None),
     ]
@@ -171,7 +171,7 @@ def test_remove_not_organizer(app, admin, club_id):
 
 
 def test_search_users_by_login(app, admin):
-    response = admin.get("/api/admin/users?q=M")
+    response = admin.get("/api/admin/users/lookup?q=M")
 
     assert [u["login"] for u in response.get_json()["users"]] == ["admin", "member"]
 
