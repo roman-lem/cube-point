@@ -153,6 +153,9 @@ export interface ClubMemberCard {
   meetups: MemberMeetup[]
   /** The live meetup where the member is approved: a ban interrupts their series. */
   live_meetup: { id: number; date: string } | null
+  /** Display name changes, newest first: NameChange of entities/user
+   * (entities do not import each other). */
+  name_history: { old_name: string; new_name: string; changed_at: string; by_admin: boolean }[]
   restrictions: {
     reset_password: Restriction
     organizer: Restriction

@@ -10,19 +10,26 @@ export async function login(data: { login: string; password: string; remember: b
   return (await http.post<UserResponse>('/api/auth/login', data)).user
 }
 
+/**
+ * form_token and website are the protection from scripts: the token from
+ * fetchRegistration (the server checks how long the form was filled) and
+ * the hidden trap field that people leave empty.
+ */
 export async function register(data: {
   display_name: string
   login: string
   password: string
   consents: ConsentChoice
+  form_token: string
+  website: string
 }) {
   const body = { ...data, consents: consentsPayload(data.consents) }
   return (await http.post<UserResponse>('/api/auth/register', body)).user
 }
 
-/** Whether registration is open (closed by the REGISTRATION_OPEN environment variable). */
-export async function fetchRegistrationOpen() {
-  return (await http.get<{ open: boolean }>('/api/auth/registration')).open
+/** Whether registration is open (REGISTRATION_OPEN) and the token of the form. */
+export function fetchRegistration() {
+  return http.get<{ open: boolean; form_token: string }>('/api/auth/registration')
 }
 
 export async function acceptConsents(consents: ConsentChoice) {
@@ -32,6 +39,11 @@ export async function acceptConsents(consents: ConsentChoice) {
 
 export async function logout() {
   await http.post<void>('/api/auth/logout')
+}
+
+/** Ends all sessions of the account, the current one too. */
+export async function logoutEverywhere() {
+  await http.post<void>('/api/auth/logout-everywhere')
 }
 
 /** current_password is not needed if the password change is forced (temporary password). */

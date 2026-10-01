@@ -8,6 +8,15 @@
 
 server_tokens off;
 
+include /etc/nginx/snippets/log-format.conf;
+
+# HSTS for security-headers.conf: the browser goes straight to HTTPS for this long.
+# Started at one week (604800); how to raise it is in DEPLOY.md.
+# No includeSubDomains: not every subdomain is guaranteed to be on HTTPS.
+map $host $hsts {
+    default "max-age=604800";
+}
+
 # One Let's Encrypt certificate for all names (deploy/cert.sh, --cert-name ${DOMAIN}).
 ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
 ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;

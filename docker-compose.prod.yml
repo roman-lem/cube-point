@@ -50,10 +50,12 @@ services:
       DATABASE_URL: sqlite:////app/instance/cubing.db
       # Meetup links and QR codes are built from it.
       SITE_URL: https://${DOMAIN:?Set DOMAIN in the .env file}
-      SECURE_COOKIES: ${SECURE_COOKIES:-1}
+      # Fixed, not from .env: cookies over HTTPS only, always.
+      SECURE_COOKIES: "1"
       REGISTRATION_OPEN: ${REGISTRATION_OPEN:-1}
       # Email confirmation letters through the domain mailbox (backend/app/mail.py).
-      MAIL_HOST: ${MAIL_HOST:-}
+      # Required: password recovery and email confirmation need it.
+      MAIL_HOST: ${MAIL_HOST:?Set MAIL_HOST in the .env file}
       MAIL_PORT: ${MAIL_PORT:-465}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}

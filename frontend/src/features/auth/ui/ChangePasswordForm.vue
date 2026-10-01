@@ -53,7 +53,7 @@ async function submit() {
       label="Новый пароль"
       type="password"
       autocomplete="new-password"
-      hint="Минимум 8 символов"
+      hint="Минимум 8 символов, не совпадает с логином и текущим паролем"
       :error="fieldErrors.new_password"
     />
     <AppInput

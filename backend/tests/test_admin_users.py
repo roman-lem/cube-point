@@ -53,6 +53,7 @@ def test_only_admin_has_access(app, club_id, login):
         ("get", "/api/admin/users"),
         ("get", f"/api/admin/users/{member}"),
         ("post", f"/api/admin/users/{member}/password-reset"),
+        ("post", f"/api/admin/users/{member}/display-name/revert"),
     ]:
         assert getattr(client, method)(url).status_code == expected, url
 
@@ -130,8 +131,9 @@ def test_card_with_consents_and_restrictions(app, admin):
     assert set(card["consents"]) == {"processing", "publication", "age"}
     assert card["consents"]["processing"]["accepted_at"]
     assert card["meetups"] == []
-    assert card["restrictions"] == {"reset_password": None}
-    assert own["restrictions"] == {"reset_password": "Свой пароль меняется в профиле"}
+    assert card["restrictions"] == {"reset_password": None, "revert_name": "Имя не менялось"}
+    assert card["name_history"] == []
+    assert own["restrictions"]["reset_password"] == "Свой пароль меняется в профиле"
     assert admin.get("/api/admin/users/999").status_code == 404
 
 

@@ -41,6 +41,7 @@ async function submit() {
       autocomplete="current-password"
       :error="fieldErrors.password"
     />
+    <RouterLink :to="{ name: 'forgot-password' }" class="auth-form__forgot">Забыли пароль?</RouterLink>
     <FormError v-if="formError" :message="formError" />
     <label class="auth-form__checkbox">
       <input v-model="form.remember" type="checkbox" />

@@ -18,6 +18,8 @@ from app.models import (
     Scramble, Series, User,
 )
 
+from .conftest import TEST_CONFIG
+
 START = datetime(2026, 9, 5, 7, 0)
 
 
@@ -257,7 +259,7 @@ def test_deleting_author_keeps_their_meetup(session):
 
 
 def test_migrations_match_models(tmp_path):
-    app = create_app({"SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'test.db'}"})
+    app = create_app({**TEST_CONFIG, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'test.db'}"})
     with app.app_context():
         upgrade()
         with db.engine.connect() as connection:

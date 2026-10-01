@@ -6,7 +6,7 @@ COPY . .
 RUN npm run build
 
 FROM nginx:1.29-alpine
-COPY nginx/app.conf /etc/nginx/snippets/app.conf
+COPY nginx/app.conf nginx/security-headers.conf nginx/log-format.conf /etc/nginx/snippets/
 # Local run: plain HTTP.
 COPY nginx/local.conf /etc/nginx/conf.d/default.conf
 # Production: HTTPS. Used only when NGINX_ENVSUBST_TEMPLATE_DIR points here

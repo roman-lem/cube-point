@@ -1,5 +1,6 @@
 """Clubs: public page and organizer settings. Routes /api/clubs/…"""
 
+import unicodedata
 from urllib.parse import urlsplit
 
 from flask import Blueprint
@@ -158,24 +159,32 @@ def parse_links(items):
     for index, item in enumerate(items):
         item = item if isinstance(item, dict) else {}
         link_type = get_str(item, "type")
-        url = normalize_url(get_str(item, "url"))
+        url, url_error = normalize_url(get_str(item, "url"))
         if link_type not in LinkType:
             errors[f"links.{index}.type"] = "Неизвестный тип ссылки"
-        elif url is None:
-            errors[f"links.{index}.url"] = "Неверная ссылка"
+        elif url_error:
+            errors[f"links.{index}.url"] = url_error
         else:
             links.append((LinkType(link_type), url))
     return links, errors
 
 
 def normalize_url(url):
-    """URL with https:// (if no scheme is given), or None if it is not a website link."""
+    """(URL, None), with https:// added if no scheme is given, or (None, reason).
+
+    Only https: the links are shown to everyone on the club page. Rejected:
+    - a user name before the host (https://vk.com@evil.example leads to evil.example);
+    - any whitespace or control character inside: urlsplit silently drops tabs and
+      line breaks, while the original string is what gets saved and opened.
+    """
     url = url.strip()
+    if any(char.isspace() or unicodedata.category(char).startswith("C") for char in url):
+        return None, "В ссылке не должно быть пробелов и невидимых символов"
     if "://" not in url:
         url = "https://" + url
     parts = urlsplit(url)
-    if parts.scheme not in ("http", "https") or "." not in parts.netloc or " " in url:
-        return None
-    if len(url) > 500:
-        return None
-    return url
+    if parts.scheme != "https":
+        return None, "Ссылка должна начинаться с https://"
+    if "@" in parts.netloc or "." not in parts.netloc or len(url) > 500:
+        return None, "Неверная ссылка"
+    return url, None

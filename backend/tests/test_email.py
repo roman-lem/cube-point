@@ -6,6 +6,7 @@ from datetime import timedelta
 
 import pytest
 
+from app import mail
 from app.extensions import db
 from app.models import EmailConfirmation, User
 
@@ -29,12 +30,12 @@ def outbox(app):
 
 
 def last_token(app):
-    match = re.search(r"/confirm-email\?token=(\S+)", outbox(app)[-1]["body"])
+    match = re.search(r"/confirm-email#token=(\S+)", outbox(app)[-1]["body"])
     return match and match.group(1)
 
 
-def request_email(client, address, ip="10.0.0.1"):
-    return client.post("/api/auth/email", json={"email": address},
+def request_email(client, address, ip="10.0.0.1", password=PASSWORD):
+    return client.post("/api/auth/email", json={"email": address, "password": password},
                        environ_base={"REMOTE_ADDR": ip})
 
 
@@ -191,6 +192,40 @@ def test_own_address_again(app, anna):
     assert outbox(app) == []
 
 
+@pytest.mark.parametrize("password, message", [
+    ("", "Введите пароль"), ("wrong-pass", "Неверный пароль"),
+])
+def test_binding_needs_password(app, anna, password, message):
+    response = request_email(anna, "anna@example.com", password=password)
+
+    assert response.status_code == 422
+    assert error(response)["fields"]["password"] == message
+    assert outbox(app) == []
+    assert me(anna)["pending_email"] is None
+
+
+def test_changing_needs_password(app, anna):
+    set_email(app, "anna", "anna@example.com")
+
+    response = request_email(anna, "new@example.com", password="wrong-pass")
+
+    assert response.status_code == 422
+    assert error(response)["fields"]["password"] == "Неверный пароль"
+    assert outbox(app) == []
+
+
+def test_resend_to_pending_address_needs_no_password(app, anna):
+    request_email(anna, "anna@example.com")
+    age_letters(app, timedelta(minutes=2))
+
+    response = request_email(anna, "Anna@example.com", password="")
+
+    assert response.status_code == 200
+    assert len(outbox(app)) == 2
+    # Another address is a new binding: the password again.
+    assert request_email(anna, "other@example.com", password="").status_code == 422
+
+
 def test_remove_needs_password(app, anna):
     set_email(app, "anna", "anna@example.com")
 
@@ -304,6 +339,46 @@ def test_send_error(app, anna, monkeypatch):
     assert me(anna)["pending_email"] is None
     # The failed letter counts for the limits.
     assert request_email(anna, "anna@example.com").status_code == 429
+
+
+def test_send_error_log_has_no_address(app, monkeypatch, caplog):
+    app.config.update(MAIL_HOST="mail.example.com", MAIL_USERNAME="noreply@example.com")
+
+    def refused(*args, **kwargs):
+        raise smtplib.SMTPRecipientsRefused({"anna@example.com": (550, b"no such user")})
+
+    monkeypatch.setattr(smtplib, "SMTP_SSL", refused)
+
+    with app.app_context(), pytest.raises(mail.MailError):
+        mail.send("anna@example.com", "Тема", "Текст")
+
+    assert "Тема" in caplog.text
+    assert "SMTPRecipientsRefused" in caplog.text
+    assert "anna@example.com" not in caplog.text
+
+
+def send_unconfigured(app, caplog):
+    """A letter without MAIL_HOST outside tests (the outbox is a test-only path)."""
+    app.config.update(TESTING=False, MAIL_HOST="")
+    with app.app_context():
+        mail.send("anna@example.com", "Восстановление пароля", "Ссылка: https://site/reset-password#token=secret")
+    return caplog.text
+
+
+def test_unconfigured_mail_logs_only_subject(app, caplog):
+    log = send_unconfigured(app, caplog)
+
+    assert "Восстановление пароля" in log
+    assert "secret" not in log
+    assert "anna@example.com" not in log
+
+
+def test_unconfigured_mail_logs_whole_letter_with_flag(app, caplog):
+    app.config["MAIL_LOG_BODY"] = True
+    log = send_unconfigured(app, caplog)
+
+    assert "anna@example.com" in log
+    assert "token=secret" in log
 
 
 def test_smtp_settings(app, anna, monkeypatch):

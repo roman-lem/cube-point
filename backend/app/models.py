@@ -525,6 +525,56 @@ class EmailConfirmation(db.Model):
     cancelled_at = db.Column(db.DateTime)
 
 
+class PasswordReset(db.Model):
+    """A password reset request (auth/password_reset.py).
+
+    A row is written for every request, even for an unknown account (user_id NULL):
+    the rows are the log for the rate limits. Only a row with token_hash had a letter
+    with a link; the latest open one of a user is the only working link.
+    """
+
+    __tablename__ = "password_resets"
+    __table_args__ = (
+        db.Index("ix_password_resets_user_id_created_at", "user_id", "created_at"),
+        db.Index("ix_password_resets_ip_created_at", "ip", "created_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+    # SHA-256 of the link token, the token itself is not stored. NULL: no letter was sent.
+    token_hash = db.Column(db.String(64), unique=True)
+    # The address the letter went to: the link stops working if the email changes.
+    email = db.Column(db.String(254))
+    ip = db.Column(db.String(45))
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    # The password was set by this link.
+    used_at = db.Column(db.DateTime)
+    # A newer link was sent or the password was reset by another link.
+    cancelled_at = db.Column(db.DateTime)
+
+
+class DisplayNameChange(db.Model):
+    """The history of a user's display name (names.py), rows are only added.
+
+    changed_by is the user themselves or an administrator who returned the previous name:
+    only the user's own changes count for the rate limit.
+    """
+
+    __tablename__ = "display_name_changes"
+    __table_args__ = (
+        db.Index("ix_display_name_changes_user_id_changed_at", "user_id", "changed_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
+    )
+    old_name = db.Column(db.String(100), nullable=False)
+    new_name = db.Column(db.String(100), nullable=False)
+    changed_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    changed_by = db.Column(db.Integer, user_fk("SET NULL"))
+
+
 class LoginFailure(db.Model):
     """A failed login attempt, for password brute-force protection (auth/throttle.py)."""
 
@@ -540,3 +590,19 @@ class LoginFailure(db.Model):
     # Client address (IPv6 is up to 45 characters). NULL for records made before it was stored.
     ip = db.Column(db.String(45))
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+
+class Registration(db.Model):
+    """A registration journal for the limits (auth/registration.py).
+
+    The IP is kept here, not in users, and only for a day.
+    """
+
+    __tablename__ = "registrations"
+    __table_args__ = (
+        db.Index("ix_registrations_ip_created_at", "ip", "created_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    ip = db.Column(db.String(45))
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)

@@ -1,9 +1,12 @@
 import { http } from '@/shared/api'
 import type { EmailState } from '@/entities/user'
 
-/** Sends a letter with a confirmation link; for the pending address it sends it again. */
-export function requestEmail(email: string) {
-  return http.post<EmailState>('/api/auth/email', { email })
+/**
+ * Sends a letter with a confirmation link. A new address needs the current password;
+ * for the pending address the letter is sent again without it.
+ */
+export function requestEmail(email: string, password?: string) {
+  return http.post<EmailState>('/api/auth/email', { email, password })
 }
 
 export function cancelPendingEmail() {

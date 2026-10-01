@@ -14,11 +14,31 @@ from .extensions import csrf, db, login_manager, migrate
 from .seed import seed_command
 
 
+# The old default from config.py: known to everyone who has read the code.
+DEV_SECRET_KEY = "dev-secret-key"
+MIN_SECRET_KEY_LENGTH = 32
+
+
+def check_secret_key(key):
+    """Refuses to start with a missing or guessable SECRET_KEY.
+
+    With a known key anyone could forge a session cookie of any user (the id in it
+    is "<user_id>:<session_version>"), including the administrator.
+    """
+    if not key or key == DEV_SECRET_KEY or len(key) < MIN_SECRET_KEY_LENGTH:
+        raise RuntimeError(
+            f"SECRET_KEY is not set or too short (at least {MIN_SECRET_KEY_LENGTH} characters). "
+            "Set it in .env: python -c \"import secrets; print(secrets.token_hex(32))\"",
+        )
+
+
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
     if test_config:
         app.config.update(test_config)
+    if not app.testing:
+        check_secret_key(app.config["SECRET_KEY"])
 
     # The backend sits behind exactly one proxy (nginx in the web container).
     # Its last X-Forwarded-For entry is the real client IP (login throttling

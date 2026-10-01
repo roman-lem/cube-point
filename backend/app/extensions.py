@@ -36,8 +36,13 @@ def _configure_sqlite(dbapi_connection, connection_record):
         # By default SQLite neither checks foreign keys nor runs ON DELETE.
         cursor.execute("PRAGMA foreign_keys=ON")
         # WAL: reads do not wait for a write, so a meetup with many phones saving
-        # attempts at once does not stall. A writer waiting for another one
-        # retries for up to 5 seconds (the sqlite3 module's default timeout).
+        # attempts at once does not stall.
         # The mode is stored in the database file; an in-memory test DB ignores it.
         cursor.execute("PRAGMA journal_mode=WAL")
+        # A writer waiting for another one retries for up to 5 seconds instead of
+        # failing with "database is locked". Set explicitly, not left to the driver default.
+        cursor.execute("PRAGMA busy_timeout=5000")
+        # With WAL, NORMAL is safe: a power loss may lose the last commits but never
+        # corrupts the database, and there are far fewer fsyncs per saved attempt.
+        cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.close()

@@ -1,6 +1,10 @@
 """Shared setup for club and meetup API tests."""
 
+from datetime import timedelta
+
 from werkzeug.security import generate_password_hash
+
+from app.auth import registration
 
 from app.consents import record_consents
 from app.extensions import db
@@ -39,6 +43,14 @@ def create_club(app):
         db.session.add(club)
         db.session.commit()
         return club.id
+
+
+def registration_form(client):
+    """Fields of the registration form filled by a person: a form token issued
+    a while ago (instead of waiting MIN_FILL_TIME) and an empty bot trap."""
+    with client.application.app_context():
+        token = registration.form_token(utcnow() - timedelta(minutes=1))
+    return {"form_token": token, registration.TRAP_FIELD: ""}
 
 
 def client_for(app, login):

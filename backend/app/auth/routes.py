@@ -9,10 +9,12 @@ from ..consents import consent_errors, consents_required, record_consents
 from ..errors import ApiError, ValidationError
 from ..extensions import db
 from ..forms import collapse_spaces, get_str, json_body, raise_if_errors
-from ..models import ClubMember, Meetup, MeetupParticipant, ParticipantStatus, User
-from . import auth, throttle
+from ..meetups import iso_utc
+from ..models import ClubMember, Meetup, MeetupParticipant, ParticipantStatus, User, utcnow
+from ..names import change_name, name_change_available_at
+from . import auth, registration, throttle
 from .email import email_state
-from .validation import login_error, name_error, normalize_login, password_error
+from .validation import login_error, name_error, new_password_error, normalize_login
 
 # Hash to check the password against when the login does not exist: the response
 # takes the same time, so it does not reveal whether the login exists.
@@ -28,6 +30,8 @@ def serialize_user(user):
         **email_state(user),
         "is_admin": user.is_admin,
         "must_change_password": user.must_change_password,
+        # When the display name can be changed again, None if now (names.py).
+        "display_name_change_available_at": iso_utc(name_change_available_at(user)),
         "consents_required": consents_required(user),
         # Why the account cannot be deleted (last organizer of a club), or None.
         "delete_restriction": delete_restriction(user),
@@ -94,7 +98,8 @@ def home_club():
 
 @auth.get("/registration")
 def registration_status():
-    return {"open": current_app.config["REGISTRATION_OPEN"]}
+    # The form sends the token back: registration checks how long the form was filled.
+    return {"open": current_app.config["REGISTRATION_OPEN"], "form_token": registration.form_token()}
 
 
 @auth.post("/register")
@@ -103,6 +108,12 @@ def register():
         raise ApiError(403, "registration_closed", "Регистрация скоро откроется")
 
     data = json_body()
+    now = utcnow()
+    ip = request.remote_addr
+    # Before validation and password hashing: scripts and floods are cut off cheaply.
+    registration.check_form(data, now)
+    registration.check_limits(ip, now)
+
     display_name = collapse_spaces(get_str(data, "display_name"))
     login = normalize_login(get_str(data, "login"))
     password = get_str(data, "password")
@@ -110,7 +121,7 @@ def register():
     raise_if_errors({
         "display_name": name_error(display_name),
         "login": login_error(login),
-        "password": password_error(password),
+        "password": new_password_error(password, login),
         **consent_errors(data),
     })
 
@@ -125,6 +136,7 @@ def register():
     )
     record_consents(user)
     db.session.add(user)
+    registration.record(ip, now)
     try:
         db.session.commit()
     except IntegrityError:
@@ -168,13 +180,24 @@ def login():
         throttle.record_failure(login, ip)
         raise ApiError(401, "invalid_credentials", "Неверный логин или пароль")
 
-    throttle.clear_failures(login)
+    throttle.clear_pair(login, ip)
     start_session(user, remember)
     return {"user": serialize_user(user)}
 
 
 @auth.post("/logout")
 def logout():
+    logout_user()
+    session.pop("remember", None)
+    return "", 204
+
+
+@auth.post("/logout-everywhere")
+@login_required
+def logout_everywhere():
+    """Ends all of the user's sessions, this one too: remember cookies on other devices stop working."""
+    current_user.session_version += 1
+    db.session.commit()
     logout_user()
     session.pop("remember", None)
     return "", 204
@@ -198,11 +221,11 @@ def change_password():
         elif not check_password_hash(user.password_hash, current_password):
             current_error = "Неверный пароль"
 
-    new_error = password_error(new_password)
-    if not new_error and check_password_hash(user.password_hash, new_password):
-        new_error = "Новый пароль совпадает с текущим"
-
-    raise_if_errors({"current_password": current_error, "new_password": new_error})
+    raise_if_errors({
+        "current_password": current_error,
+        # Not the current password: after a temporary one, it cannot be kept.
+        "new_password": new_password_error(new_password, user.login, user.password_hash),
+    })
 
     user.password_hash = generate_password_hash(new_password)
     user.must_change_password = False
@@ -211,6 +234,29 @@ def change_password():
     db.session.commit()
 
     start_session(user, remember=session.get("remember", False))
+    return {"user": serialize_user(user)}
+
+
+@auth.post("/display-name")
+@login_required
+def change_display_name():
+    """The user's own name change, at most once per names.NAME_CHANGE_INTERVAL."""
+    display_name = collapse_spaces(get_str(json_body(), "display_name"))
+    user = current_user._get_current_object()
+
+    error = name_error(display_name)
+    if not error and display_name == user.display_name:
+        error = "Это ваше текущее имя"
+    raise_if_errors({"display_name": error})
+    available_at = name_change_available_at(user)
+    if available_at:
+        raise ApiError(
+            409, "name_change_too_soon", "Имя можно менять не чаще раза в 30 дней",
+            extra={"available_at": iso_utc(available_at)},
+        )
+
+    change_name(user, display_name, changed_by=user.id)
+    db.session.commit()
     return {"user": serialize_user(user)}
 
 

@@ -5,6 +5,7 @@ from app.extensions import db
 
 TEST_CONFIG = {
     "TESTING": True,
+    "SECRET_KEY": "test-secret-key",
     "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
     # CSRF is checked by a separate test (test_auth.py) and disabled in the others.
     "WTF_CSRF_ENABLED": False,

@@ -1,2 +1,5 @@
 -r requirements.txt
 pytest==9.1.1
+# flask run / flask db … read the repository's .env (SECRET_KEY etc.) in development.
+# Not in production: the image installs requirements.txt, Compose passes the variables.
+python-dotenv==1.2.4

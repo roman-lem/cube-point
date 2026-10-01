@@ -8,7 +8,10 @@
   is the same, and the letter says that the address is already bound, without a link:
   neither the response nor its time reveals someone else's address.
 - Letters are limited per user and per client IP, so the site cannot be used to send spam.
-- Removing the address needs the password.
+- Binding a new address and removing one need the current password: otherwise
+  whoever got hold of an unlocked phone binds their address and takes the account
+  over through password recovery. Sending the letter again to the pending address
+  does not: that address was confirmed with the password.
 """
 
 import hashlib
@@ -155,10 +158,16 @@ def changed_letter(user):
 @auth.post("/email")
 @login_required
 def request_email():
-    """Sends a confirmation letter to a new address; again for the pending one."""
-    email = normalize_email(get_str(json_body(), "email"))
-    raise_if_errors({"email": email_error(email)})
+    """Sends a confirmation letter to a new address (with the password); again for the pending one."""
+    data = json_body()
+    email = normalize_email(get_str(data, "email"))
     user = current_user._get_current_object()
+    pending = pending_confirmation(user)
+    resend = pending is not None and pending.email == email
+    raise_if_errors({
+        "email": email_error(email),
+        "password": None if resend else password_error(user, get_str(data, "password")),
+    })
     if email == user.email:
         raise ValidationError({"email": "Эта почта уже привязана к вашему аккаунту"})
 
@@ -172,7 +181,9 @@ def request_email():
         subject, body = taken_letter()
     else:
         token = secrets.token_urlsafe(32)
-        link = f"{current_app.config['SITE_URL']}/confirm-email?token={token}"
+        # The token is in the fragment: the browser never sends it to the server
+        # (request line, Referer), so it stays out of nginx logs. The page posts it.
+        link = f"{current_app.config['SITE_URL']}/confirm-email#token={token}"
         subject, body = confirmation_letter(user, link)
 
     confirmation = EmailConfirmation(
@@ -262,15 +273,19 @@ def confirm_email():
     return {"email": user.email}
 
 
+def password_error(user, password):
+    if not password:
+        return "Введите пароль"
+    if not check_password_hash(user.password_hash, password):
+        return "Неверный пароль"
+    return None
+
+
 @auth.post("/email/remove")
 @login_required
 def remove_email():
-    password = get_str(json_body(), "password")
     user = current_user._get_current_object()
-    if not password:
-        raise ValidationError({"password": "Введите пароль"})
-    if not check_password_hash(user.password_hash, password):
-        raise ValidationError({"password": "Неверный пароль"})
+    raise_if_errors({"password": password_error(user, get_str(json_body(), "password"))})
     user.email = None
     db.session.commit()
     return email_state(user)

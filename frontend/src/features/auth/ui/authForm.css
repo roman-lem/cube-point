@@ -24,6 +24,22 @@
   accent-color: var(--color-primary);
 }
 
+/* The bot trap of the registration form: off screen, not display: none,
+   which simple scripts recognize and skip. */
+.auth-form__trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .auth-form__closed {
   text-align: center;
+}
+
+.auth-form__forgot {
+  align-self: flex-end;
+  margin-top: calc(-1 * var(--space-2));
+  font-size: var(--font-size-label);
 }

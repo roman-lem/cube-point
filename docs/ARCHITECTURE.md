@@ -11,8 +11,10 @@ backend/            Flask application
   tests/            pytest tests
 frontend/           Vue application
   src/              source code, organized by Feature-Sliced Design
-  nginx/            web server config: app.conf (static files, /api proxy, CSP),
-                    local.conf (HTTP), prod.conf.template (HTTPS, redirects)
+  nginx/            web server config: app.conf (static files, /api proxy),
+                    security-headers.conf (CSP and other headers, in every location),
+                    log-format.conf (access log without query string and Referer),
+                    local.conf (HTTP), prod.conf.template (HTTPS, HSTS, redirects)
 testdata/           test cases shared by the backend and frontend test suites
 docker-compose.yml       local run in Docker: `web` (nginx + built frontend) and `backend`
 docker-compose.prod.yml  production on a VPS: the same plus HTTPS and `certbot`
@@ -31,7 +33,7 @@ Production (`docker-compose.prod.yml`):
 
 ## External resources
 
-The app loads nothing from third-party domains: no CDNs, web fonts, analytics or external APIs. Meetups often happen in places with a poor connection, and keeping everything on one domain also keeps personal data from leaving the server. Fonts come from `@fontsource-variable/*` packages bundled into the build. The rule is enforced by the `Content-Security-Policy` header in `frontend/nginx/app.conf`, so anything new has to work under that policy.
+The app loads nothing from third-party domains: no CDNs, web fonts, analytics or external APIs. Meetups often happen in places with a poor connection, and keeping everything on one domain also keeps personal data from leaving the server. Fonts come from `@fontsource-variable/*` packages bundled into the build. The rule is enforced by the `Content-Security-Policy` header in `frontend/nginx/security-headers.conf`, so anything new has to work under that policy.
 
 ## Backend
 

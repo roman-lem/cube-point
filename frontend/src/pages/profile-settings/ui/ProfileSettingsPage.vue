@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/entities/user'
 import { DeleteAccountControl } from '@/features/account-delete'
-import { ChangePasswordForm, LogoutButton } from '@/features/auth'
+import { ChangePasswordForm, LogoutButton, LogoutEverywhereButton } from '@/features/auth'
+import { DisplayNameSettings } from '@/features/display-name-change'
 import { EmailSettings } from '@/features/email-bind'
 import { AppCard, AppIcon, PageHeader } from '@/shared/ui'
 
-// One's own account settings. Name and login are read-only,
+// One's own account settings. The name changes once in 30 days, the login is read-only,
 // the email is bound with a confirmation letter (features/email-bind).
 const router = useRouter()
 const userStore = useUserStore()
@@ -24,8 +25,7 @@ const passwordChanged = ref(false)
         <AppCard class="settings__fields">
           <div class="settings__field">
             <span class="settings__label">Имя или никнейм</span>
-            <span>{{ userStore.user.display_name }}</span>
-            <span class="settings__hint">Так вас видят в таблицах результатов</span>
+            <DisplayNameSettings />
           </div>
           <div class="settings__field">
             <span class="settings__label">Логин</span>
@@ -60,7 +60,10 @@ const passwordChanged = ref(false)
         <RouterLink :to="{ name: 'admin-deleted-users' }">Имена удалённых аккаунтов</RouterLink>
       </AppCard>
 
-      <LogoutButton @done="router.replace({ name: 'home' })" />
+      <div class="settings__logout">
+        <LogoutButton @done="router.replace({ name: 'home' })" />
+        <LogoutEverywhereButton @done="router.replace({ name: 'login' })" />
+      </div>
 
       <section class="page__section">
         <h2 class="page__section-title">Удаление аккаунта</h2>
@@ -74,6 +77,12 @@ const passwordChanged = ref(false)
 
 <style scoped>
 .settings__admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.settings__logout {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

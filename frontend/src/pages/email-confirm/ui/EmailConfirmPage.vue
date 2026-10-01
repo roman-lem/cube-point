@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { useUserStore } from '@/entities/user'
 import { confirmEmail } from '@/features/email-bind'
 import { ApiError } from '@/shared/api'
+import { useLinkToken } from '@/shared/lib'
 import { AppButton, AppCard, FormError, PageHeader } from '@/shared/ui'
 
-// The link from the letter: /confirm-email?token=… Opens without logging in (often
+// The link from the letter: /confirm-email#token=… (useLinkToken). Opens without logging in (often
 // on a phone's mail app). The email is confirmed by a button, not on opening:
 // mail services open links from letters by themselves to check them.
-const route = useRoute()
 const userStore = useUserStore()
-const token = typeof route.query.token === 'string' ? route.query.token : ''
+const token = useLinkToken()
 
 const loading = ref(false)
 const confirmed = ref<string | null>(null)

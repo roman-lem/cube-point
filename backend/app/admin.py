@@ -17,7 +17,7 @@ from werkzeug.security import generate_password_hash
 
 # auth before accounts: accounts and auth.routes import each other.
 from .auth import throttle
-from .auth.validation import login_error, name_error, normalize_login, password_error
+from .auth.validation import login_error, name_error, new_password_error, normalize_login
 from .accounts import reset_password  # noqa: I001
 from .clubs import text_error
 from .errors import ApiError, ValidationError
@@ -29,6 +29,7 @@ from .models import (
     DELETED_USER_NAME, Attempt, Club, ClubMember, ClubRole, ConsentType, Meetup, MeetupEvent,
     MeetupParticipant, MeetupStatus, Series, User, UserConsent,
 )
+from .names import change_name, last_change, name_history
 from .permissions import get_or_404, is_last_organizer
 from .scoring import recalc_records
 
@@ -395,7 +396,11 @@ def get_user(user_id):
         **user_rows([user])[0],
         "consents": latest_consents(user),
         "meetups": meetups_with_results(user.id),
-        "restrictions": {"reset_password": reset_password_restriction(user)},
+        "name_history": name_history(user),
+        "restrictions": {
+            "reset_password": reset_password_restriction(user),
+            "revert_name": revert_name_restriction(user),
+        },
     }}
 
 
@@ -413,6 +418,27 @@ def reset_user_password(user_id):
     throttle.clear_failures(user.login)
     db.session.commit()
     return {"temporary_password": password}
+
+
+def revert_name_restriction(user):
+    """Why the administrator cannot return the previous name, or None."""
+    if user.deleted_at is not None:
+        return "Аккаунт удалён"
+    if last_change(user) is None:
+        return "Имя не менялось"
+    return None
+
+
+@admin.post("/users/<int:user_id>/display-name/revert")
+def revert_user_name(user_id):
+    """Returns the name before the latest change. It is not the user's own change:
+    their limit on name changes stays as it was (names.name_change_available_at)."""
+    user = get_or_404(User, user_id, "Пользователь не найден")
+    if reason := revert_name_restriction(user):
+        raise ApiError(409, "not_allowed", reason)
+    change_name(user, last_change(user).old_name, changed_by=current_user.id)
+    db.session.commit()
+    return {"display_name": user.display_name, "name_history": name_history(user)}
 
 
 # Meetup deletion
@@ -529,7 +555,7 @@ def make_admin_command(login):
         if error := name_error(display_name):
             raise click.ClickException(f"Name: {error}")
         password = click.prompt("Password", hide_input=True, confirmation_prompt=True)
-        if error := password_error(password):
+        if error := new_password_error(password, login):
             raise click.ClickException(f"Password: {error}")
         user = User(
             login=login, display_name=display_name,

@@ -196,14 +196,15 @@ def test_password_reset_revokes_sessions(world, org, clients):
 
 def test_password_reset_clears_login_throttle(world, org):
     with world["app"].app_context():
-        for _ in range(throttle.MAX_FAILURES):
-            db.session.add(LoginFailure(login="anna"))
+        for number in range(throttle.LOGIN_LIMIT):
+            db.session.add(LoginFailure(login="anna", ip=f"203.0.113.{number}"))
         db.session.commit()
+        assert throttle.seconds_until_unblocked("anna", "198.51.100.1") is not None
 
     org.post(members_url(world, user_id_of(world, "anna"), "password-reset"))
 
     with world["app"].app_context():
-        assert throttle.seconds_until_unblocked("anna", None) is None
+        assert throttle.seconds_until_unblocked("anna", "198.51.100.1") is None
 
 
 def test_organizer_cannot_reset_organizer_password(world, org):
@@ -246,6 +247,35 @@ def test_nobody_resets_own_password(world, org):
     assert response.status_code == 409
 
 
+def set_email(world, login, address):
+    with world["app"].app_context():
+        db.session.get(User, user_id_of(world, login)).email = address
+        db.session.commit()
+
+
+def test_organizer_cannot_reset_password_of_member_with_email(world, org):
+    """With a confirmed email the member restores the password by themselves."""
+    set_email(world, "anna", "anna@example.com")
+
+    response = org.post(members_url(world, user_id_of(world, "anna"), "password-reset"))
+
+    assert response.status_code == 409
+    reason = "У участника привязана почта, он может восстановить пароль сам"
+    assert error(response)["message"] == reason
+    assert card(org, world, "anna")["restrictions"]["reset_password"] == reason
+    client_for(world["app"], "anna")  # the password did not change
+
+
+def test_admin_resets_password_of_member_with_email(world, org):
+    set_email(world, "anna", "anna@example.com")
+    admin = make_admin(world, "admin")
+
+    response = admin.post(members_url(world, user_id_of(world, "anna"), "password-reset"))
+
+    assert response.status_code == 200
+    assert card(admin, world, "anna")["restrictions"]["reset_password"] is None
+
+
 def test_admin_resets_organizer_password(world, org):
     admin = make_admin(world, "admin")
 
@@ -259,13 +289,41 @@ def test_admin_resets_organizer_password(world, org):
 
 def test_promote_and_demote_organizer(world, org):
     anna = user_id_of(world, "anna")
+    admin = make_admin(world, "admin")
 
     response = org.put(members_url(world, anna, "organizer"))
     assert response.get_json()["member"]["role"] == "organizer"
 
-    response = org.delete(members_url(world, anna, "organizer"))
+    response = admin.delete(members_url(world, anna, "organizer"))
     assert response.get_json()["member"]["role"] == "member"
     assert membership(world, "anna").role == ClubRole.MEMBER
+
+
+def test_organizer_cannot_demote_another_organizer(world, org):
+    # Otherwise the next step would be resetting the former organizer's password.
+    create_user(world["app"], "org2", ORGANIZER, world["club_id"])
+
+    response = org.delete(members_url(world, user_id_of(world, "org2"), "organizer"))
+
+    assert response.status_code == 409
+    assert error(response)["message"] == "Права другого организатора снимает администратор"
+    assert membership(world, "org2").role == ClubRole.ORGANIZER
+    assert card(org, world, "org2")["restrictions"]["organizer"] == (
+        "Права другого организатора снимает администратор"
+    )
+    # Appointing is still the organizer's: the restriction is only about removing.
+    assert card(org, world, "anna")["restrictions"]["organizer"] is None
+
+
+def test_admin_demotes_any_organizer(world, org):
+    create_user(world["app"], "org2", ORGANIZER, world["club_id"])
+    admin = make_admin(world, "admin")
+    assert card(admin, world, "org2")["restrictions"]["organizer"] is None
+
+    response = admin.delete(members_url(world, user_id_of(world, "org2"), "organizer"))
+
+    assert response.status_code == 200
+    assert membership(world, "org2").role == ClubRole.MEMBER
 
 
 def test_cannot_demote_last_organizer(world, org):
@@ -328,6 +386,19 @@ def test_cannot_ban_organizer(world, org):
     assert response.status_code == 409
     assert error(response)["message"] == "Сначала снимите права организатора"
     assert membership(world, "org2").banned_at is None
+
+
+def test_organizer_cannot_ban_admin(world, org):
+    with world["app"].app_context():
+        db.session.get(User, user_id_of(world, "anna")).is_admin = True
+        db.session.commit()
+
+    response = ban(org, world, "anna")
+
+    assert response.status_code == 409
+    assert error(response)["message"] == "Администратора нельзя заблокировать"
+    assert membership(world, "anna").banned_at is None
+    assert card(org, world, "anna")["restrictions"]["ban"] == "Администратора нельзя заблокировать"
 
 
 def test_cannot_ban_self(world):

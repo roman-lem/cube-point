@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { TimeValue } from '@/entities/attempt'
 import { MemberBadge, type MemberEventResult } from '@/entities/club'
 import { RecordBadge } from '@/entities/record'
+import { NameHistory } from '@/entities/user'
 import { AnonymizeButton } from '@/features/deleted-name'
 import { PasswordResetButton } from '@/features/password-reset'
 import { eventName, EVENTS, formatDate } from '@/shared/lib'
-import { AppCard, SettingRow } from '@/shared/ui'
-import type { AdminUserCard } from '../api/adminUsersApi'
+import { ApiError } from '@/shared/api'
+import { AppButton, AppCard, ConfirmDialog, FormError, SettingRow } from '@/shared/ui'
+import { revertUserName, type AdminUserCard } from '../api/adminUsersApi'
 
-// The administrator's user card: account data, clubs, consents,
-// meetups with results in all clubs, password reset and anonymization.
+// The administrator's user card: account data, clubs, consents, name history,
+// meetups with results in all clubs, password reset, name revert and anonymization.
 const { user } = defineProps<{ user: AdminUserCard }>()
 const emit = defineEmits<{ changed: [] }>()
 
@@ -40,6 +42,31 @@ const consents = computed(() =>
     return entry ? [{ type, label, ...entry }] : []
   }),
 )
+
+// Returning the previous name: not the user's own change, their limit stays.
+const revertOpen = ref(false)
+const reverting = ref(false)
+const revertError = ref('')
+const previousName = computed(() => user.name_history[0]?.old_name ?? '')
+
+function askRevert() {
+  revertError.value = ''
+  revertOpen.value = true
+}
+
+async function revertName() {
+  reverting.value = true
+  revertError.value = ''
+  try {
+    await revertUserName(user.id)
+    revertOpen.value = false
+    emit('changed')
+  } catch (e) {
+    revertError.value = e instanceof ApiError ? e.message : 'Не удалось вернуть имя'
+  } finally {
+    reverting.value = false
+  }
+}
 
 /** The main result of a series: the average for ao5/mo3, otherwise the best attempt. */
 function mainResult(result: MemberEventResult) {
@@ -96,6 +123,11 @@ function mainResult(result: MemberEventResult) {
     </AppCard>
 
     <AppCard class="user-card__section">
+      <h3 class="user-card__heading">История имён</h3>
+      <NameHistory :history="user.name_history" />
+    </AppCard>
+
+    <AppCard class="user-card__section">
       <h3 class="user-card__heading">Согласия</h3>
       <p v-if="consents.length === 0" class="user-card__muted">Согласий нет.</p>
       <dl v-else class="user-card__facts">
@@ -147,6 +179,15 @@ function mainResult(result: MemberEventResult) {
           :restriction="user.restrictions.reset_password"
         />
         <SettingRow
+          title="Вернуть предыдущее имя"
+          description="Отменяет последнюю смену имени. Ограничение пользователя на смену имени раз в 30 дней не сбрасывается."
+          :restriction="user.restrictions.revert_name"
+        >
+          <AppButton variant="secondary" :disabled="user.restrictions.revert_name !== null" @click="askRevert">
+            Вернуть имя
+          </AppButton>
+        </SettingRow>
+        <SettingRow
           v-if="user.kept_name"
           title="Обезличить"
           description="Человек удалил аккаунт, но оставил имя в результатах. Если он отзывает согласие, имя заменится на «Удалённый участник»."
@@ -156,6 +197,17 @@ function mainResult(result: MemberEventResult) {
       </div>
     </AppCard>
   </div>
+
+  <ConfirmDialog
+    v-model:open="revertOpen"
+    title="Вернуть предыдущее имя?"
+    confirm-label="Вернуть имя"
+    :loading="reverting"
+    @confirm="revertName"
+  >
+    <p>Имя «{{ user.display_name }}» сменится на «{{ previousName }}» во всех таблицах.</p>
+    <FormError v-if="revertError" :message="revertError" />
+  </ConfirmDialog>
 </template>
 
 <style scoped>

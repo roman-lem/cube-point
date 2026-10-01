@@ -5,6 +5,8 @@ Each function returns an error text or None.
 
 import re
 
+from werkzeug.security import check_password_hash
+
 from ..models import DELETED_USER_NAME
 
 LOGIN_MIN, LOGIN_MAX = 3, 32
@@ -77,4 +79,20 @@ def password_error(password):
         return f"Минимум {PASSWORD_MIN} символов"
     if len(password) > PASSWORD_MAX:
         return f"Максимум {PASSWORD_MAX} символов"
+    return None
+
+
+def new_password_error(password, login, current_hash=None):
+    """A password the user sets: registration, change, reset by email.
+
+    Not the login (ignoring case) and not the current password (only the current hash
+    is checked, old passwords are not kept): a temporary password cannot be kept.
+    """
+    error = password_error(password)
+    if error:
+        return error
+    if login and password.casefold() == login.casefold():
+        return "Пароль не должен совпадать с логином"
+    if current_hash and check_password_hash(current_hash, password):
+        return "Новый пароль совпадает с текущим"
     return None

@@ -20,6 +20,7 @@ from .models import (
     Club, ClubMember, ClubRecord, ClubRole, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
     ParticipantStatus, Series, User, utcnow,
 )
+from .names import name_history
 from .permissions import get_or_404, is_active_organizer, is_last_organizer, require_club_manager
 from .scoring import event_table
 
@@ -188,6 +189,8 @@ def reset_password_restriction(membership):
         ClubMember.user_id == user.id, ClubMember.role == ClubRole.ORGANIZER,
     ).limit(1)):
         return "Пароль этого участника сбрасывает администратор"
+    if user.email:
+        return "У участника привязана почта, он может восстановить пароль сам"
     return None
 
 
@@ -195,6 +198,10 @@ def organizer_restriction(membership):
     if membership.role == ClubRole.ORGANIZER:
         if is_last_organizer(membership.club_id, membership.user_id):
             return "Нельзя снять последнего организатора"
+        # Otherwise an organizer could demote a co-organizer and then reset their
+        # password: only the administrator may reset an organizer's password.
+        if membership.user_id != current_user.id and not current_user.is_admin:
+            return "Права другого организатора снимает администратор"
         return None
     if membership.banned_at is not None:
         return "Сначала разблокируйте участника"
@@ -208,6 +215,8 @@ def ban_restriction(membership):
         return "Нельзя заблокировать самого себя"
     if membership.role == ClubRole.ORGANIZER:
         return "Сначала снимите права организатора"
+    if membership.user.is_admin and not current_user.is_admin:
+        return "Администратора нельзя заблокировать"
     return None
 
 
@@ -292,6 +301,8 @@ def member_card(membership):
         "meetups_count": len(meetups),
         "meetups": meetups,
         "live_meetup": live_meetup(membership),
+        # Seen only by the club's organizers and the administrator (get_managed_member).
+        "name_history": name_history(user),
         "restrictions": restrictions(membership),
     }
 
@@ -333,7 +344,10 @@ def make_organizer(club_id, user_id):
 
 @members.delete("/clubs/<int:club_id>/members/<int:user_id>/organizer")
 def remove_organizer(club_id, user_id):
-    """Removes organizer rights; the user stays in the club. One can remove them from oneself."""
+    """Removes organizer rights; the user stays in the club.
+
+    An organizer removes them only from oneself, from others — the administrator.
+    """
     membership = get_managed_member(club_id, user_id)
     if membership.role == ClubRole.ORGANIZER:
         require_allowed(organizer_restriction(membership))

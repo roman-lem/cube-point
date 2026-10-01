@@ -8,7 +8,7 @@ from app.models import (
     UserConsent,
 )
 
-from .helpers import ORGANIZER, PASSWORD, client_for, create_user, error
+from .helpers import ORGANIZER, PASSWORD, client_for, create_user, error, registration_form
 from .test_profiles import club_records, disqualify, members, personal_records, profile
 from .test_series import (  # noqa: F401 — fixtures
     clients, meetup_id, org, records, results, solve, user_id_of, world,
@@ -239,7 +239,9 @@ def test_login_of_kept_name_account_is_free(world, clients):
     anna = user_id_of(world, "anna")
     delete_account(clients["anna"], keep_name=True)
 
-    response = world["app"].test_client().post("/api/auth/register", json={
+    client = world["app"].test_client()
+    response = client.post("/api/auth/register", json={
+        **registration_form(client),
         "display_name": "Новая Анна",
         "login": "Anna",
         "password": PASSWORD,

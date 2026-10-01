@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { TimeValue } from '@/entities/attempt'
 import { MemberBadge, type ClubMemberCard, type MemberEventResult } from '@/entities/club'
+import { NameHistory } from '@/entities/user'
 import { RecordBadge } from '@/entities/record'
 import { DisqualificationControl } from '@/features/disqualification'
 import { BanControl } from '@/features/member-ban'
@@ -144,6 +145,11 @@ function mainResult(result: MemberEventResult) {
         {{ showAll ? 'Свернуть' : `Показать все ${plural(member.meetups.length, ['встречу', 'встречи', 'встреч'])}` }}
         <AppIcon :name="showAll ? 'expand-less' : 'expand-more'" :size="20" />
       </button>
+    </AppCard>
+
+    <AppCard v-if="member.name_history.length > 0" class="member-card__section">
+      <h3 class="member-card__heading">История имён</h3>
+      <NameHistory :history="member.name_history" />
     </AppCard>
 
     <AppCard class="member-card__section">

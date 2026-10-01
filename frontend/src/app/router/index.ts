@@ -16,6 +16,7 @@ import { ConsentPage } from '@/pages/consent'
 import { EmailConfirmPage } from '@/pages/email-confirm'
 import { EventResultsPage } from '@/pages/event-results'
 import { FmcPage } from '@/pages/fmc'
+import { ForgotPasswordPage } from '@/pages/forgot-password'
 import { JoinPage } from '@/pages/join'
 import { LandingPage } from '@/pages/landing'
 import { MeetupPage } from '@/pages/meetup'
@@ -24,6 +25,7 @@ import { MeetupManagePage } from '@/pages/meetup-manage'
 import { PrivacyPage } from '@/pages/privacy'
 import { ProfileSettingsPage } from '@/pages/profile-settings'
 import { PublicationConsentPage } from '@/pages/publication-consent'
+import { ResetPasswordPage } from '@/pages/reset-password'
 import { ScramblePrintPage } from '@/pages/scramble-print'
 import { SeriesEditPage } from '@/pages/series-edit'
 import { StatisticsPage } from '@/pages/statistics'
@@ -57,7 +59,8 @@ export const router = createRouter({
   history: createWebHistory(),
   // Links to page sections (/privacy#processing) scroll to them.
   scrollBehavior(to, _from, savedPosition) {
-    if (to.hash) {
+    // "#token=…" in links from letters is data, not an element to scroll to.
+    if (to.hash && !to.hash.includes('=')) {
       return { el: to.hash }
     }
     return savedPosition ?? false
@@ -106,6 +109,14 @@ export const router = createRouter({
     },
     // The link from the email confirmation letter: open without logging in.
     { path: '/confirm-email', name: 'email-confirm', component: EmailConfirmPage },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordPage,
+      meta: { guestOnly: true },
+    },
+    // The link from the password reset letter: open without logging in.
+    { path: '/reset-password', name: 'reset-password', component: ResetPasswordPage },
 
     // Club
     {

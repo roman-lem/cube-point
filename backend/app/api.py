@@ -31,6 +31,10 @@ ALLOWED_BEFORE_PASSWORD_CHANGE = {
     "api.auth.me",
     "api.auth.change_password",
     "api.auth.logout",
+    # Do not need a login: the link from the letter may be opened in a logged-in browser.
+    "api.auth.request_password_reset",
+    "api.auth.check_password_reset",
+    "api.auth.confirm_password_reset",
 }
 
 

@@ -8,13 +8,15 @@ import { cancelPendingEmail, removeEmail, requestEmail } from '../api/emailApi'
 
 // The email in the profile settings. An address is bound only after the link
 // from the letter is opened (the email-confirm page); until then it is pending,
-// and a confirmed address stays the old one. Removing needs the password.
+// and a confirmed address stays the old one. A new address and removing need
+// the password; sending the letter again to the pending address does not.
 const userStore = useUserStore()
 const email = computed(() => userStore.user?.email ?? null)
 const pending = computed(() => userStore.user?.pending_email ?? null)
 
 const { fieldErrors, formError, clearErrors, showError } = useFormErrors()
 const address = ref('')
+const addressPassword = ref('')
 // The address form: always without an email, on "Change" otherwise.
 const editing = ref(false)
 const showForm = computed(() => editing.value || (!email.value && !pending.value))
@@ -25,12 +27,14 @@ function apply(state: EmailState) {
   userStore.setEmail(state)
   editing.value = false
   address.value = ''
+  addressPassword.value = ''
 }
 
 function startEditing() {
   clearErrors()
   sent.value = false
   address.value = ''
+  addressPassword.value = ''
   editing.value = true
 }
 
@@ -49,11 +53,14 @@ async function run(action: () => Promise<EmailState>, letter: boolean) {
 }
 
 function submit() {
-  if (!address.value.trim()) {
-    fieldErrors.value = { email: 'Введите адрес почты' }
+  const errors: Record<string, string> = {}
+  if (!address.value.trim()) errors.email = 'Введите адрес почты'
+  if (!addressPassword.value) errors.password = 'Введите пароль'
+  if (Object.keys(errors).length > 0) {
+    fieldErrors.value = errors
     return
   }
-  run(() => requestEmail(address.value), true)
+  run(() => requestEmail(address.value, addressPassword.value), true)
 }
 
 // Removing: a dialog with the password.
@@ -137,6 +144,13 @@ async function confirmRemove() {
         autocomplete="email"
         hint="Придёт письмо со ссылкой для подтверждения. Почту видите только вы"
         :error="fieldErrors.email"
+      />
+      <AppInput
+        v-model="addressPassword"
+        label="Текущий пароль"
+        type="password"
+        autocomplete="current-password"
+        :error="fieldErrors.password"
       />
       <div class="email-settings__actions">
         <AppButton type="submit" :loading="loading">Отправить письмо</AppButton>

@@ -27,6 +27,12 @@ describe('forcedRedirect', () => {
     })
   })
 
+  it('lets the password reset link through: it sets a new password itself', () => {
+    const reset = route('reset-password', '/reset-password?token=abc')
+    expect(forcedRedirect(PASSWORD, reset)).toBeNull()
+    expect(forcedRedirect(BOTH, reset)).toBeNull()
+  })
+
   it('does not navigate again from the forced page itself', () => {
     expect(forcedRedirect(CONSENTS, route('consent', '/consent?redirect=/timer'))).toBeNull()
     expect(forcedRedirect(PASSWORD, route('change-password', '/change-password'))).toBeNull()

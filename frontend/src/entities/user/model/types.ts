@@ -19,6 +19,16 @@ export interface User extends EmailState {
   consents_required: boolean
   /** Why the account cannot be deleted (last organizer of a club), or null. */
   delete_restriction: string | null
+  /** When the display name can be changed again (once in 30 days), null if now. */
+  display_name_change_available_at: string | null
+}
+
+/** A display name change. by_admin: the previous name was returned by an administrator. */
+export interface NameChange {
+  old_name: string
+  new_name: string
+  changed_at: string
+  by_admin: boolean
 }
 
 /** The meetup where a personal best was set. The date is already in the club's time zone. */

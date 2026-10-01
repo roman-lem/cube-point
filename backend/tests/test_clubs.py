@@ -66,6 +66,47 @@ def test_guest_cannot_update_club(app, club_id):
     assert response.status_code == 401
 
 
+@pytest.mark.parametrize("url, message", [
+    # Only https.
+    ("http://speedcubing-tmn.ru", "Ссылка должна начинаться с https://"),
+    ("ftp://speedcubing-tmn.ru", "Ссылка должна начинаться с https://"),
+    # A user name before the host: the real host is evil.example.
+    ("https://vk.com@evil.example", "Неверная ссылка"),
+    ("vk.com@evil.example/club", "Неверная ссылка"),
+    ("https://user:pass@vk.com", "Неверная ссылка"),
+    # Whitespace and control characters anywhere inside.
+    ("https://vk.com/tyumen speedcubing", "В ссылке не должно быть пробелов и невидимых символов"),
+    ("https://vk.com/\ttyumen", "В ссылке не должно быть пробелов и невидимых символов"),
+    ("https://vk.com/\ntyumen", "В ссылке не должно быть пробелов и невидимых символов"),
+    ("https://vk.com/\u00a0tyumen", "В ссылке не должно быть пробелов и невидимых символов"),
+    ("https://vk.com/\x00tyumen", "В ссылке не должно быть пробелов и невидимых символов"),
+    ("https://vk.com/\u200btyumen", "В ссылке не должно быть пробелов и невидимых символов"),
+    ("https://vk.com/\u202etyumen", "В ссылке не должно быть пробелов и невидимых символов"),
+])
+def test_club_link_rules(app, club_id, url, message):
+    response = client_for(app, "org").patch(
+        f"/api/clubs/{club_id}", json=settings(links=[{"type": "site", "url": url}]),
+    )
+
+    assert response.status_code == 422
+    assert response.get_json()["error"]["fields"] == {"links.0.url": message}
+
+
+@pytest.mark.parametrize("url, saved", [
+    ("vk.com/tyumen_speedcubing", "https://vk.com/tyumen_speedcubing"),
+    ("  https://vk.com/tyumen  ", "https://vk.com/tyumen"),
+    # @ after the host is part of the path, not a user name.
+    ("https://t.me/@tyumen_cubing", "https://t.me/@tyumen_cubing"),
+])
+def test_club_link_accepted(app, club_id, url, saved):
+    response = client_for(app, "org").patch(
+        f"/api/clubs/{club_id}", json=settings(links=[{"type": "site", "url": url}]),
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["club"]["links"][0]["url"] == saved
+
+
 @pytest.mark.parametrize("overrides, field", [
     ({"name": ""}, "name"),
     ({"city": " "}, "city"),

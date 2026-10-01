@@ -69,7 +69,7 @@ watch(filter, loadList)
 watch(() => userId, loadUser, { immediate: true })
 
 function onChanged() {
-  // Anonymization changes the name both in the card and in the list.
+  // Anonymization and the name revert change the name both in the card and in the list.
   loadUser(userId)
   loadList()
 }

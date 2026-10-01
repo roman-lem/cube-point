@@ -1,4 +1,5 @@
 import type { ClubRole, MemberMeetup, Restriction } from '@/entities/club'
+import type { NameChange } from '@/entities/user'
 import { http } from '@/shared/api'
 
 // Administrator only, see backend/app/admin.py.
@@ -30,7 +31,9 @@ export interface AdminUserCard extends AdminUser {
   consents: Partial<Record<'processing' | 'publication' | 'age' | 'deleted_name', ConsentEntry>>
   /** Meetups with the user's results in all clubs, newest first. */
   meetups: (MemberMeetup & { club: { id: number; name: string } })[]
-  restrictions: { reset_password: Restriction }
+  /** Display name changes, newest first. */
+  name_history: NameChange[]
+  restrictions: { reset_password: Restriction; revert_name: Restriction }
 }
 
 export async function fetchAdminUsers(query: string, filter: UserFilter, offset: number) {
@@ -40,4 +43,11 @@ export async function fetchAdminUsers(query: string, filter: UserFilter, offset:
 
 export async function fetchAdminUser(userId: number) {
   return (await http.get<{ user: AdminUserCard }>(`/api/admin/users/${userId}`)).user
+}
+
+/** Returns the name before the latest change; the user's own limit on changes stays. */
+export async function revertUserName(userId: number) {
+  return http.post<{ display_name: string; name_history: NameChange[] }>(
+    `/api/admin/users/${userId}/display-name/revert`,
+  )
 }

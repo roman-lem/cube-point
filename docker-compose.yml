@@ -10,8 +10,10 @@ services:
       SECURE_COOKIES: ${SECURE_COOKIES:-1}
       # 0 closes registration; login for existing accounts works.
       REGISTRATION_OPEN: ${REGISTRATION_OPEN:-1}
-      # Without MAIL_HOST letters are written to the container log.
+      # Without MAIL_HOST letters are not sent: the container log gets their
+      # subject, or the whole letter with MAIL_LOG_BODY=1.
       MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_LOG_BODY: ${MAIL_LOG_BODY:-0}
       MAIL_PORT: ${MAIL_PORT:-465}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}

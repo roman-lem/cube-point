@@ -17,6 +17,10 @@ interface ForcedState {
 
 /** The forced page the user has to go to now, or null. The password comes first. */
 export function requiredPage(user: ForcedState | null, toName: unknown) {
+  // The link from a password reset letter sets a new password itself.
+  if (toName === 'reset-password') {
+    return null
+  }
   if (user?.must_change_password) {
     return 'change-password'
   }

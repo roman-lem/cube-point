@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useUserStore } from '@/entities/user'
 import { ApiError } from '@/shared/api'
 import { AppButton, AppInput, FormError } from '@/shared/ui'
-import { fetchRegistrationOpen, register } from '../api/authApi'
+import { fetchRegistration, register } from '../api/authApi'
 import { emptyConsents, missingConsents } from '../model/consents'
 import { useFormErrors } from '@/shared/lib'
 import ConsentFields from './ConsentFields.vue'
@@ -19,9 +19,22 @@ const loading = ref(false)
 // Registration can be closed on the server (REGISTRATION_OPEN=0). If the status
 // did not load, the form stays: the server checks anyway.
 const registrationOpen = ref(true)
-onMounted(async () => {
-  registrationOpen.value = await fetchRegistrationOpen().catch(() => true)
-})
+// Protection from scripts (auth/registration.py on the server): the form token
+// tells the server when the form was opened, the trap field stays empty for people.
+const formToken = ref('')
+const trap = ref('')
+
+async function loadRegistration() {
+  try {
+    const status = await fetchRegistration()
+    registrationOpen.value = status.open
+    formToken.value = status.form_token
+  } catch {
+    // Without a token the server rejects the request, and the form loads it again.
+  }
+}
+
+onMounted(loadRegistration)
 
 async function submit() {
   clearErrors()
@@ -38,13 +51,20 @@ async function submit() {
   loading.value = true
   try {
     const { display_name, login, password } = form.value
-    userStore.setUser(await register({ display_name, login, password, consents: consents.value }))
+    userStore.setUser(await register({
+      display_name, login, password, consents: consents.value,
+      form_token: formToken.value, website: trap.value,
+    }))
     emit('success')
   } catch (error) {
     if (error instanceof ApiError && error.code === 'registration_closed') {
       registrationOpen.value = false
     } else {
       showError(error)
+      // A stale or missing token: a new one, so that the next attempt goes through.
+      if (error instanceof ApiError && error.code === 'registration_rejected') {
+        await loadRegistration()
+      }
     }
   } finally {
     loading.value = false
@@ -77,7 +97,7 @@ async function submit() {
       label="Пароль"
       type="password"
       autocomplete="new-password"
-      hint="Минимум 8 символов"
+      hint="Минимум 8 символов, не совпадает с логином"
       :error="fieldErrors.password"
     />
     <AppInput
@@ -87,6 +107,13 @@ async function submit() {
       autocomplete="new-password"
       :error="fieldErrors.password_repeat"
     />
+    <!-- A trap for scripts: hidden from people and screen readers, filled only by bots. -->
+    <div class="auth-form__trap" aria-hidden="true">
+      <label>
+        Сайт
+        <input v-model="trap" type="text" name="website" tabindex="-1" autocomplete="off" />
+      </label>
+    </div>
     <ConsentFields v-model="consents" :errors="fieldErrors" />
     <FormError v-if="formError" :message="formError" />
     <AppButton type="submit" class="auth-form__submit" :loading="loading">Создать аккаунт</AppButton>

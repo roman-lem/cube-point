@@ -33,6 +33,9 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
+# The backend does not start without SECRET_KEY (at least 32 characters). Put it in
+# the repository's .env: flask reads that file. See .env.example.
+cp ../.env.example ../.env       # then set SECRET_KEY, and MAIL_LOG_BODY=1 to see letters in the log
 
 flask --app wsgi db upgrade                 # create the database (backend/instance/cubing.db)
 ALLOW_SEED=1 flask --app wsgi seed          # optional: demo club, users and meetups
@@ -71,11 +74,13 @@ docker compose exec backend flask make-admin LOGIN
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `SECRET_KEY` | `dev-secret-key` (development only) | Flask secret key. Required by Docker Compose. |
-| `SECURE_COOKIES` | `1` in Docker Compose, off otherwise | Send cookies over HTTPS only. Set `0` when opening the Docker build over plain http from a device other than localhost. |
+| `SECRET_KEY` | — | Flask secret key, at least 32 characters. Required everywhere except tests: the backend refuses to start without it. |
+| `SECURE_COOKIES` | `1` in Docker Compose, off otherwise | Send cookies over HTTPS only. Set `0` when opening the local Docker build over plain http from a device other than localhost. Always `1` in production. |
 | `REGISTRATION_OPEN` | `1` | `0` closes registration. Login and organizer-created accounts keep working. |
 | `ALLOW_SEED` | off | `1` allows `flask seed` and `flask seed-demo`, which wipe the database and fills it with demo data. Never set it in production. |
 | `DATABASE_URL` | `sqlite:///cubing.db` | SQLAlchemy database URL. A relative SQLite path is resolved against `backend/instance/`. |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | — | SMTP mailbox for letters. `MAIL_HOST` is required in production. Without it letters are not sent, only their subject is logged. |
+| `MAIL_LOG_BODY` | off | Development: `1` writes whole letters (with links) to the log when `MAIL_HOST` is not set. |
 | `SITE_URL` | `http://localhost:5173` | Site address; meetup links and QR codes are built from it. In production it is `https://DOMAIN`. |
 
 ### Production

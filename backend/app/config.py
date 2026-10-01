@@ -5,7 +5,9 @@ from datetime import timedelta
 class Config:
     """Settings from environment variables."""
 
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
+    # Signs session cookies. Required outside tests: create_app refuses to start
+    # without a long enough key (check_secret_key in __init__.py).
+    SECRET_KEY = os.environ.get("SECRET_KEY", "")
     # A relative SQLite path is resolved against the instance/ folder.
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///cubing.db")
 
@@ -22,7 +24,9 @@ class Config:
     REGISTRATION_OPEN = os.environ.get("REGISTRATION_OPEN", "1") != "0"
 
     # Letters (mail.py) go through the mailbox on the site's domain, SMTP over SSL.
-    # Without MAIL_HOST (development) a letter is written to the log instead.
+    # Without MAIL_HOST (development) a letter is not sent: only its subject is
+    # written to the log, the whole letter only with MAIL_LOG_BODY=1 (links in it
+    # carry tokens). docker-compose.prod.yml requires MAIL_HOST and never passes MAIL_LOG_BODY.
     # MAIL_FROM carries the sender name: "Name <noreply@example.ru>".
     MAIL_HOST = os.environ.get("MAIL_HOST", "")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "465"))
@@ -31,6 +35,11 @@ class Config:
     MAIL_FROM = os.environ.get("MAIL_FROM", "")
     # Seconds per SMTP operation: a stuck mail server must not hold the response.
     MAIL_TIMEOUT = 5
+    MAIL_LOG_BODY = os.environ.get("MAIL_LOG_BODY") == "1"
+
+    # Request body limit; Flask answers 413. The biggest real request
+    # (a meetup with all events and scrambles) is far below it.
+    MAX_CONTENT_LENGTH = 1024 * 1024
 
     # `flask seed` wipes and fills the database with demo data, so it only runs
     # where it is explicitly allowed (development), never on production by accident.

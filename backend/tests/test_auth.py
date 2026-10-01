@@ -4,23 +4,26 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from app.auth import throttle
+from app.auth import registration, throttle
 from app.consents import CONSENT_VERSIONS
 from app.extensions import db
-from app.models import LoginFailure, User
+from app.models import LoginFailure, Registration, User, utcnow
 
 from .conftest import TEST_CONFIG
+from .helpers import registration_form
 
 PASSWORD = "secret-pass"
 CONSENTS = {t.value: version for t, version in CONSENT_VERSIONS.items()}
 
 
 def register(client, login="ivan_petrov", display_name="Иван Петров", password=PASSWORD,
-             consents=CONSENTS):
+             consents=CONSENTS, ip="127.0.0.1", **form):
+    """form overrides the fields of the bot protection (registration_form)."""
     return client.post("/api/auth/register", json={
+        **registration_form(client),
         "display_name": display_name, "login": login, "password": password,
-        "consents": consents,
-    })
+        "consents": consents, **form,
+    }, environ_base={"REMOTE_ADDR": ip})
 
 
 def login(client, login="ivan_petrov", password=PASSWORD, remember=False):
@@ -113,7 +116,7 @@ def test_register_accepts_names_and_nicknames(client, display_name):
 
 
 def test_register_reports_all_invalid_fields(client):
-    response = client.post("/api/auth/register", json={})
+    response = client.post("/api/auth/register", json=registration_form(client))
 
     assert set(error(response)["fields"]) == {
         "display_name", "login", "password",
@@ -228,7 +231,7 @@ def test_user_without_age_confirmation_is_asked(client, app):
 # Closed registration
 
 def test_registration_open_by_default(client):
-    assert client.get("/api/auth/registration").get_json() == {"open": True}
+    assert client.get("/api/auth/registration").get_json()["open"] is True
 
 
 def test_closed_registration_rejects_register_but_allows_login(client, app):
@@ -236,7 +239,7 @@ def test_closed_registration_rejects_register_but_allows_login(client, app):
     app.config["REGISTRATION_OPEN"] = False
     browser = app.test_client()
 
-    assert browser.get("/api/auth/registration").get_json() == {"open": False}
+    assert browser.get("/api/auth/registration").get_json()["open"] is False
     response = register(browser, login="another_user")
     assert response.status_code == 403
     assert error(response)["code"] == "registration_closed"
@@ -246,7 +249,9 @@ def test_closed_registration_rejects_register_but_allows_login(client, app):
 def test_register_with_non_json_body(client):
     response = client.post("/api/auth/register", data="not json")
 
-    assert response.status_code == 422
+    # Without the form token it is rejected before validation.
+    assert response.status_code == 400
+    assert error(response)["code"] == "registration_rejected"
 
 
 # Login and logout
@@ -415,90 +420,125 @@ def test_must_change_password_allows_only_password_change(client, app):
 
     assert response.status_code == 200
     assert response.get_json()["user"]["must_change_password"] is False
-    assert browser.post("/api/auth/register", json={}).status_code == 422
+    assert browser.post("/api/auth/register", json=registration_form(browser)).status_code == 422
 
 
 # Login throttling
 
-def test_too_many_failed_logins_block_even_correct_password(client, app):
-    register(client)
-    browser = app.test_client()
-    for _ in range(throttle.MAX_FAILURES):
-        assert login(browser, password="wrong-password").status_code == 401
-
-    response = login(browser, login="IVAN_PETROV")
-
-    assert response.status_code == 429
-    assert error(response)["code"] == "too_many_attempts"
-    retry_after = error(response)["retry_after"]
-    assert 0 < retry_after <= throttle.WINDOW.total_seconds()
-    assert response.headers["Retry-After"] == str(retry_after)
-
-
-def test_login_block_expires_after_window(client, app):
-    register(client)
-    for _ in range(throttle.MAX_FAILURES):
-        login(client, password="wrong-password")
-
+def age_failures(app, delta):
+    """Moves all failures back in time (instead of waiting)."""
     with app.app_context():
         for failure in db.session.scalars(db.select(LoginFailure)):
-            failure.created_at -= throttle.WINDOW
+            failure.created_at -= delta
         db.session.commit()
-
-    assert login(client).status_code == 200
-
-
-def test_successful_login_resets_failures(client, app):
-    register(client)
-    for _ in range(throttle.MAX_FAILURES - 1):
-        login(client, password="wrong-password")
-
-    assert login(client).status_code == 200
-    for _ in range(throttle.MAX_FAILURES - 1):
-        login(client, password="wrong-password")
-
-    assert login(client).status_code == 200
-
-
-def test_failures_are_counted_per_login(client, app):
-    register(client)
-    for _ in range(throttle.MAX_FAILURES):
-        login(client, login="someone_else", password="wrong-password")
-
-    assert login(client).status_code == 200
 
 
 # nginx appends the address it sees as the last X-Forwarded-For entry.
-def login_from(client, ip, spoofed=None, **kwargs):
+def login_from(client, ip, spoofed=None, login="ivan_petrov", password=PASSWORD):
     forwarded = f"{spoofed}, {ip}" if spoofed else ip
-    return client.post("/api/auth/login", json={
-        "login": kwargs.get("login", "ivan_petrov"),
-        "password": kwargs.get("password", PASSWORD),
-    }, headers={"X-Forwarded-For": forwarded})
+    return client.post("/api/auth/login", json={"login": login, "password": password},
+                       headers={"X-Forwarded-For": forwarded})
 
 
-def fail_from_ip(client, ip, times, spoofed=None):
-    # A new login each time: only the IP limit can trigger.
-    for i in range(times):
+def fail(client, ip, times, login="ivan_petrov"):
+    for _ in range(times):
+        assert login_from(client, ip, login=login, password="wrong-password").status_code == 401
+
+
+def fail_from_ip(client, ip, logins, spoofed=None):
+    # A new login each time: only the limit on different logins per IP can trigger.
+    for i in range(logins):
         response = login_from(client, ip, spoofed, login=f"guess_{i}", password="wrong-password")
         assert response.status_code == 401
 
 
-def test_too_many_failures_from_one_ip_block_it(client, app):
+def assert_blocked(response, window):
+    # The same response whichever limit triggered.
+    assert response.status_code == 429
+    assert error(response)["code"] == "too_many_attempts"
+    assert error(response)["message"].startswith("Слишком много неудачных попыток")
+    retry_after = error(response)["retry_after"]
+    assert 0 < retry_after <= window.total_seconds()
+    assert response.headers["Retry-After"] == str(retry_after)
+
+
+def test_failures_block_the_pair_even_with_correct_password(client, app):
     register(client)
-    fail_from_ip(client, "203.0.113.7", throttle.MAX_FAILURES_PER_IP)
+    register(app.test_client(), login="anna")
+    fail(client, "203.0.113.7", throttle.PAIR_LIMIT)
 
-    blocked = login_from(client, "203.0.113.7")
+    assert_blocked(login_from(client, "203.0.113.7", login="IVAN_PETROV"), throttle.PAIR_WINDOW)
+    # Only this login and only from this address.
+    assert login_from(client, "198.51.100.20").status_code == 200
+    assert login_from(client, "203.0.113.7", login="anna").status_code == 200
 
-    assert blocked.status_code == 429
-    assert error(blocked)["code"] == "too_many_attempts"
+
+def test_pair_block_expires_after_window(client, app):
+    register(client)
+    fail(client, "203.0.113.7", throttle.PAIR_LIMIT)
+
+    age_failures(app, throttle.PAIR_WINDOW)
+
+    assert login_from(client, "203.0.113.7").status_code == 200
+
+
+def test_successful_login_resets_own_failures(client, app):
+    register(client)
+    fail(client, "203.0.113.7", throttle.PAIR_LIMIT - 1)
+
+    assert login_from(client, "203.0.113.7").status_code == 200
+    fail(client, "203.0.113.7", throttle.PAIR_LIMIT - 1)
+
+    assert login_from(client, "203.0.113.7").status_code == 200
+
+
+def test_meetup_mistakes_do_not_block_others(client, app):
+    # Everybody at a meetup is behind one Wi-Fi address.
+    register(client)
+    for number in range(throttle.IP_LOGINS_LIMIT - 2):
+        fail(client, "203.0.113.7", 2, login=f"participant_{number}")
+    # One participant is blocked, only for their own login.
+    fail(client, "203.0.113.7", throttle.PAIR_LIMIT, login="forgetful")
+    assert login_from(client, "203.0.113.7", login="forgetful").status_code == 429
+
+    assert login_from(client, "203.0.113.7").status_code == 200
+
+
+def test_one_login_guessed_from_many_ips_is_blocked(client, app):
+    register(client)
+    for number in range(throttle.LOGIN_LIMIT // 3):
+        fail(client, f"203.0.113.{number}", 3)
+
+    assert_blocked(login_from(client, "198.51.100.20"), throttle.LONG_WINDOW)
+    age_failures(app, throttle.LONG_WINDOW)
+    assert login_from(client, "198.51.100.20").status_code == 200
+
+
+def test_owner_login_does_not_reset_guessing_from_other_ips(client, app):
+    register(client)
+    for number in range(throttle.LOGIN_LIMIT - 1):
+        fail(client, f"203.0.113.{number}", 1)
+
+    assert login_from(client, "198.51.100.20").status_code == 200
+    fail(client, "203.0.113.200", 1)
+
+    assert login_from(client, "198.51.100.20").status_code == 429
+
+
+def test_many_logins_from_one_ip_block_it(client, app):
+    register(client)
+    fail_from_ip(client, "203.0.113.7", throttle.IP_LOGINS_LIMIT)
+
+    assert_blocked(login_from(client, "203.0.113.7"), throttle.LONG_WINDOW)
     # The same login from another address works: the block is per IP.
     assert login_from(client, "198.51.100.20").status_code == 200
+    age_failures(app, throttle.LONG_WINDOW)
+    assert login_from(client, "203.0.113.7").status_code == 200
 
 
 def test_ip_limit_uses_real_ip_behind_proxy(client, app):
     register(client)
-    fail_from_ip(client, "203.0.113.7", throttle.MAX_FAILURES_PER_IP - 1, spoofed="10.0.0.1")
+    fail_from_ip(client, "203.0.113.7", throttle.IP_LOGINS_LIMIT - 1, spoofed="10.0.0.1")
 
     # A client that sends its own X-Forwarded-For does not get a fresh address:
     # the entry nginx appended (the real IP) is the one counted.
@@ -510,6 +550,153 @@ def test_ip_limit_uses_real_ip_behind_proxy(client, app):
     with app.app_context():
         ips = set(db.session.scalars(db.select(LoginFailure.ip)))
     assert ips == {"203.0.113.7"}
+
+
+def test_old_failures_are_removed(client, app):
+    register(client)
+    fail(client, "203.0.113.7", 1)
+    age_failures(app, throttle.LONG_WINDOW)
+
+    fail(client, "203.0.113.8", 1)
+
+    with app.app_context():
+        assert db.session.scalars(db.select(LoginFailure.ip)).all() == ["203.0.113.8"]
+
+
+# Registration protection
+
+def registration_rows(app, ip, count, age=timedelta(minutes=1)):
+    with app.app_context():
+        for _ in range(count):
+            db.session.add(Registration(ip=ip, created_at=utcnow() - age))
+        db.session.commit()
+
+
+def user_count(app):
+    with app.app_context():
+        return db.session.scalar(db.select(db.func.count(User.id)))
+
+
+def assert_rejected(app, response):
+    # Without saying why.
+    assert response.status_code == 400
+    assert error(response)["code"] == "registration_rejected"
+    assert user_count(app) == 0
+
+
+def test_registration_gives_form_token(client):
+    token = client.get("/api/auth/registration").get_json()["form_token"]
+
+    assert isinstance(token, str) and token
+
+
+def test_register_after_min_fill_time(client, app, monkeypatch):
+    token = client.get("/api/auth/registration").get_json()["form_token"]
+    later = utcnow() + registration.MIN_FILL_TIME
+    monkeypatch.setattr("app.auth.routes.utcnow", lambda: later)
+
+    assert register(client, form_token=token).status_code == 201
+
+
+def test_register_too_fast_is_rejected(client, app):
+    token = client.get("/api/auth/registration").get_json()["form_token"]
+
+    assert_rejected(app, register(client, form_token=token))
+
+
+@pytest.mark.parametrize("token", [None, "", "forged.token", 12345])
+def test_register_without_valid_form_token_is_rejected(client, app, token):
+    assert_rejected(app, register(client, form_token=token))
+
+
+def test_register_with_stale_form_token_is_rejected(client, app):
+    with app.app_context():
+        token = registration.form_token(
+            utcnow() - registration.MAX_FORM_AGE - timedelta(minutes=1),
+        )
+
+    assert_rejected(app, register(client, form_token=token))
+
+
+def test_register_with_filled_trap_is_rejected(client, app):
+    assert_rejected(app, register(client, **{registration.TRAP_FIELD: "https://spam.example"}))
+
+
+def test_registration_is_journaled_without_ip_in_users(client, app):
+    register(client, ip="203.0.113.7")
+
+    with app.app_context():
+        assert db.session.scalars(db.select(Registration.ip)).all() == ["203.0.113.7"]
+    assert "ip" not in User.__table__.columns
+
+
+def test_registrations_per_ip_per_hour(client, app):
+    registration_rows(app, "203.0.113.7", registration.IP_HOURLY_LIMIT)
+
+    response = register(client, ip="203.0.113.7")
+
+    assert response.status_code == 429
+    assert error(response)["code"] == "too_many_registrations"
+    assert user_count(app) == 0
+    # Another address is not affected.
+    assert register(client, ip="198.51.100.20").status_code == 201
+
+
+def test_registrations_per_ip_per_day(client, app):
+    # Outside the hour, inside the day.
+    registration_rows(app, "203.0.113.7", registration.IP_DAILY_LIMIT, age=timedelta(hours=2))
+
+    response = register(client, ip="203.0.113.7")
+
+    assert response.status_code == 429
+    assert error(response)["code"] == "too_many_registrations"
+    assert register(client, ip="198.51.100.20").status_code == 201
+
+
+def test_registrations_older_than_a_day_are_removed(client, app):
+    registration_rows(
+        app, "203.0.113.7", registration.IP_DAILY_LIMIT, age=timedelta(days=1, minutes=1),
+    )
+
+    assert register(client, ip="203.0.113.7").status_code == 201
+    with app.app_context():
+        assert db.session.scalar(db.select(db.func.count(Registration.id))) == 1
+
+
+def test_registration_fuse(client, app, caplog):
+    with app.app_context():
+        for number in range(registration.TOTAL_HOURLY_LIMIT):
+            db.session.add(Registration(ip=f"10.0.{number // 250}.{number % 250}"))
+        db.session.commit()
+
+    response = register(client, ip="198.51.100.20")
+
+    assert response.status_code == 503
+    assert error(response)["code"] == "registration_unavailable"
+    assert error(response)["message"] == "Регистрация временно недоступна"
+    assert user_count(app) == 0
+    assert "Registration fuse" in caplog.text
+
+
+# Logout everywhere
+
+def test_logout_everywhere_ends_all_sessions(client, app):
+    register(client)
+    phone = app.test_client()
+    login(phone, remember=True)
+    # Only the remember cookie is left on the phone: it must stop working too.
+    phone.delete_cookie("session")
+
+    assert client.post("/api/auth/logout-everywhere").status_code == 204
+
+    assert me(client) is None
+    assert me(phone) is None
+    # The password still works.
+    assert login(client).status_code == 200
+
+
+def test_logout_everywhere_needs_login(client):
+    assert client.post("/api/auth/logout-everywhere").status_code == 401
 
 
 def test_forwarded_proto_is_seen_by_flask(app):
@@ -546,6 +733,7 @@ def test_request_with_csrf_token_is_accepted(csrf_client):
     response = csrf_client.post(
         "/api/auth/register",
         json={
+            **registration_form(csrf_client),
             "display_name": "Иван Петров", "login": "ivan_petrov", "password": PASSWORD,
             "consents": CONSENTS,
         },
