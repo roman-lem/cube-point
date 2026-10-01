@@ -11,6 +11,7 @@ from ..extensions import db
 from ..forms import collapse_spaces, get_str, json_body, raise_if_errors
 from ..models import ClubMember, Meetup, MeetupParticipant, ParticipantStatus, User
 from . import auth, throttle
+from .email import email_state
 from .validation import login_error, name_error, normalize_login, password_error
 
 # Hash to check the password against when the login does not exist: the response
@@ -23,7 +24,8 @@ def serialize_user(user):
         "id": user.id,
         "login": user.login,
         "display_name": user.display_name,
-        "email": user.email,
+        # Confirmed and pending email (email.py).
+        **email_state(user),
         "is_admin": user.is_admin,
         "must_change_password": user.must_change_password,
         "consents_required": consents_required(user),

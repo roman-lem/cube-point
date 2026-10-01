@@ -1,25 +1,31 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import type { Meetup } from '@/entities/meetup'
+import type { Meetup, MeetupSummary } from '@/entities/meetup'
 import {
-  EVENT_IDS, EVENTS, FORMAT_NAMES, FORMATS, todayIn, useFormErrors,
+  EVENT_IDS, EVENTS, FORMAT_NAMES, FORMATS, formatTime, todayIn, useFormErrors,
   type EventId, type SeriesFormat,
 } from '@/shared/lib'
 import { AppButton, AppCard, AppInput, AppSelect, FormError } from '@/shared/ui'
 import { createMeetup } from '../api/createMeetup'
 import { generateScrambles } from '../lib/scrambles'
 
-const { clubId, timezone } = defineProps<{ clubId: number; timezone: string }>()
+const { clubId, timezone, previous } = defineProps<{
+  clubId: number
+  timezone: string
+  /** The club's latest meetup: time, place and address are taken from it. */
+  previous: MeetupSummary | null
+}>()
 const emit = defineEmits<{ created: [meetup: Meetup] }>()
 
 const { fieldErrors, formError, clearErrors, showError } = useFormErrors()
 
+// Today by the club's clock; the rest is as at the club's latest meetup, empty for the first one.
 const form = reactive({
-  date: '',
-  starts_at: '18:00',
-  ends_at: '21:00',
-  place: '',
-  address: '',
+  date: todayIn(timezone),
+  starts_at: previous ? formatTime(previous.starts_at, timezone) : '',
+  ends_at: previous?.ends_at ? formatTime(previous.ends_at, timezone) : '',
+  place: previous?.place ?? '',
+  address: previous?.address ?? '',
 })
 
 // Events selected by default: the most common at club meetups.
@@ -58,8 +64,16 @@ const eventErrors = computed(() => {
 async function submit() {
   clearErrors()
   const selected = events.filter((e) => e.selected)
+  // Checked before generating scrambles, which takes a while; the server checks the same.
+  const errors: Record<string, string> = {}
+  if (!form.place.trim()) {
+    errors.place = 'Укажите место'
+  }
   if (selected.length === 0) {
-    fieldErrors.value = { events: 'Выберите хотя бы одну дисциплину' }
+    errors.events = 'Выберите хотя бы одну дисциплину'
+  }
+  if (Object.keys(errors).length) {
+    fieldErrors.value = errors
     return
   }
 
@@ -107,12 +121,7 @@ async function submit() {
             :error="fieldErrors.ends_at"
           />
         </div>
-        <AppInput
-          v-model="form.place"
-          label="Место"
-          placeholder="Антикафе «Куб»"
-          :error="fieldErrors.place"
-        />
+        <AppInput v-model="form.place" label="Место" :error="fieldErrors.place" />
         <AppInput
           v-model="form.address"
           label="Адрес"

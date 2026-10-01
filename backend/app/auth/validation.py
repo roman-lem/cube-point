@@ -15,10 +15,28 @@ LOGIN_RE = re.compile(r"[a-z0-9][a-z0-9_.-]*")
 # Name or nickname: letters, digits, space and - ' ’ _ . (Анна-Мария, alex_cube, Д'Артаньян).
 NAME_RE = re.compile(r"[\w .'’-]+")
 LETTER_RE = re.compile(r"[^\W\d_]")
+EMAIL_MAX = 254
+# ASCII only: an address with other letters needs SMTPUTF8, which not every mail server has.
+EMAIL_RE = re.compile(
+    r"[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+"
+)
 
 
 def normalize_login(login):
     return login.strip().lower()
+
+
+def normalize_email(email):
+    # Lowercase: the same mailbox must not be bound to two accounts in different case.
+    return email.strip().lower()
+
+
+def email_error(email):
+    if not email:
+        return "Введите адрес почты"
+    if len(email) > EMAIL_MAX or not EMAIL_RE.fullmatch(email):
+        return "Проверьте адрес, например name@example.ru"
+    return None
 
 
 def login_error(login):

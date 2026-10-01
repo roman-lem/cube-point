@@ -43,6 +43,7 @@ class MeetupStatus(enum.StrEnum):
     PLANNED = "planned"
     LIVE = "live"
     FINISHED = "finished"
+    CANCELLED = "cancelled"
 
 
 class ParticipantStatus(enum.StrEnum):
@@ -119,8 +120,8 @@ class User(UserMixin, db.Model):
     login = db.Column(db.String(32), unique=True)
     display_name = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(255))
+    # Only a confirmed address (lowercase); one waiting for confirmation is in EmailConfirmation.
     email = db.Column(db.String(254), unique=True)
-    email_verified = db.Column(db.Boolean, nullable=False, default=False)
     session_version = db.Column(db.Integer, nullable=False, default=1)
     must_change_password = db.Column(db.Boolean, nullable=False, default=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
@@ -492,6 +493,36 @@ class ClubRecord(db.Model):
 
     user = db.relationship("User")
     series = db.relationship("Series")
+
+
+class EmailConfirmation(db.Model):
+    """A letter sent when a user binds an email (auth/email.py).
+
+    The latest open row (not used, not cancelled) of a user is the address
+    waiting for confirmation, and only its link works: a new letter cancels the earlier
+    ones. Rows are also the sending log for the rate limits per user and per IP.
+    """
+
+    __tablename__ = "email_confirmations"
+    __table_args__ = (
+        db.Index("ix_email_confirmations_user_id_created_at", "user_id", "created_at"),
+        db.Index("ix_email_confirmations_ip_created_at", "ip", "created_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
+    )
+    email = db.Column(db.String(254), nullable=False)
+    # SHA-256 of the link token, the token itself is not stored. NULL: the address
+    # belongs to another account, the letter said so and has no link.
+    token_hash = db.Column(db.String(64), unique=True)
+    ip = db.Column(db.String(45))
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    # The address was confirmed by this link.
+    used_at = db.Column(db.DateTime)
+    # A newer letter was sent, the address was cancelled or the letter was not sent.
+    cancelled_at = db.Column(db.DateTime)
 
 
 class LoginFailure(db.Model):

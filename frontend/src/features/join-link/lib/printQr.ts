@@ -6,7 +6,7 @@ function escapeHtml(text: string) {
 
 /**
  * Prints a sheet with the meetup QR code through a hidden iframe,
- * so the sheet has none of the app's interface.
+ * so the sheet has none of the app's interface. The link itself is only in the QR code.
  */
 export function printQr(link: string, title: string, subtitle: string) {
   const iframe = document.createElement('iframe')
@@ -26,15 +26,13 @@ export function printQr(link: string, title: string, subtitle: string) {
   .sheet { padding: 20mm 15mm; }
   h1 { margin: 0 0 4mm; font-size: 28pt; }
   p { margin: 0 0 10mm; font-size: 16pt; }
-  .qr { width: 120mm; height: 120mm; margin: 0 auto 10mm; }
+  .qr { width: 120mm; height: 120mm; margin: 0 auto; }
   .qr svg { width: 100%; height: 100%; }
-  .link { font-family: monospace; font-size: 11pt; word-break: break-all; }
 </style></head>
 <body><div class="sheet">
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(subtitle)}</p>
   <div class="qr">${qrSvg(link)}</div>
-  <div class="link">${escapeHtml(link)}</div>
 </div></body></html>`)
   doc.close()
 

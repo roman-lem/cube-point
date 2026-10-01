@@ -4,10 +4,11 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/entities/user'
 import { DeleteAccountControl } from '@/features/account-delete'
 import { ChangePasswordForm, LogoutButton } from '@/features/auth'
+import { EmailSettings } from '@/features/email-bind'
 import { AppCard, AppIcon, PageHeader } from '@/shared/ui'
 
-// One's own account settings. Name and login are read-only
-// for now, there is no email binding yet.
+// One's own account settings. Name and login are read-only,
+// the email is bound with a confirmation letter (features/email-bind).
 const router = useRouter()
 const userStore = useUserStore()
 const passwordChanged = ref(false)
@@ -34,6 +35,13 @@ const passwordChanged = ref(false)
             </span>
             <span class="settings__hint">Логин не меняется и виден только организаторам</span>
           </div>
+        </AppCard>
+      </section>
+
+      <section class="page__section">
+        <h2 class="page__section-title">Почта</h2>
+        <AppCard>
+          <EmailSettings />
         </AppCard>
       </section>
 

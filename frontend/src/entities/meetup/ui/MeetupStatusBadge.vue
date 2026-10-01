@@ -3,12 +3,19 @@ import { LiveIndicator } from '@/shared/ui'
 import type { MeetupStatus } from '../model/types'
 
 defineProps<{ status: MeetupStatus }>()
+
+const LABELS: Record<MeetupStatus, string> = {
+  planned: 'Анонс',
+  live: 'Идёт',
+  finished: 'Завершена',
+  cancelled: 'Отменена',
+}
 </script>
 
 <template>
   <LiveIndicator v-if="status === 'live'" />
   <span v-else :class="['meetup-status', `meetup-status--${status}`]">
-    {{ status === 'planned' ? 'Анонс' : 'Завершена' }}
+    {{ LABELS[status] }}
   </span>
 </template>
 
@@ -28,7 +35,8 @@ defineProps<{ status: MeetupStatus }>()
   color: var(--color-primary);
 }
 
-.meetup-status--finished {
+.meetup-status--finished,
+.meetup-status--cancelled {
   background: var(--color-background);
   color: var(--color-text-secondary);
 }

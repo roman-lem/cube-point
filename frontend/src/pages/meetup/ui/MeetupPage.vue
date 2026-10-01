@@ -73,10 +73,20 @@ function timerRoute(eventId: string, continueSeries: boolean) {
   }
 }
 
+const participationIcon = computed(() => {
+  if (data.value?.meetup.status === 'cancelled') {
+    return 'close'
+  }
+  return requestStatus.value === 'pending' ? 'schedule' : 'account'
+})
+
 const participation = computed(() => {
   const meetup = data.value?.meetup
   if (!meetup || meetup.status === 'finished') {
     return null
+  }
+  if (meetup.status === 'cancelled') {
+    return { title: 'Встреча отменена', text: 'Результатов и заявок на этой встрече нет' }
   }
   switch (requestStatus.value) {
     case 'approved':
@@ -115,7 +125,7 @@ const participation = computed(() => {
       <MeetupHeader :meetup="data.meetup" />
 
       <RouterLink
-        v-if="isOrganizer"
+        v-if="isOrganizer && data.meetup.status !== 'cancelled'"
         class="meetup-page__manage"
         :to="{ name: 'meetup-manage', params: { meetupId } }"
       >
@@ -128,7 +138,7 @@ const participation = computed(() => {
         :class="['meetup-page__participation', `meetup-page__participation--${requestStatus}`]"
         role="status"
       >
-        <AppIcon :name="requestStatus === 'pending' ? 'schedule' : 'account'" />
+        <AppIcon :name="participationIcon" />
         <div>
           <p class="meetup-page__participation-title">{{ participation.title }}</p>
           <p v-if="participation.text" class="meetup-page__participation-text">

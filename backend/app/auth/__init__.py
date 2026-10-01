@@ -27,4 +27,4 @@ def unauthorized():
     return error_response(ApiError(401, "unauthorized", "Нужно войти"))
 
 
-from . import routes  # noqa: E402, F401 — registers the endpoints in auth
+from . import email, routes  # noqa: E402, F401 — registers the endpoints in auth

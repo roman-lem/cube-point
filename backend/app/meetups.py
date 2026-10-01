@@ -19,8 +19,8 @@ from .events import EVENT_ORDER, EVENTS
 from .extensions import db
 from .forms import collapse_spaces, get_list, get_str, json_body, raise_if_errors
 from .models import (
-    Club, ClubMember, Format, Meetup, MeetupEvent, MeetupParticipant, MeetupStatus,
-    ParticipantStatus, Scramble, Series, utcnow,
+    Attempt, Club, ClubMember, FmcAttempt, Format, Meetup, MeetupEvent, MeetupParticipant,
+    MeetupStatus, ParticipantStatus, Scramble, Series, utcnow,
 )
 from .permissions import (
     get_membership, get_or_404, is_active_organizer, is_banned, is_organizer, my_role,
@@ -32,6 +32,8 @@ from .scoring import AVERAGE_FORMATS, event_table
 meetups = Blueprint("meetups", __name__)
 
 MAX_SCRAMBLE_LENGTH = 1000
+# Statuses in which the meetup accepts requests and participants.
+OPEN_STATUSES = (MeetupStatus.PLANNED, MeetupStatus.LIVE)
 TIME_RE = re.compile(r"\d{2}:\d{2}")
 
 
@@ -97,10 +99,12 @@ def serialize_meetup(meetup):
         }
         for event in meetup.events
     ]
-    # The join link is for organizers only and only while it is valid.
-    if is_active_organizer(meetup.club_id) and meetup.status != MeetupStatus.FINISHED:
-        result["join_token"] = meetup.join_token
-        result["join_url"] = join_url(meetup.join_token)
+    if is_active_organizer(meetup.club_id):
+        # The join link is for organizers only and only while it is valid.
+        if meetup.status in OPEN_STATUSES:
+            result["join_token"] = meetup.join_token
+            result["join_url"] = join_url(meetup.join_token)
+        result["cancel_restriction"] = cancel_restriction(meetup)
     return result
 
 
@@ -121,9 +125,31 @@ def get_meetup(meetup_id):
     return get_or_404(Meetup, meetup_id, "Встреча не найдена")
 
 
-def require_not_finished(meetup):
+def require_open(meetup):
+    """Planned or live: a finished or cancelled meetup takes no requests or participants."""
     if meetup.status == MeetupStatus.FINISHED:
         raise ApiError(409, "meetup_finished", "Встреча уже завершена")
+    if meetup.status == MeetupStatus.CANCELLED:
+        raise ApiError(409, "meetup_cancelled", "Встреча отменена")
+
+
+def cancel_restriction(meetup):
+    """Why the meetup cannot be cancelled, or None.
+
+    Only before the first result: any saved attempt or a started FMC hour blocks it.
+    """
+    if meetup.status == MeetupStatus.FINISHED:
+        return "Встреча уже завершена"
+    if meetup.status == MeetupStatus.CANCELLED:
+        return "Встреча уже отменена"
+    in_meetup = Series.meetup_event_id.in_(
+        db.select(MeetupEvent.id).where(MeetupEvent.meetup_id == meetup.id)
+    )
+    if db.session.scalar(db.select(db.exists().where(Attempt.series_id == Series.id, in_meetup))):
+        return "Участники уже сдали попытки"
+    if db.session.scalar(db.select(db.exists().where(FmcAttempt.series_id == Series.id, in_meetup))):
+        return "Участники уже начали попытки FMC"
+    return None
 
 
 # Club meetups
@@ -327,12 +353,33 @@ def start_meetup(meetup_id):
     return {"meetup": serialize_meetup(meetup)}
 
 
+@meetups.post("/meetups/<int:meetup_id>/cancel")
+def cancel_meetup(meetup_id):
+    """Cancels a meetup without results. It stays in the club list with the "cancelled" status.
+
+    Requests, scrambles and empty series are deleted, the join link stops working.
+    The events stay: the meetup card shows what was planned.
+    """
+    meetup = get_meetup(meetup_id)
+    require_organizer(meetup.club_id)
+    if reason := cancel_restriction(meetup):
+        raise ApiError(409, "cannot_cancel", reason)
+    for meetup_event in meetup.events:
+        meetup_event.scrambles.clear()
+        meetup_event.series.clear()
+    meetup.participants.clear()
+    meetup.status = MeetupStatus.CANCELLED
+    meetup.join_token = None
+    db.session.commit()
+    return {"meetup": serialize_meetup(meetup)}
+
+
 @meetups.post("/meetups/<int:meetup_id>/token")
 def reissue_token(meetup_id):
     """New meetup link. The old one stops working, requests stay."""
     meetup = get_meetup(meetup_id)
     require_organizer(meetup.club_id)
-    require_not_finished(meetup)
+    require_open(meetup)
     meetup.join_token = new_join_token()
     db.session.commit()
     return {"join_token": meetup.join_token, "join_url": join_url(meetup.join_token)}
@@ -342,8 +389,8 @@ def reissue_token(meetup_id):
 
 def get_meetup_by_token(token):
     meetup = db.session.scalar(db.select(Meetup).where(Meetup.join_token == token))
-    # After the meetup is finished the link is invalid.
-    if meetup is None or meetup.status == MeetupStatus.FINISHED:
+    # After the meetup is finished or cancelled the link is invalid.
+    if meetup is None or meetup.status not in OPEN_STATUSES:
         raise ApiError(404, "invalid_link", "Ссылка на встречу недействительна")
     return meetup
 
@@ -427,7 +474,7 @@ def list_requests(meetup_id):
 def approve_request(meetup_id, user_id):
     meetup = get_meetup(meetup_id)
     require_organizer(meetup.club_id)
-    require_not_finished(meetup)
+    require_open(meetup)
     participant = get_participant(meetup, user_id)
     if participant.status != ParticipantStatus.APPROVED:
         if is_banned(meetup.club_id, participant.user):
@@ -441,7 +488,7 @@ def approve_request(meetup_id, user_id):
 def reject_request(meetup_id, user_id):
     meetup = get_meetup(meetup_id)
     require_organizer(meetup.club_id)
-    require_not_finished(meetup)
+    require_open(meetup)
     participant = get_participant(meetup, user_id)
     if participant.status != ParticipantStatus.PENDING:
         raise ApiError(409, "invalid_status", "Отклонить можно только ожидающую заявку")
@@ -457,7 +504,7 @@ def approve_all_requests(meetup_id):
     """Approves all pending requests except those from users banned in the club."""
     meetup = get_meetup(meetup_id)
     require_organizer(meetup.club_id)
-    require_not_finished(meetup)
+    require_open(meetup)
     pending = db.session.scalars(
         db.select(MeetupParticipant).where(
             MeetupParticipant.meetup_id == meetup.id,

@@ -52,6 +52,12 @@ services:
       SITE_URL: https://${DOMAIN:?Set DOMAIN in the .env file}
       SECURE_COOKIES: ${SECURE_COOKIES:-1}
       REGISTRATION_OPEN: ${REGISTRATION_OPEN:-1}
+      # Email confirmation letters through the domain mailbox (backend/app/mail.py).
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
       # `flask backup-db` (deploy/backup.sh) deletes backups older than this.

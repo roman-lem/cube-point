@@ -4,6 +4,7 @@ import { ClubCard, fetchClubs, type ClubSummary } from '@/entities/club'
 import { useUserStore } from '@/entities/user'
 import { DEVELOPER_CONTACTS, SITE_NAME } from '@/shared/config'
 import { AppButton, AppIcon, StepList, type IconName, type Step } from '@/shared/ui'
+import FaqList from './FaqList.vue'
 
 // Landing at the site root. It is seen by guests
 // and logged-in users without a club; those with a club are redirected to the club page by the router.
@@ -107,6 +108,11 @@ onMounted(async () => {
         Все клубы
         <AppIcon name="arrow-forward" :size="18" />
       </RouterLink>
+    </section>
+
+    <section class="page__section">
+      <h2 class="page__section-title">Частые вопросы</h2>
+      <FaqList />
     </section>
 
     <section class="page__section">

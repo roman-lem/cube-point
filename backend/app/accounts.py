@@ -14,8 +14,8 @@ from .errors import ValidationError
 from .extensions import db
 from .forms import collapse_spaces, get_str, raise_if_errors
 from .models import (
-    DELETED_USER_NAME, Club, ClubMember, ClubRole, ConsentType, Disqualification, LoginFailure,
-    User, UserConsent, utcnow,
+    DELETED_USER_NAME, Club, ClubMember, ClubRole, ConsentType, Disqualification, EmailConfirmation,
+    LoginFailure, User, UserConsent, utcnow,
 )
 
 # Disqualification reason for a deleted user: the organizer's text might
@@ -89,7 +89,7 @@ def delete_account(user, keep_name=False):
     """Account deletion: personal data is destroyed, results stay.
 
     The users row stays because series and records reference it: login, email,
-    password hash and consents are deleted, the name becomes DELETED_USER_NAME.
+    password hash, consents and email letters are deleted, the name becomes DELETED_USER_NAME.
     With keep_name the name stays in results and records: instead of the consents
     a single DELETED_NAME entry remains with the version of the latest
     publication consent (that consent is not withdrawn); the check is in
@@ -105,6 +105,7 @@ def delete_account(user, keep_name=False):
     db.session.execute(db.delete(LoginFailure).where(LoginFailure.login == user.login))
     db.session.execute(db.delete(ClubMember).where(ClubMember.user_id == user.id))
     db.session.execute(db.delete(UserConsent).where(UserConsent.user_id == user.id))
+    db.session.execute(db.delete(EmailConfirmation).where(EmailConfirmation.user_id == user.id))
     db.session.execute(
         db.update(Disqualification).where(Disqualification.user_id == user.id)
         .values(reason=DELETED_REASON)
@@ -115,7 +116,6 @@ def delete_account(user, keep_name=False):
         db.session.add(UserConsent(user_id=user.id, type=ConsentType.DELETED_NAME, version=version))
     user.login = None
     user.email = None
-    user.email_verified = False
     user.password_hash = None
     user.is_admin = False
     user.must_change_password = False

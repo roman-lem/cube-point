@@ -6,6 +6,7 @@ import {
 import { fetchClubMeetups, MeetupCard, type MeetupSummary } from '@/entities/meetup'
 import { OrganizerPledgeDialog } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
+import { todayIn } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
 const { clubId } = defineProps<{ clubId: number }>()
@@ -31,12 +32,23 @@ watch(
 
 // Organizer tools open only after the organizer pledge is accepted.
 const isOrganizer = computed(() => data.value?.my_role === 'organizer' && !data.value.pledge)
+// A cancelled meetup stays among the upcoming ones until its date has passed.
+function isPast(meetup: MeetupSummary) {
+  return (
+    meetup.status === 'finished' ||
+    (meetup.status === 'cancelled' && meetup.date < todayIn(data.value!.club.timezone))
+  )
+}
+
 // The server returns meetups newest first; upcoming ones are shown in date order.
-const upcoming = computed(() => meetups.value.filter((m) => m.status !== 'finished').reverse())
-const past = computed(() => meetups.value.filter((m) => m.status === 'finished'))
+const upcoming = computed(() => meetups.value.filter((m) => !isPast(m)).reverse())
+const past = computed(() => meetups.value.filter(isPast))
+// Cancelled meetups are not counted.
+const pastHeld = computed(() => past.value.filter((m) => m.status === 'finished').length)
+const scheduled = computed(() => upcoming.value.filter((m) => m.status !== 'cancelled'))
 // For an organizer, "Manage" leads to the live or the upcoming meetup.
 const currentMeetup = computed(
-  () => upcoming.value.find((m) => m.status === 'live') ?? upcoming.value[0] ?? null,
+  () => scheduled.value.find((m) => m.status === 'live') ?? scheduled.value[0] ?? null,
 )
 
 const meetupRoute = (meetup: MeetupSummary) => ({
@@ -109,7 +121,7 @@ const meetupRoute = (meetup: MeetupSummary) => ({
 
       <section class="page__section">
         <h2 class="page__section-title">
-          {{ upcoming.length > 1 ? 'Ближайшие встречи' : 'Ближайшая встреча' }}
+          {{ scheduled.length > 1 ? 'Ближайшие встречи' : 'Ближайшая встреча' }}
         </h2>
         <MeetupCard
           v-for="meetup in upcoming"
@@ -118,13 +130,13 @@ const meetupRoute = (meetup: MeetupSummary) => ({
           :timezone="data.club.timezone"
           :to="meetupRoute(meetup)"
         />
-        <p v-if="upcoming.length === 0" class="page__muted">Встреча пока не назначена</p>
+        <p v-if="scheduled.length === 0" class="page__muted">Встреча пока не назначена</p>
       </section>
 
       <section v-if="past.length" class="page__section">
         <div class="club-page__section-header">
           <h2 class="page__section-title">Прошедшие встречи</h2>
-          <span class="club-page__total">Всего {{ past.length }}</span>
+          <span class="club-page__total">Всего {{ pastHeld }}</span>
         </div>
         <MeetupCard
           v-for="meetup in past"

@@ -1,6 +1,6 @@
 import type { SeriesFormat } from '@/shared/lib'
 
-export type MeetupStatus = 'planned' | 'live' | 'finished'
+export type MeetupStatus = 'planned' | 'live' | 'finished' | 'cancelled'
 
 export type RequestStatus = 'pending' | 'approved' | 'rejected'
 
@@ -55,6 +55,8 @@ export interface Meetup extends Omit<MeetupSummary, 'events'> {
   join_token?: string
   /** Ready link for sharing and the QR code, built by the server from SITE_URL. */
   join_url?: string
+  /** Only for organizers: why the meetup cannot be cancelled, null means it can. */
+  cancel_restriction?: string | null
 }
 
 /** Meetup page GET /api/meetups/:id. */

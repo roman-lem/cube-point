@@ -134,6 +134,12 @@ def get_desk(meetup_id):
 def require_started(meetup):
     if meetup.status == MeetupStatus.PLANNED:
         raise ApiError(409, "meetup_not_started", "Встреча ещё не началась")
+    require_not_cancelled(meetup)
+
+
+def require_not_cancelled(meetup):
+    if meetup.status == MeetupStatus.CANCELLED:
+        raise ApiError(409, "meetup_cancelled", "Встреча отменена")
 
 
 @desk.put(
@@ -354,6 +360,7 @@ def add_participant(meetup_id):
     with a temporary password. The password is returned once and not stored anywhere else.
     """
     meetup = get_organizer_meetup(meetup_id)
+    require_not_cancelled(meetup)
     data = json_body()
     password = None
 

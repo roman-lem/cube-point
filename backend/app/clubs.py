@@ -45,12 +45,12 @@ def list_clubs():
         .where(ClubMember.banned_at.is_(None))
         .group_by(ClubMember.club_id)
     ).all())
-    # Only started and finished meetups count, planned ones do not.
+    # Only started and finished meetups count, planned and cancelled ones do not.
     meetup_stats = {
         club_id: (count, last_date)
         for club_id, count, last_date in db.session.execute(
             db.select(Meetup.club_id, db.func.count(), db.func.max(Meetup.date))
-            .where(Meetup.status != MeetupStatus.PLANNED)
+            .where(Meetup.status.in_([MeetupStatus.LIVE, MeetupStatus.FINISHED]))
             .group_by(Meetup.club_id)
         )
     }

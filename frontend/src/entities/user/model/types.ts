@@ -1,11 +1,18 @@
 import type { Attempt, EventId, SeriesFormat } from '@/shared/lib'
 
+/** The user's email: confirmed, and the one waiting for confirmation by the link in a letter. */
+export interface EmailState {
+  /** Only a confirmed address. */
+  email: string | null
+  /** expired: the 24-hour link has expired, the letter has to be sent again. */
+  pending_email: { address: string; expired: boolean } | null
+}
+
 /** The logged-in user as returned by /api/auth/me. */
-export interface User {
+export interface User extends EmailState {
   id: number
   login: string
   display_name: string
-  email: string | null
   is_admin: boolean
   must_change_password: boolean
   /** No current-version consents: the API is unavailable until they are given. */

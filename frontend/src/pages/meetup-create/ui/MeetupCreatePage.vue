@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchClub, type ClubPageData } from '@/entities/club'
-import type { Meetup } from '@/entities/meetup'
+import { fetchClubMeetups, type Meetup, type MeetupSummary } from '@/entities/meetup'
 import { MeetupCreateForm } from '@/features/meetup-create'
 import { PledgeRequiredCard } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
@@ -12,11 +12,16 @@ const { clubId } = defineProps<{ clubId: number }>()
 
 const router = useRouter()
 const data = ref<ClubPageData | null>(null)
+/** The club's latest meetup by date: the form takes time, place and address from it. */
+const previous = ref<MeetupSummary | null>(null)
 const error = ref('')
 
 onMounted(async () => {
   try {
-    data.value = await fetchClub(clubId)
+    const [club, meetups] = await Promise.all([fetchClub(clubId), fetchClubMeetups(clubId)])
+    // The server returns meetups newest first.
+    previous.value = meetups[0] ?? null
+    data.value = club
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить клуб'
   }
@@ -39,6 +44,7 @@ function onCreated(meetup: Meetup) {
       v-else-if="data"
       :club-id="clubId"
       :timezone="data.club.timezone"
+      :previous="previous"
       @created="onCreated"
     />
   </main>

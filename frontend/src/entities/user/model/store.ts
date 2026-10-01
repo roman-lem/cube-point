@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { fetchMe } from '../api/me'
-import type { User } from './types'
+import type { EmailState, User } from './types'
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
@@ -53,8 +53,16 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  /** Email fields after binding, changing or removing the email. */
+  function setEmail(state: EmailState) {
+    if (user.value) {
+      user.value.email = state.email
+      user.value.pending_email = state.pending_email
+    }
+  }
+
   return {
     user, loaded, isAuthenticated, ensureLoaded, setUser, clear, requirePasswordChange,
-    requireConsents,
+    requireConsents, setEmail,
   }
 })

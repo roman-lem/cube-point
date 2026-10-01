@@ -10,6 +10,12 @@ services:
       SECURE_COOKIES: ${SECURE_COOKIES:-1}
       # 0 closes registration; login for existing accounts works.
       REGISTRATION_OPEN: ${REGISTRATION_OPEN:-1}
+      # Without MAIL_HOST letters are written to the container log.
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
     volumes:
       - backend-data:/app/instance
     # Not published: reachable only by the web container at backend:5000.

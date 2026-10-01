@@ -13,6 +13,7 @@ import { ClubsPage } from '@/pages/clubs'
 import { ClubMembersPage } from '@/pages/club-members'
 import { ClubSettingsPage } from '@/pages/club-settings'
 import { ConsentPage } from '@/pages/consent'
+import { EmailConfirmPage } from '@/pages/email-confirm'
 import { EventResultsPage } from '@/pages/event-results'
 import { FmcPage } from '@/pages/fmc'
 import { JoinPage } from '@/pages/join'
@@ -103,6 +104,8 @@ export const router = createRouter({
       component: ChangePasswordPage,
       meta: { requiresAuth: true, tab: 'profile' },
     },
+    // The link from the email confirmation letter: open without logging in.
+    { path: '/confirm-email', name: 'email-confirm', component: EmailConfirmPage },
 
     // Club
     {

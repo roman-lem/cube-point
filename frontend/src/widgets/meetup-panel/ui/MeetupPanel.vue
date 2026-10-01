@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { fetchDesk, MeetupStatusBadge, type DeskEvent, type Meetup, type MeetupDesk } from '@/entities/meetup'
 import { useAttemptSaving } from '@/features/attempt-edit'
 import { JoinLinkCard } from '@/features/join-link'
+import { CancelMeetupControl } from '@/features/meetup-cancel'
 import { FinishMeetupButton } from '@/features/meetup-finish'
 import { StartMeetupButton } from '@/features/meetup-start'
 import { AddParticipantButton } from '@/features/participant-add'
@@ -39,7 +40,8 @@ const startTime = computed(() => formatTime(meetup.starts_at, meetup.club.timezo
 const withLink = computed(() =>
   meetup.join_url ? { ...meetup, join_url: meetup.join_url } : null,
 )
-const editable = computed(() => meetup.status !== 'planned')
+const editable = computed(() => meetup.status === 'live' || meetup.status === 'finished')
+const cancellable = computed(() => meetup.status === 'planned' || meetup.status === 'live')
 
 async function loadDesk() {
   try {
@@ -57,6 +59,10 @@ watch(() => meetup.id, loadDesk, { immediate: true })
 useIntervalFn(() => {
   if (meetup.status === 'live') {
     loadDesk()
+    // The first submitted attempt closes cancelling: the restriction comes with the meetup.
+    if (meetup.cancel_restriction === null) {
+      emit('refresh')
+    }
   }
 }, REFRESH_MS)
 
@@ -132,12 +138,15 @@ function onParticipantsChanged() {
           :meetup="meetup"
           @finished="onFinished"
         />
-        <p v-else class="meetup-panel__muted">
+        <p v-else-if="meetup.status === 'finished'" class="meetup-panel__muted">
           Встреча завершена. Результаты с бумажных бланков можно вносить и сейчас.
+        </p>
+        <p v-else class="meetup-panel__muted">
+          Встреча отменена. Заявки и скрамблы удалены, ссылка на встречу не работает.
         </p>
       </AppCard>
 
-      <section class="meetup-panel__section">
+      <section v-if="meetup.status !== 'cancelled'" class="meetup-panel__section">
         <h2 class="meetup-panel__heading">Материалы</h2>
         <JoinLinkCard v-if="withLink" :meetup="withLink" @reissued="onReissued" />
         <RouterLink
@@ -154,13 +163,14 @@ function onParticipantsChanged() {
       </section>
 
       <RequestsBlock
+        v-if="meetup.status !== 'cancelled'"
         :meetup-id="meetup.id"
         :readonly="meetup.status === 'finished'"
         @changed="onParticipantsChanged"
       />
     </div>
 
-    <section class="meetup-panel__section">
+    <section v-if="meetup.status !== 'cancelled'" class="meetup-panel__section">
       <div class="meetup-panel__participants-head">
         <h2 class="meetup-panel__title">
           Участники
@@ -220,6 +230,13 @@ function onParticipantsChanged() {
         />
       </template>
     </section>
+
+    <CancelMeetupControl
+      v-if="cancellable"
+      :meetup="meetup"
+      @cancelled="emit('update', $event)"
+      @failed="emit('refresh')"
+    />
   </div>
 </template>
 
