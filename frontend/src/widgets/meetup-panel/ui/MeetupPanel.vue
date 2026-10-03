@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useIntervalFn, useMediaQuery } from '@vueuse/core'
+import { useMediaQuery } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { fetchDesk, MeetupStatusBadge, type DeskEvent, type Meetup, type MeetupDesk } from '@/entities/meetup'
 import { useAttemptSaving } from '@/features/attempt-edit'
@@ -10,7 +10,7 @@ import { StartMeetupButton } from '@/features/meetup-start'
 import { AddParticipantButton } from '@/features/participant-add'
 import { RequestsBlock } from '@/features/participation-requests'
 import { ApiError } from '@/shared/api'
-import { eventName, formatTime, plural } from '@/shared/lib'
+import { eventName, formatTime, latestLoader, plural, usePolling } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 import { EditableResultsTable } from '@/widgets/results-table'
 import ParticipantList from './ParticipantList.vue'
@@ -43,30 +43,32 @@ const withLink = computed(() =>
 const editable = computed(() => meetup.status === 'live' || meetup.status === 'finished')
 const cancellable = computed(() => meetup.status === 'planned' || meetup.status === 'live')
 
-async function loadDesk() {
-  try {
-    desk.value = await fetchDesk(meetup.id)
+const { load: loadDesk, invalidate: invalidateDesk } = latestLoader(
+  () => fetchDesk(meetup.id),
+  (fresh) => {
+    desk.value = fresh
     error.value = ''
     if (tab.value === 'participants' && isDesktop.value && editable.value) {
-      tab.value = desk.value.events[0]?.event_id ?? 'participants'
+      tab.value = fresh.events[0]?.event_id ?? 'participants'
     }
-  } catch (e) {
+  },
+  (e) => {
     error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить участников'
-  }
-}
+  },
+)
 
 watch(() => meetup.id, loadDesk, { immediate: true })
-useIntervalFn(() => {
-  if (meetup.status === 'live') {
-    loadDesk()
-    // The first submitted attempt closes cancelling: the restriction comes with the meetup.
-    if (meetup.cancel_restriction === null) {
-      emit('refresh')
-    }
+usePolling(async () => {
+  // The first submitted attempt closes cancelling: the restriction comes with the meetup.
+  if (meetup.cancel_restriction === null) {
+    emit('refresh')
   }
-}, REFRESH_MS)
+  await loadDesk()
+}, REFRESH_MS, () => meetup.status === 'live')
 
+/** Fresh event data after a save: a desk request sent before it would bring old values. */
 function replaceEvent(event: DeskEvent) {
+  invalidateDesk()
   if (desk.value) {
     desk.value = {
       ...desk.value,

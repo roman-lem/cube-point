@@ -4,7 +4,7 @@ import { useCurrentClubStore } from '@/entities/club'
 import { fetchMeetup, type Meetup, type MeetupPageData } from '@/entities/meetup'
 import { PledgeRequiredCard } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
-import { formatDate } from '@/shared/lib'
+import { formatDate, latestLoader } from '@/shared/lib'
 import { AppCard, PageHeader } from '@/shared/ui'
 import { MeetupPanel } from '@/widgets/meetup-panel'
 
@@ -14,21 +14,34 @@ const clubStore = useCurrentClubStore()
 const data = ref<MeetupPageData | null>(null)
 const error = ref('')
 
-async function load() {
-  try {
-    data.value = await fetchMeetup(meetupId)
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить встречу'
-  }
-}
+// The panel asks to reload the meetup while it is live: a slow old response
+// must not overwrite the status after start or finish.
+const { load, invalidate } = latestLoader(
+  () => fetchMeetup(meetupId),
+  (page) => {
+    data.value = page
+    error.value = ''
+  },
+  (e) => {
+    // A connection error during refresh does not hide the panel already shown.
+    if (!data.value) {
+      error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить встречу'
+    }
+  },
+)
 
-watch(() => meetupId, load, { immediate: true })
+watch(() => meetupId, () => {
+  data.value = null
+  error.value = ''
+  load()
+}, { immediate: true })
 
 const subtitle = computed(() =>
   data.value ? `Встреча клуба, ${formatDate(data.value.meetup.date)}` : undefined,
 )
 
 function onUpdate(meetup: Meetup) {
+  invalidate()
   const statusChanged = data.value?.meetup.status !== meetup.status
   data.value = { ...data.value!, meetup }
   if (statusChanged) {

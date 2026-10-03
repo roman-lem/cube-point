@@ -1,7 +1,7 @@
 {
   "calcSeries": [
     {
-      "name": "mo3: average over an hour is rounded down (370000.33 -> 370000)",
+      "name": "mo3: average over an hour, .33 rounds down (370000.33 -> 370000)",
       "format": "mo3", "resultType": "time",
       "attempts": [
         {"value": 360000, "penalty": "none"},
@@ -23,7 +23,7 @@
       "expected": {"best": 900, "average": 1100, "counting": [true, true, true, false, false]}
     },
     {
-      "name": "ao5: average is rounded down (1000.67 -> 1000)",
+      "name": "ao5: average to the nearest hundredth, .67 rounds up (1000.67 -> 1001)",
       "format": "ao5", "resultType": "time",
       "attempts": [
         {"value": 1000, "penalty": "none"},
@@ -32,7 +32,7 @@
         {"value": 900, "penalty": "none"},
         {"value": 1200, "penalty": "none"}
       ],
-      "expected": {"best": 900, "average": 1000, "counting": [true, true, true, false, false]}
+      "expected": {"best": 900, "average": 1001, "counting": [true, true, true, false, false]}
     },
     {
       "name": "ao5: one DNF is dropped as the worst attempt",
@@ -104,7 +104,7 @@
         {"value": 1500, "penalty": "none"},
         {"value": 900, "penalty": "none"}
       ],
-      "expected": {"best": 900, "average": 1166, "counting": [true, true, true, false, false]}
+      "expected": {"best": 900, "average": 1167, "counting": [true, true, true, false, false]}
     },
     {
       "name": "ao5: +2 makes the best attempt no longer the best",
@@ -212,7 +212,7 @@
       "expected": {"best": null, "average": null, "counting": [true, true, true, true, true]}
     },
     {
-      "name": "mo3: regular series, rounded down (1100.33 -> 1100)",
+      "name": "mo3: regular series, .33 rounds down (1100.33 -> 1100)",
       "format": "mo3", "resultType": "time",
       "attempts": [
         {"value": 1000, "penalty": "none"},
@@ -229,7 +229,7 @@
         {"value": 1100, "penalty": "plus2"},
         {"value": 1200, "penalty": "none"}
       ],
-      "expected": {"best": 1000, "average": 1166, "counting": [true, true, true]}
+      "expected": {"best": 1000, "average": 1167, "counting": [true, true, true]}
     },
     {
       "name": "mo3: DNF makes the mean DNF",
@@ -331,14 +331,14 @@
       "expected": {"best": 28, "average": null, "counting": [true]}
     },
     {
-      "name": "FMC mo3: mean in hundredths of a move, rounded down (28.666 -> 28.66)",
+      "name": "FMC mo3: mean in hundredths of a move, 28+29+29 (28.667 -> 28.67)",
       "format": "mo3", "resultType": "moves",
       "attempts": [
         {"value": 28, "penalty": "none"},
         {"value": 29, "penalty": "none"},
         {"value": 29, "penalty": "none"}
       ],
-      "expected": {"best": 28, "average": 2866, "counting": [true, true, true]}
+      "expected": {"best": 28, "average": 2867, "counting": [true, true, true]}
     },
     {
       "name": "FMC mo3: DNF makes the mean DNF",
@@ -360,7 +360,95 @@
         {"value": 31, "penalty": "none"},
         {"value": 27, "penalty": "none"}
       ],
-      "expected": {"best": 27, "average": 2966, "counting": [true, true, false, true, false]}
+      "expected": {"best": 27, "average": 2967, "counting": [true, true, false, true, false]}
+    },
+    {
+      "name": "ao5: sum of the counting attempts 3000 (1000.00 -> 1000)",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 900, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1000, "counting": [false, true, true, true, false]}
+    },
+    {
+      "name": "ao5: sum of the counting attempts 3001, .33 rounds down (1000.33 -> 1000)",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 900, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1000, "counting": [false, true, true, true, false]}
+    },
+    {
+      "name": "ao5: sum of the counting attempts 3002, .67 rounds up (1000.67 -> 1001)",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 900, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 1200, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1001, "counting": [false, true, true, true, false]}
+    },
+    {
+      "name": "ao5: one DNF is dropped, the average rounds up (1000.67 -> 1001)",
+      "format": "ao5", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": null, "penalty": "dnf"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 900, "penalty": "none"}
+      ],
+      "expected": {"best": 900, "average": 1001, "counting": [true, false, true, true, false]}
+    },
+    {
+      "name": "mo3: remainder 1 rounds down (1000.33 -> 1000)",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1000, "penalty": "none"},
+        {"value": 1001, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": 1000, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: remainder 2 rounds up (1000.67 -> 1001)",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 1000, "penalty": "none"},
+        {"value": 1001, "penalty": "none"},
+        {"value": 1001, "penalty": "none"}
+      ],
+      "expected": {"best": 1000, "average": 1001, "counting": [true, true, true]}
+    },
+    {
+      "name": "mo3: over 10 minutes still to the hundredth, not to the second (10:00.0067 -> 10:00.01)",
+      "format": "mo3", "resultType": "time",
+      "attempts": [
+        {"value": 60000, "penalty": "none"},
+        {"value": 60001, "penalty": "none"},
+        {"value": 60001, "penalty": "none"}
+      ],
+      "expected": {"best": 60000, "average": 60001, "counting": [true, true, true]}
+    },
+    {
+      "name": "FMC mo3: 28+28+29 (28.333 -> 28.33)",
+      "format": "mo3", "resultType": "moves",
+      "attempts": [
+        {"value": 28, "penalty": "none"},
+        {"value": 28, "penalty": "none"},
+        {"value": 29, "penalty": "none"}
+      ],
+      "expected": {"best": 28, "average": 2833, "counting": [true, true, true]}
     }
   ],
 
@@ -468,18 +556,20 @@
 
   "averageOf": [
     {"name": "ao12: regular average", "n": 12, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1100, "penalty": "none"}, {"value": 1200, "penalty": "none"}, {"value": 1300, "penalty": "none"}, {"value": 1400, "penalty": "none"}, {"value": 1500, "penalty": "none"}, {"value": 1600, "penalty": "none"}, {"value": 1700, "penalty": "none"}, {"value": 1800, "penalty": "none"}, {"value": 1900, "penalty": "none"}, {"value": 900, "penalty": "none"}, {"value": 2000, "penalty": "none"}], "expected": 1450},
-    {"name": "ao12: average is rounded down (1000.9 -> 1000)", "n": 12, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1009, "penalty": "none"}, {"value": 900, "penalty": "none"}, {"value": 1100, "penalty": "none"}], "expected": 1000},
+    {"name": "ao12: average to the nearest hundredth (1000.9 -> 1001)", "n": 12, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1009, "penalty": "none"}, {"value": 900, "penalty": "none"}, {"value": 1100, "penalty": "none"}], "expected": 1001},
     {"name": "ao12: one DNF is dropped as the worst attempt", "n": 12, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1100, "penalty": "none"}, {"value": 1200, "penalty": "none"}, {"value": 1300, "penalty": "none"}, {"value": 1400, "penalty": "none"}, {"value": 1500, "penalty": "none"}, {"value": 1600, "penalty": "none"}, {"value": 1700, "penalty": "none"}, {"value": 1800, "penalty": "none"}, {"value": 1900, "penalty": "none"}, {"value": 2000, "penalty": "none"}, {"value": null, "penalty": "dnf"}], "expected": 1550},
     {"name": "ao12: DNF and DNS make the average DNF", "n": 12, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": null, "penalty": "dns"}], "expected": -1},
     {"name": "ao12: +2 is included in the average", "n": 12, "resultType": "time", "attempts": [{"value": 800, "penalty": "none"}, {"value": 1400, "penalty": "none"}, {"value": 1000, "penalty": "plus2"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}], "expected": 1020},
     {"name": "ao12: the last 12 attempts are used", "n": 12, "resultType": "time", "attempts": [{"value": null, "penalty": "dnf"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1500, "penalty": "dnf"}], "expected": 1000},
+    {"name": "ao12: exactly a half rounds up (1000.5 -> 1001)", "n": 12, "resultType": "time", "attempts": [{"value": 900, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 2000, "penalty": "none"}], "expected": 1001},
+    {"name": "ao12: below a half rounds down (1000.4 -> 1000)", "n": 12, "resultType": "time", "attempts": [{"value": 900, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1001, "penalty": "none"}, {"value": 2000, "penalty": "none"}], "expected": 1000},
     {"name": "ao12: fewer than 12 attempts, no average", "n": 12, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}], "expected": null},
     {"name": "ao12: no attempts", "n": 12, "resultType": "time", "attempts": [], "expected": null},
     {"name": "ao5: same as an ao5 series", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1100, "penalty": "none"}, {"value": 1200, "penalty": "none"}, {"value": 1300, "penalty": "none"}, {"value": 900, "penalty": "none"}], "expected": 1100},
     {"name": "ao5: one DNF is dropped as the worst attempt", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 1100, "penalty": "none"}, {"value": 1200, "penalty": "none"}, {"value": 900, "penalty": "none"}], "expected": 1100},
     {"name": "ao5: two DNFs make the average DNF", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 1100, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 900, "penalty": "none"}], "expected": -1},
     {"name": "ao5: equal times", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}], "expected": 1000},
-    {"name": "ao5: FMC average in hundredths of a move (29.666 -> 29.66)", "n": 5, "resultType": "moves", "attempts": [{"value": 30, "penalty": "none"}, {"value": 28, "penalty": "none"}, {"value": 31, "penalty": "none"}, {"value": 25, "penalty": "none"}, {"value": 40, "penalty": "none"}], "expected": 2966}
+    {"name": "ao5: FMC average in hundredths of a move (29.667 -> 29.67)", "n": 5, "resultType": "moves", "attempts": [{"value": 30, "penalty": "none"}, {"value": 28, "penalty": "none"}, {"value": 31, "penalty": "none"}, {"value": 25, "penalty": "none"}, {"value": 40, "penalty": "none"}], "expected": 2967}
   ],
 
   "averageOfErrors": [
@@ -491,7 +581,7 @@
   ],
 
   "rollingAverages": [
-    {"name": "ao5: the window passes over a DNF and leaves it", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1100, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 1200, "penalty": "none"}, {"value": 900, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 1300, "penalty": "none"}, {"value": 1000, "penalty": "none"}], "expected": [null, null, null, null, 1100, -1, -1, 1166]},
+    {"name": "ao5: the window passes over a DNF and leaves it", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1100, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 1200, "penalty": "none"}, {"value": 900, "penalty": "none"}, {"value": null, "penalty": "dnf"}, {"value": 1300, "penalty": "none"}, {"value": 1000, "penalty": "none"}], "expected": [null, null, null, null, 1100, -1, -1, 1167]},
     {"name": "ao5: +2 in the window", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "plus2"}, {"value": 900, "penalty": "none"}, {"value": 1100, "penalty": "none"}, {"value": 800, "penalty": "none"}], "expected": [null, null, null, null, 1033, 1000]},
     {"name": "ao5: fewer attempts than the window", "n": 5, "resultType": "time", "attempts": [{"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}, {"value": 1000, "penalty": "none"}], "expected": [null, null, null]},
     {"name": "ao5: no attempts", "n": 5, "resultType": "time", "attempts": [], "expected": []},

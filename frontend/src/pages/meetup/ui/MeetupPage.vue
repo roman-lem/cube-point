@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useIntervalFn } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCurrentClubStore } from '@/entities/club'
@@ -8,7 +7,7 @@ import { useUserStore } from '@/entities/user'
 import { DeleteMeetupControl } from '@/features/meetup-delete'
 import { OrganizerPledgeDialog } from '@/features/organizer-pledge'
 import { ApiError } from '@/shared/api'
-import { EVENTS, type EventId } from '@/shared/lib'
+import { EVENTS, latestLoader, usePolling, type EventId } from '@/shared/lib'
 import { AppCard, AppIcon } from '@/shared/ui'
 
 const { meetupId } = defineProps<{ meetupId: number }>()
@@ -23,16 +22,26 @@ const userStore = useUserStore()
 const data = ref<MeetupPageData | null>(null)
 const error = ref('')
 
-async function load() {
-  try {
-    data.value = await fetchMeetup(meetupId)
-    clubStore.setClubId(data.value.meetup.club.id)
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить встречу'
-  }
-}
+const { load } = latestLoader(
+  () => fetchMeetup(meetupId),
+  (page) => {
+    data.value = page
+    error.value = ''
+    clubStore.setClubId(page.meetup.club.id)
+  },
+  (e) => {
+    // A connection error during polling does not hide the page already shown.
+    if (!data.value) {
+      error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить встречу'
+    }
+  },
+)
 
-watch(() => meetupId, load, { immediate: true })
+watch(() => meetupId, () => {
+  data.value = null
+  error.value = ''
+  load()
+}, { immediate: true })
 
 function onDeleted() {
   router.replace({ name: 'club', params: { clubId: data.value!.meetup.club.id } })
@@ -42,11 +51,11 @@ const requestStatus = computed(() => data.value?.my_request?.status ?? null)
 // Organizer tools open only after the organizer pledge is accepted.
 const isOrganizer = computed(() => data.value?.my_role === 'organizer' && !data.value.pledge)
 
-useIntervalFn(() => {
-  if (requestStatus.value === 'pending' || data.value?.meetup.status === 'live') {
-    load()
-  }
-}, REFRESH_MS)
+usePolling(
+  load,
+  REFRESH_MS,
+  () => requestStatus.value === 'pending' || data.value?.meetup.status === 'live',
+)
 
 // Only an approved participant can start a series, and only during the meetup
 // (the server checks the same). Pending users see the button, but it is disabled.

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { TimeValue } from '@/entities/attempt'
 import { useCurrentClubStore } from '@/entities/club'
@@ -14,7 +13,9 @@ import {
 } from '@/entities/series'
 import { useUserStore } from '@/entities/user'
 import { ApiError } from '@/shared/api'
-import { EVENTS, eventName, formatDate, formatName, plural, type EventId } from '@/shared/lib'
+import {
+  EVENTS, eventName, formatDate, formatName, latestLoader, plural, usePolling, type EventId,
+} from '@/shared/lib'
 import { AppCard, LiveIndicator, PageHeader } from '@/shared/ui'
 
 const { meetupId, eventId } = defineProps<{ meetupId: number; eventId: string }>()
@@ -28,33 +29,30 @@ const data = ref<EventResults | null>(null)
 const error = ref('')
 const expanded = ref(new Set<number>())
 
-async function load() {
-  try {
-    data.value = await fetchEventResults(meetupId, eventId)
+const { load } = latestLoader(
+  () => fetchEventResults(meetupId, eventId),
+  (results) => {
+    data.value = results
     error.value = ''
-    clubStore.setClubId(data.value.meetup.club.id)
-  } catch (e) {
+    clubStore.setClubId(results.meetup.club.id)
+  },
+  (e) => {
     // A connection error during polling does not hide the table already shown.
     if (!data.value) {
       error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить результаты'
     }
-  }
-}
+  },
+)
 
 watch(() => [meetupId, eventId], () => {
   data.value = null
+  error.value = ''
   expanded.value = new Set()
   load()
 }, { immediate: true })
 
 const isLive = computed(() => data.value?.meetup.status === 'live')
-const visibility = useDocumentVisibility()
-
-useIntervalFn(() => {
-  if (isLive.value && visibility.value === 'visible') {
-    load()
-  }
-}, REFRESH_MS)
+usePolling(load, REFRESH_MS, () => isLive.value)
 
 const resultType = computed(() => EVENTS[eventId as EventId]?.resultType ?? 'time')
 const format = computed(() => data.value?.event.format ?? 'ao5')

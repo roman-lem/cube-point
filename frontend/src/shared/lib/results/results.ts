@@ -239,12 +239,22 @@ function best(values: number[]): number | null {
 }
 
 function mean(values: number[], resultType: ResultType): number {
-  // Round down to hundredths: thousandths are simply dropped.
   let total = values.reduce((sum, v) => sum + v, 0)
   if (resultType === 'moves') {
     total *= 100 // the FMC mean is in hundredths of a move
   }
-  return Math.floor(total / values.length)
+  return roundHalfUp(total, values.length)
+}
+
+/**
+ * total / count rounded to the nearest integer, a half rounds up (WCA).
+ * Mirror of _round_half_up in backend/app/results.py: the quotient and the remainder
+ * are integers, so there is no float error on .5.
+ */
+function roundHalfUp(total: number, count: number): number {
+  const quotient = Math.floor(total / count)
+  const remainder = total - quotient * count
+  return 2 * remainder >= count ? quotient + 1 : quotient
 }
 
 function formatTime(centiseconds: number): string {

@@ -182,11 +182,21 @@ def _best(values):
 
 
 def _mean(values, result_type):
-    # Round down to hundredths: thousandths are simply dropped.
     total = sum(values)
     if result_type == "moves":
         total *= 100  # the FMC mean is in hundredths of a move
-    return total // len(values)
+    return _round_half_up(total, len(values))
+
+
+def _round_half_up(total, count):
+    """total / count rounded to the nearest integer, a half rounds up (WCA).
+
+    Integers only, so there is no float error on .5.
+    """
+    quotient, remainder = divmod(total, count)
+    if 2 * remainder >= count:
+        return quotient + 1
+    return quotient
 
 
 def _format_time(centiseconds):

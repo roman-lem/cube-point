@@ -15,6 +15,7 @@ export {
 } from './datetime'
 export { movesWord } from './moves'
 export { plural, pluralForm } from './plural'
+export { latestLoader, usePolling } from './polling'
 export { downloadBlob, qrPng, qrSvg } from './qr'
 export { safeRedirect } from './safeRedirect'
 export { tokenFromHash, useLinkToken } from './linkToken'

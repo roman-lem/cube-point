@@ -153,7 +153,7 @@ Deleting a meetup cascades to its events, series and attempts. A club with meetu
 | `bo1`, `bo3`, `bo5` (best of N) | The best attempt. |
 
 - Defaults, as at WCA: 6x6 and 7x7 are `mo3`, 4BLD and 5BLD are `bo3`, 3BLD is `bo5`, FMC is `bo1`, everything else is `ao5`.
-- Averages are **rounded down** to hundredths (thousandths are simply dropped).
+- A single attempt from the timer is truncated to hundredths. Averages (including the FMC mean in moves and the training ao5/ao12) are **rounded to the nearest hundredth, a half rounds up**, as at WCA. The calculation uses integers only, no floats. Deliberate deviation from the WCA regulations: results over 10 minutes are not rounded to whole seconds, all averages follow the same rule.
 - In an unfinished series, the average becomes DNF as soon as the outcome is certain (two DNF/DNS in ao5, one in mo3). Until then an unfinished series has no average.
 - With equal times in ao5, the first of the best and the last of the worst attempts are dropped. This does not change the average, only which attempts are shown in parentheses.
 - The training timer also shows **ao12**: one best and one worst of the last 12 solves are dropped, and the other ten averaged.

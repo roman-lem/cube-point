@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useIntervalFn } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { ApiError } from '@/shared/api'
+import { latestLoader, usePolling } from '@/shared/lib'
 import { AppButton, AppCard, AppIcon } from '@/shared/ui'
 import {
   approveAll, approveRequest, fetchRequests, rejectRequest, type ParticipationRequest,
 } from '../api/requestsApi'
 
 // Participation requests for the meetup. People send them right at the meetup,
-// so the list refreshes itself every 10 seconds.
+// so the list refreshes itself every 10 seconds (not for a finished meetup).
 const { meetupId, readonly = false } = defineProps<{
   meetupId: number
   /** The meetup is finished: requests are read-only. */
@@ -22,22 +22,28 @@ const requests = ref<ParticipationRequest[]>([])
 const loaded = ref(false)
 const busyUserId = ref<number | null>(null)
 const approvingAll = ref(false)
+/** Error of the last action (approve, reject). */
 const error = ref('')
+/** Error of loading the list: cleared by the next successful load. */
+const loadError = ref('')
 
 const pendingCount = computed(() => requests.value.filter((r) => r.status === 'pending').length)
 const approvedCount = computed(() => requests.value.filter((r) => r.status === 'approved').length)
 
-async function load() {
-  try {
-    requests.value = await fetchRequests(meetupId)
+const { load } = latestLoader(
+  () => fetchRequests(meetupId),
+  (list) => {
+    requests.value = list
     loaded.value = true
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить заявки'
-  }
-}
+    loadError.value = ''
+  },
+  (e) => {
+    loadError.value = e instanceof ApiError ? e.message : 'Не удалось загрузить заявки'
+  },
+)
 
 onMounted(load)
-useIntervalFn(load, REFRESH_MS)
+usePolling(load, REFRESH_MS, () => !readonly)
 
 async function run(action: () => Promise<unknown>, userId: number | null) {
   error.value = ''
@@ -91,7 +97,7 @@ const STATUS_NAMES = { approved: 'Подтверждена', rejected: 'Откл
       </AppButton>
     </div>
 
-    <p v-if="error" class="requests__error" role="alert">{{ error }}</p>
+    <p v-if="error || loadError" class="requests__error" role="alert">{{ error || loadError }}</p>
     <p v-if="loaded && requests.length === 0" class="requests__note">
       Заявок пока нет. Покажите участникам QR-код встречи.
     </p>
