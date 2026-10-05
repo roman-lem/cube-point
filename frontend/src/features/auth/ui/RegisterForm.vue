@@ -79,8 +79,8 @@ async function submit() {
   <form v-else class="auth-form" novalidate @submit.prevent="submit">
     <AppInput
       v-model="form.display_name"
-      label="Имя или никнейм"
-      placeholder="например, Алексей или alex_cube"
+      label="Имя или псевдоним"
+      placeholder="например, Алексей Громов"
       autocomplete="nickname"
       hint="Так вас увидят в таблицах результатов"
       :error="fieldErrors.display_name"
